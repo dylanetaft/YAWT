@@ -22,6 +22,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/../include
     ${CMAKE_INSTALL_PREFIX}/include
 )
+
+if(YAWT_ENABLE_LOGGING)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+    YAWT_ENABLE_LOGGING
+    YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
+  )
+endif()
 target_link_libraries(${PROJECT_NAME} ${LIBEV} ${ALLOCNBUFFER}
     ${GNUTLS_STATIC_LIBRARIES})
 

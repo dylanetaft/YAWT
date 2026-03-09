@@ -20,8 +20,10 @@ typedef struct {
 } YAWT_NetAddr_t;
 
 typedef struct YAWT_Q_Connection {
-  uint64_t cid;
-  uint64_t peer_cid;
+  uint8_t cid[20];
+  uint8_t cid_len;
+  uint8_t peer_cid[20];
+  uint8_t peer_cid_len;
   YAWT_NetAddr_t peer_addr;
   ANB_FifoSlab_t *recv_buffer;
   ANB_FifoSlab_t *send_buffer;
@@ -41,7 +43,6 @@ typedef struct YAWT_Q_Connection {
   YAWT_Q_Crypto_t crypto;
 } YAWT_Q_Connection_t;
 typedef struct YAWT_Q_Con_Create_Info {
-  uint64_t peer_cid;
   YAWT_NetAddr_t peer_addr;
   int is_server;
   YAWT_Q_Crypto_Cred_t *cred;
@@ -52,5 +53,4 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
 void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 void YAWT_q_con_set_state(YAWT_Q_Connection_t *con, YAWT_Q_Connection_State_t new_state);
 YAWT_Q_Connection_State_t YAWT_q_con_get_state(YAWT_Q_Connection_t *con);
-void YAWT_q_process_datagram(uint8_t *data, size_t len,
-                              YAWT_Q_Connection_t *con);
+void YAWT_q_process_datagram(uint8_t *data, size_t len);

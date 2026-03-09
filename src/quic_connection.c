@@ -5,6 +5,8 @@
 #include <allocnbuffer/fifoslab.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
+#include "logger.h"
+#include <arpa/inet.h>
 
 YAWT_Q_Connection_t *_hash_cid = NULL; // Hash table of connections by CID
 YAWT_Q_Connection_t *_hash_addr = NULL; // Hash table of connections by peer addr
@@ -13,23 +15,26 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   if (info == NULL) return NULL;
   YAWT_Q_Connection_t *con = malloc(sizeof(YAWT_Q_Connection_t));
   if (!con) return NULL;
-  gnutls_rnd(GNUTLS_RND_NONCE, &con->cid, sizeof(con->cid));
-  con->peer_cid = info->peer_cid;
+  con->cid_len = 20;
+  gnutls_rnd(GNUTLS_RND_NONCE, con->cid, con->cid_len);
+  con->peer_cid_len = 0;
   memcpy(&con->peer_addr, &info->peer_addr, sizeof(YAWT_NetAddr_t));
   con->recv_buffer = ANB_fifoslab_create(4096);
   con->send_buffer = ANB_fifoslab_create(4096);
   con->sent_buffer = ANB_fifoslab_create(4096);
   YAWT_q_crypto_init(&con->crypto, info->is_server, info->cred);
-  HASH_ADD(hh_peer_cid, _hash_cid, peer_cid, sizeof(uint64_t), con);
   HASH_ADD(hh_addr, _hash_addr, peer_addr, sizeof(YAWT_NetAddr_t), con);
+  YAWT_LOG(YAWT_LOG_INFO, "Created connection: CID=%s",
+            YAWT_q_cid_to_hex(con->cid, con->cid_len));
+
   return con;
 }
 
 void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   if (con == NULL || *con == NULL) return;
   YAWT_Q_Connection_t *c = *con;
-  HASH_DELETE(hh_peer_cid,_hash_cid, c);
-  HASH_DELETE(hh_addr,_hash_addr, c);
+  if (c->peer_cid_len > 0) HASH_DELETE(hh_peer_cid, _hash_cid, c);
+  HASH_DELETE(hh_addr, _hash_addr, c);
   YAWT_q_crypto_free(&c->crypto);
   ANB_fifoslab_destroy(c->recv_buffer);
   ANB_fifoslab_destroy(c->send_buffer);
@@ -69,8 +74,7 @@ static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
   }
 }
 
-void YAWT_q_process_datagram(uint8_t *data, size_t len,
-                              YAWT_Q_Connection_t *con) {
+void YAWT_q_process_datagram(uint8_t *data, size_t len) {
   YAWT_Q_ReadCursor_t rc = { .data = data, .len = len, .cursor = 0, .err = YAWT_Q_OK };
   while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {
     size_t prev = rc.cursor;

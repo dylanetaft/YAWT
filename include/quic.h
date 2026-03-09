@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 //[IP[UDP[QUICK_PKT[FRAME1[...], FRAME2[...], ...],[QUICK_PKT2.....]]]]
 //Loss detection is at the quic packet level, not per frame, uses counter
 
@@ -127,7 +129,8 @@ typedef struct {
   uint8_t spin_bit; //1 bit - //TODO: Initially unimplemented
   uint8_t reserved; //2 bits
   uint8_t key_phase; //1 bit
-  uint64_t dest_cid;
+  uint8_t dest_cid_len; // not on wire — known from connection state
+  uint8_t dest_cid[20];
   YAWT_Q_Packet_Common_t common;
 } YAWT_Q_PKT_1RTT_t;
 
@@ -307,4 +310,12 @@ typedef struct {
 // Sets out->common to point into the active union member (NULL for Retry).
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
-
+// Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
+static inline const char *YAWT_q_cid_to_hex(const uint8_t *cid, uint8_t cid_len) {
+  static char buf[41];
+  memset(buf, 0, sizeof(buf));
+  for (uint8_t i = 0; i < cid_len && i < 20; i++) {
+    sprintf(buf + 2 * i, "%02x", cid[i]);
+  }
+  return buf;
+}

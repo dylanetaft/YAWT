@@ -453,11 +453,10 @@ static YAWT_Q_Error_t _encode_pkt_1rtt(const YAWT_Q_PKT_1RTT_t *pkt,
                   (pkt->reserved << 3) | (pkt->key_phase << 2) |
                   ((pkt->common.packet_number_length - 1) & 3);
 
-  // DCID (uint64_t, 8 bytes big-endian)
-  if (cursor + 8 > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  for (int i = 7; i >= 0; i--) {
-    buf[cursor++] = (uint8_t)(pkt->dest_cid >> (8 * i));
-  }
+  // DCID (variable length, known from connection state)
+  if (cursor + pkt->dest_cid_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
+  memcpy(buf + cursor, pkt->dest_cid, pkt->dest_cid_len);
+  cursor += pkt->dest_cid_len;
 
   // Packet Number (big-endian)
   if (cursor + pkt->common.packet_number_length > len) return YAWT_Q_ERR_SHORT_BUFFER;
