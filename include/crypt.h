@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <gnutls/gnutls.h>
+#include <stdbool.h>
+
 
 typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
 
@@ -43,7 +45,7 @@ typedef struct {
   uint8_t hp_write[32];
   size_t key_len;         // 16 for AES-128-GCM (hardcoded for now)
 
-  int available;             // flag: keys installed for this level
+  bool available;             // flag: keys installed for this level
 } YAWT_Q_Level_Keys_t;
 
 typedef struct {

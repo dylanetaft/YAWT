@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <gnutls/crypto.h>
+#include "logger.h"
+
 
 typedef struct YAWT_Q_Crypto_Cred {
   gnutls_certificate_credentials_t cred;
@@ -168,6 +170,11 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred) {
 
 int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
                     int is_server, YAWT_Q_Crypto_Cred_t *cred) {
+
+  if (!crypto || !cred) {
+    YAWT_LOG(YAWT_LOG_ERROR, "Invalid arguments to YAWT_q_crypto_init");
+    return -1;
+  }
   int ret;
 
   memset(crypto, 0, sizeof(*crypto));
@@ -183,6 +190,7 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
                                     "NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
   if (ret < 0) return ret;
 
+  
   ret = gnutls_credentials_set(crypto->session, GNUTLS_CRD_CERTIFICATE,
                                 cred->cred);
   if (ret < 0) return ret;
@@ -406,14 +414,13 @@ int YAWT_q_crypto_decrypt_payload(const uint8_t *key, size_t key_len,
 int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
                                     const YAWT_Q_Level_Keys_t *keys) {
   if (!pkt || !keys || !keys->available) return -1;
-  if (!pkt->common) return 0; // Retry — nothing to decrypt
-  if (!pkt->raw || !pkt->common->payload || pkt->common->payload_len == 0) return -1;
+  if (pkt->type == YAWT_Q_PKT_TYPE_RETRY) return 0; // Retry — nothing to decrypt
+  if (!pkt->raw || !pkt->payload || pkt->payload_len == 0) return -1;
 
   uint8_t *packet = pkt->raw;
-  YAWT_Q_Packet_Common_t *c = pkt->common;
 
   // Total packet length: from raw through end of payload
-  size_t packet_len = (size_t)(c->payload + c->payload_len - packet);
+  size_t packet_len = (size_t)(pkt->payload + pkt->payload_len - packet);
 
   // Step 1: Header unprotection
   int ret = YAWT_q_crypto_unprotect_header(packet, packet_len,
@@ -422,31 +429,31 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
   if (ret < 0) return ret;
 
   // Step 2: Re-read true PN length and PN value from unmasked bytes
-  c->packet_number_length = (packet[0] & 0x03) + 1;
-  c->packet_num = 0;
-  for (uint8_t i = 0; i < c->packet_number_length; i++) {
-    c->packet_num = (c->packet_num << 8) | packet[pkt->pn_offset + i];
+  pkt->packet_number_length = (packet[0] & 0x03) + 1;
+  pkt->packet_num = 0;
+  for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
+    pkt->packet_num = (pkt->packet_num << 8) | packet[pkt->pn_offset + i];
   }
 
   // Step 3: AEAD decrypt
   // AAD = header bytes (byte 0 through end of PN)
-  size_t header_len = pkt->pn_offset + c->packet_number_length;
+  size_t header_len = pkt->pn_offset + pkt->packet_number_length;
   // Ciphertext starts right after PN
   const uint8_t *ciphertext = packet + header_len;
-  size_t ciphertext_len = (size_t)(c->payload + c->payload_len - ciphertext);
+  size_t ciphertext_len = (size_t)(pkt->payload + pkt->payload_len - ciphertext);
 
   // Decrypt in-place: write plaintext starting at payload pointer
-  size_t plaintext_len = c->payload_len;
+  size_t plaintext_len = pkt->payload_len;
   ret = YAWT_q_crypto_decrypt_payload(keys->key_read, keys->key_len,
-                                       keys->iv_read, c->packet_num,
+                                       keys->iv_read, pkt->packet_num,
                                        packet, header_len,
                                        ciphertext, ciphertext_len,
-                                       c->payload, &plaintext_len);
+                                       pkt->payload, &plaintext_len);
   if (ret < 0) return ret;
 
-  c->payload_len = plaintext_len;
+  pkt->payload_len = plaintext_len;
 
   printf("  decrypted %zu bytes (PN=%u, pn_len=%u)\n",
-         plaintext_len, c->packet_num, c->packet_number_length);
+         plaintext_len, pkt->packet_num, pkt->packet_number_length);
   return 0;
 }

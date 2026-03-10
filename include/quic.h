@@ -67,88 +67,44 @@ typedef enum {
   YAWT_Q_PKT_RETRY = 0x03
 } YAWT_Q_Long_Packet_Type_t;
 
-// Shared long header fields (common to all long header packet types)
-typedef struct {
-  uint8_t header_form; //1 bit
-  uint8_t fixed_bit; //1 bit
-  uint8_t long_packet_type; //2 bits
-  uint32_t version;
+// Flat packet struct — all packet types collapsed into one
+typedef struct YAWT_Q_Packet {
+  YAWT_Q_Packet_Type_t type;
+
+  // Header fields (all packet types)
+  uint32_t version;            // 0 for 1-RTT
   uint8_t dest_cid_len;
   uint8_t dest_cid[20];
-  uint8_t src_cid_len;
+  uint8_t src_cid_len;         // 0 for 1-RTT
   uint8_t src_cid[20];
-} YAWT_Q_Long_Header_t;
 
-// Common fields shared by all encrypted packet types (not Retry)
-typedef struct {
-  uint8_t packet_number_length; //2 bits, 1-4
+  // Encrypted packet fields (not Retry)
+  uint8_t reserved;            // 2 bits
+  uint8_t packet_number_length; // 1-4
   uint32_t packet_num;
   uint8_t *payload;
   size_t payload_len;
-} YAWT_Q_Packet_Common_t;
 
-// Packet type 0x00 - Initial
-typedef struct {
-  YAWT_Q_Long_Header_t header;
-  uint8_t reserved; //2 bits
-  uint64_t token_len; //varint
-  uint8_t *token;
-  uint64_t len; //varint
-  YAWT_Q_Packet_Common_t common;
-} YAWT_Q_PKT_Initial_t;
+  // Crypto support
+  uint8_t *raw;                // pointer to byte 0 in datagram buffer
+  size_t pn_offset;            // byte offset of PN from raw
 
-// Packet type 0x01 - 0-RTT
-typedef struct {
-  YAWT_Q_Long_Header_t header;
-  uint8_t reserved; //2 bits
-  uint64_t len; //varint
-  YAWT_Q_Packet_Common_t common;
-} YAWT_Q_PKT_0RTT_t;
-
-// Packet type 0x02 - Handshake
-typedef struct {
-  YAWT_Q_Long_Header_t header;
-  uint8_t reserved; //2 bits
-  uint64_t len; //varint
-  YAWT_Q_Packet_Common_t common;
-} YAWT_Q_PKT_Handshake_t;
-
-// Packet type 0x03 - Retry
-typedef struct {
-  YAWT_Q_Long_Header_t header;
-  uint8_t unused; //4 bits
-  uint64_t token_len;
-  uint8_t *token;
-  uint8_t retry_integrity_tag[16];
-} YAWT_Q_PKT_Retry_t;
-
-// 1-RTT packet (short header)
-typedef struct {
-  uint8_t header_form; //1 bit - MSB of byte 0 is set to 0 for short header
-  uint8_t fixed_bit; //1 bit
-  uint8_t spin_bit; //1 bit - //TODO: Initially unimplemented
-  uint8_t reserved; //2 bits
-  uint8_t key_phase; //1 bit
-  uint8_t dest_cid_len; // not on wire — known from connection state
-  uint8_t dest_cid[20];
-  YAWT_Q_Packet_Common_t common;
-} YAWT_Q_PKT_1RTT_t;
-
-// Tagged union for any QUIC packet
-typedef union {
-  YAWT_Q_PKT_Initial_t initial;
-  YAWT_Q_PKT_0RTT_t zero_rtt;
-  YAWT_Q_PKT_Handshake_t handshake;
-  YAWT_Q_PKT_Retry_t retry;
-  YAWT_Q_PKT_1RTT_t one_rtt;
-} YAWT_Q_Packet_u;
-
-typedef struct YAWT_Q_Packet {
-  YAWT_Q_Packet_Type_t type;
-  YAWT_Q_Packet_u pkt;
-  YAWT_Q_Packet_Common_t *common; // points into active union member (NULL for Retry)
-  uint8_t *raw;       // pointer to byte 0 of this packet in the datagram buffer
-  size_t pn_offset;   // byte offset of the PN field from raw (for header unprotection)
+  // Type-specific extras
+  union {
+    struct {
+      uint64_t token_len;
+      uint8_t *token;
+    } initial;
+    struct {
+      uint8_t spin_bit;
+      uint8_t key_phase;
+    } one_rtt;
+    struct {
+      uint64_t token_len;
+      uint8_t *token;
+      uint8_t retry_integrity_tag[16];
+    } retry;
+  } extra;
 } YAWT_Q_Packet_t;
 
 // Frame type 0x00 - PADDING
@@ -307,7 +263,6 @@ typedef struct {
 
 // Parse a QUIC packet from a read cursor (zero-copy: pointers into cursor data).
 // Advances rc->cursor past the parsed packet. Check rc->err after call.
-// Sets out->common to point into the active union member (NULL for Retry).
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 // Format a CID as hex string. Returns pointer to static buffer (not thread-safe).

@@ -18,12 +18,10 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->cid_len = 20;
   gnutls_rnd(GNUTLS_RND_NONCE, con->cid, con->cid_len);
   con->peer_cid_len = 0;
-  memcpy(&con->peer_addr, &info->peer_addr, sizeof(YAWT_NetAddr_t));
   con->recv_buffer = ANB_fifoslab_create(4096);
   con->send_buffer = ANB_fifoslab_create(4096);
   con->sent_buffer = ANB_fifoslab_create(4096);
   YAWT_q_crypto_init(&con->crypto, info->is_server, info->cred);
-  HASH_ADD(hh_addr, _hash_addr, peer_addr, sizeof(YAWT_NetAddr_t), con);
   YAWT_LOG(YAWT_LOG_INFO, "Created connection: CID=%s",
             YAWT_q_cid_to_hex(con->cid, con->cid_len));
 
@@ -74,7 +72,12 @@ static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
   }
 }
 
-void YAWT_q_process_datagram(uint8_t *data, size_t len) {
+YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const uint8_t *cid, uint8_t cid_len) {
+  YAWT_Q_Connection_t *con = NULL;
+  HASH_FIND(hh_peer_cid, _hash_cid, cid, cid_len, con);
+  return con;
+}
+void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred) {
   YAWT_Q_ReadCursor_t rc = { .data = data, .len = len, .cursor = 0, .err = YAWT_Q_OK };
   while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {
     size_t prev = rc.cursor;
@@ -85,23 +88,36 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len) {
     printf("  packet: %s (consumed %zu bytes)\n", _pkt_type_name(pkt.type), rc.cursor - prev);
 
     // Skip Retry — no encrypted payload
-    if (pkt.type == YAWT_Q_PKT_TYPE_RETRY) continue;
+    //if (pkt.type == YAWT_Q_PKT_TYPE_RETRY) continue;
+    YAWT_Q_Connection_t *con = YAWT_q_con_find_by_cid(pkt.dest_cid, pkt.dest_cid_len);
+    if (!con) {
+      YAWT_LOG(YAWT_LOG_INFO, "New connection for CID=%s", YAWT_q_cid_to_hex(pkt.dest_cid, pkt.dest_cid_len));
+      YAWT_Q_Con_Create_Info_t info;
+      memset(&info, 0, sizeof(info));
+      info.is_server = 0;
+      info.cred = cred;
+      con = YAWT_q_con_create(&info);
+    }
 
-    if (!con) continue;
-
+    if (!con) {
+      YAWT_LOG(YAWT_LOG_ERROR, "Failed to create connection for CID=%s", YAWT_q_cid_to_hex(pkt.dest_cid, pkt.dest_cid_len));
+      continue;
+    }
     YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt.type);
 
     // For Initial packets: derive keys from DCID if not done yet
     if (level == YAWT_Q_LEVEL_INITIAL &&
         !con->crypto.level_keys[YAWT_Q_LEVEL_INITIAL].available) {
-      const uint8_t *dcid = pkt.pkt.initial.header.dest_cid;
-      uint8_t dcid_len = pkt.pkt.initial.header.dest_cid_len;
+      const uint8_t *dcid = pkt.dest_cid;
+      uint8_t dcid_len = pkt.dest_cid_len;
       int ret = YAWT_q_crypto_derive_initial_keys(&con->crypto, dcid, dcid_len);
       if (ret < 0) {
-        printf("  error: failed to derive initial keys: %d\n", ret);
+        YAWT_LOG(YAWT_LOG_ERROR, "Failed to derive initial keys for CID=%s: %d",
+                  YAWT_q_cid_to_hex(pkt.dest_cid, pkt.dest_cid_len), ret);
         break;
       }
-      printf("  derived initial keys from DCID (%u bytes)\n", dcid_len);
+      YAWT_LOG(YAWT_LOG_INFO, "Derived initial keys for CID=%s from DCID (%u bytes)",
+                YAWT_q_cid_to_hex(pkt.dest_cid, pkt.dest_cid_len), pkt.dest_cid_len);
     }
 
     YAWT_Q_Level_Keys_t *keys = &con->crypto.level_keys[level];
