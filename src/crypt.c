@@ -271,7 +271,7 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
 // For a server: secret_read = client secret, secret_write = server secret.
 // For a client: secret_read = server secret, secret_write = client secret.
 int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
-                                       const uint8_t *dcid, size_t dcid_len) {
+                                       const YAWT_Q_Cid_t *dcid) {
   YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[YAWT_Q_LEVEL_INITIAL];
   gnutls_mac_algorithm_t hash = GNUTLS_MAC_SHA256;
   size_t hash_len = 32; // SHA-256 output
@@ -281,7 +281,7 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
   // Step 1: HKDF-Extract(salt, client_dcid) → initial_secret
   uint8_t initial_secret[32];
   gnutls_datum_t salt_d = { .data = (void *)INITIAL_SALT, .size = sizeof(INITIAL_SALT) };
-  gnutls_datum_t dcid_d = { .data = (void *)dcid, .size = dcid_len };
+  gnutls_datum_t dcid_d = { .data = (void *)dcid->id, .size = dcid->len };
   ret = gnutls_hkdf_extract(hash, &dcid_d, &salt_d, initial_secret);
   if (ret < 0) return ret;
 
@@ -455,5 +455,87 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
 
   printf("  decrypted %zu bytes (PN=%u, pn_len=%u)\n",
          plaintext_len, pkt->packet_num, pkt->packet_number_length);
+  return 0;
+}
+
+// Protect (encrypt + header protect) an outbound packet in-place (RFC 9001 §5.3, §5.4).
+// The buffer layout on entry:
+//   [header (pn_offset bytes)] [PN (pn_length bytes)] [plaintext] [16 bytes tag space]
+// After AEAD encrypt:
+//   [header] [PN] [ciphertext + tag]
+// After header protection:
+//   [masked header] [masked PN] [ciphertext + tag]
+int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
+                                  size_t pn_offset, uint8_t pn_length,
+                                  uint32_t packet_num,
+                                  const YAWT_Q_Level_Keys_t *keys) {
+  if (!packet || !keys || !keys->available) return -1;
+
+  size_t header_len = pn_offset + pn_length;
+  if (header_len >= packet_len) return -1;
+
+  // Plaintext starts after header, ends 16 bytes before buffer end (tag space)
+  size_t ciphertext_area = packet_len - header_len;
+  if (ciphertext_area < 16) return -1; // need at least tag space
+  size_t plaintext_len = ciphertext_area - 16;
+
+  // Construct nonce: iv XOR packet_number (right-aligned in 12 bytes)
+  uint8_t nonce[12];
+  memcpy(nonce, keys->iv_write, 12);
+  nonce[11] ^= (uint8_t)(packet_num);
+  nonce[10] ^= (uint8_t)(packet_num >> 8);
+  nonce[9]  ^= (uint8_t)(packet_num >> 16);
+  nonce[8]  ^= (uint8_t)(packet_num >> 24);
+
+  // AEAD encrypt
+  gnutls_aead_cipher_hd_t cipher;
+  gnutls_datum_t key_d = { .data = (void *)keys->key_write, .size = keys->key_len };
+  int ret = gnutls_aead_cipher_init(&cipher, GNUTLS_CIPHER_AES_128_GCM, &key_d);
+  if (ret < 0) return ret;
+
+  // Encrypt plaintext in-place. Output goes to same location (header_len offset).
+  // gnutls_aead_cipher_encrypt writes ciphertext + tag.
+  uint8_t *plaintext = packet + header_len;
+  size_t out_len = ciphertext_area; // space for ciphertext + tag
+  size_t tag_size = 16;
+
+  ret = gnutls_aead_cipher_encrypt(cipher, nonce, 12,
+                                    packet, header_len, // AAD = header
+                                    tag_size,
+                                    plaintext, plaintext_len,
+                                    plaintext, &out_len);
+  gnutls_aead_cipher_deinit(cipher);
+  if (ret < 0) return ret;
+
+  // Header protection: AES-ECB(hp_key, sample) → mask
+  // Sample = 16 bytes starting at pn_offset + 4
+  if (pn_offset + 4 + 16 > packet_len) return -1;
+  const uint8_t *sample = packet + pn_offset + 4;
+
+  gnutls_cipher_hd_t hp_cipher;
+  gnutls_datum_t hp_key_d = { .data = (void *)keys->hp_write, .size = keys->key_len };
+  ret = gnutls_cipher_init(&hp_cipher, GNUTLS_CIPHER_AES_128_CBC, &hp_key_d, NULL);
+  if (ret < 0) return ret;
+
+  uint8_t mask[16];
+  memcpy(mask, sample, 16);
+  ret = gnutls_cipher_encrypt(hp_cipher, mask, 16);
+  gnutls_cipher_deinit(hp_cipher);
+  if (ret < 0) return ret;
+
+  // Mask byte 0
+  if (packet[0] & 0x80) {
+    // Long header: mask lower 4 bits
+    packet[0] ^= (mask[0] & 0x0f);
+  } else {
+    // Short header: mask lower 5 bits
+    packet[0] ^= (mask[0] & 0x1f);
+  }
+
+  // Mask PN bytes
+  for (uint8_t i = 0; i < pn_length; i++) {
+    packet[pn_offset + i] ^= mask[1 + i];
+  }
+
   return 0;
 }

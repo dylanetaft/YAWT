@@ -85,8 +85,9 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
 int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto);
 
 // Derive Initial encryption keys from client's Destination Connection ID (RFC 9001 §5.2).
+struct YAWT_Q_Cid;
 int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
-                                       const uint8_t *dcid, size_t dcid_len);
+                                       const struct YAWT_Q_Cid *dcid);
 
 // Remove header protection in-place (RFC 9001 §5.4).
 // pn_offset is the byte offset of the packet number within the packet.
@@ -110,3 +111,14 @@ struct YAWT_Q_Packet;
 // Returns 0 on success, negative on error.
 int YAWT_q_crypto_unprotect_packet(struct YAWT_Q_Packet *pkt,
                                     const YAWT_Q_Level_Keys_t *keys);
+
+// Protect (encrypt + apply header protection) an outbound packet in-place.
+// packet must contain: unprotected header + plaintext payload + 16 bytes space for AEAD tag.
+// packet_len is the total buffer length including the tag space.
+// pn_offset is the byte offset of the packet number within the packet.
+// pn_length is the length of the packet number field (1-4).
+// Returns 0 on success, negative on error.
+int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
+                                  size_t pn_offset, uint8_t pn_length,
+                                  uint32_t packet_num,
+                                  const YAWT_Q_Level_Keys_t *keys);

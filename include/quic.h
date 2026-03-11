@@ -3,6 +3,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include "logger.h"
+
+
+// Quic connection initialization goes like this
+// Initial -> Handshake -> 1-RTT
+// Initial - Establishes header protection key + Client\Server Hello + CIDs
+// Handshake - Establishes RTT keys + Handshake messages
+// 1-RTT - Application keys
 //[IP[UDP[QUICK_PKT[FRAME1[...], FRAME2[...], ...],[QUICK_PKT2.....]]]]
 //Loss detection is at the quic packet level, not per frame, uses counter
 
@@ -15,6 +23,20 @@ typedef enum {
   YAWT_Q_ERR_VARINT_OVERFLOW,
   YAWT_Q_ERR_CID_TOO_LONG
 } YAWT_Q_Error_t;
+
+typedef struct YAWT_Q_Cid {
+  uint8_t id[20];
+  uint8_t len;
+} YAWT_Q_Cid_t;
+
+static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t len) {
+  if (len > 20) {
+    len = 20;
+    YAWT_LOG(YAWT_LOG_ERROR, "CID length %u exceeds max, truncating to 20", len);
+  }
+  dst->len = len;
+  memcpy(dst->id, id, len);
+}
 
 // QUIC packet type (all 5 forms)
 typedef enum {
@@ -73,10 +95,8 @@ typedef struct YAWT_Q_Packet {
 
   // Header fields (all packet types)
   uint32_t version;            // 0 for 1-RTT
-  uint8_t dest_cid_len;
-  uint8_t dest_cid[20];
-  uint8_t src_cid_len;         // 0 for 1-RTT
-  uint8_t src_cid[20];
+  YAWT_Q_Cid_t dest_cid;
+  YAWT_Q_Cid_t src_cid;         // zeroed for 1-RTT
 
   // Encrypted packet fields (not Retry)
   uint8_t reserved;            // 2 bits
@@ -119,7 +139,7 @@ typedef struct {
   uint64_t ack_delay; //varint
   uint64_t ack_range_count; //varint
   uint64_t first_ack_range; //varint
-  // followed by ack_range_count ACK Range fields
+  // followed by ack_range_count ACK) Range fields
 } YAWT_Q_Frame_ACK_t;
 
 typedef struct {
@@ -215,8 +235,7 @@ typedef struct {
 typedef struct {
   uint64_t seq_num; //varint
   uint64_t retire_prior_to; //varint
-  uint8_t cid_len; //8 bits, 0-20
-  uint8_t cid[20];
+  YAWT_Q_Cid_t cid;
   uint8_t stateless_reset_token[16];
 } YAWT_Q_Frame_New_Connection_ID_t;
 
@@ -253,6 +272,42 @@ typedef struct {
 // Frame type 0x1e - HANDSHAKE_DONE
 // No fields, just the type byte. No struct needed.
 
+// Generic frame struct for tx_buffer — all frame types in one union
+typedef struct {
+  YAWT_Q_Frame_Type_t type;
+  uint8_t level;  // YAWT_Q_Encryption_Level_t — which packet type to send in
+
+  // Send tracking
+  uint32_t packet_num;              // PN this was sent in (0 if unsent)
+  uint64_t last_sent;               // timestamp of last send (0 = needs sending)
+
+  // Inline data length (for CRYPTO/STREAM data stored after this struct)
+  size_t data_len;
+
+  union {
+    YAWT_Q_Frame_Crypto_t crypto;
+    YAWT_Q_Frame_ACK_t ack;
+    YAWT_Q_Frame_Stream_t stream;
+  } f;
+} YAWT_Q_Frame_t;
+
+// Frame handler callback for parse_frames. frame_type is the wire type.
+// frame points to the parsed frame struct (NULL for PADDING/PING).
+// Return 0 to continue, non-zero to stop.
+typedef int (*YAWT_Q_Frame_Handler_t)(uint64_t frame_type, const void *frame, void *ctx);
+
+// Parse frames from a decrypted payload, calling handler for each frame.
+YAWT_Q_Error_t YAWT_q_parse_frames(const uint8_t *payload, size_t payload_len,
+                                     YAWT_Q_Frame_Handler_t handler, void *ctx);
+
+// Encode a CRYPTO frame into buf. Returns total bytes written, or negative on error.
+int YAWT_q_encode_frame_crypto(uint8_t *buf, size_t buf_len,
+                                uint64_t offset, const uint8_t *data, size_t data_len);
+
+// Encode a packet (dispatch by type). Returns YAWT_Q_OK on success.
+YAWT_Q_Error_t YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
+                                      uint8_t *buf, size_t len, size_t *written);
+
 // Read cursor for zero-copy datagram parsing
 typedef struct {
   uint8_t *data;
@@ -266,11 +321,11 @@ typedef struct {
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 // Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
-static inline const char *YAWT_q_cid_to_hex(const uint8_t *cid, uint8_t cid_len) {
+static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
   static char buf[41];
   memset(buf, 0, sizeof(buf));
-  for (uint8_t i = 0; i < cid_len && i < 20; i++) {
-    sprintf(buf + 2 * i, "%02x", cid[i]);
+  for (uint8_t i = 0; i < cid->len && i < 20; i++) {
+    sprintf(buf + 2 * i, "%02x", cid->id[i]);
   }
   return buf;
 }

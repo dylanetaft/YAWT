@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <allocnbuffer/fifoslab.h>
 #include <uthash/uthash.h>
+#include "quic.h"
 #include "crypt.h"
 
 // QUIC connection states
@@ -15,15 +16,13 @@ typedef enum {
 } YAWT_Q_Connection_State_t;
 
 typedef struct YAWT_Q_Connection {
-  uint8_t cid[20];
-  uint8_t cid_len;
-  uint8_t peer_cid[20];
-  uint8_t peer_cid_len;
+  YAWT_Q_Cid_t cid;
+  YAWT_Q_Cid_t peer_cid;
+  uint32_t version;
   ANB_FifoSlab_t *recv_buffer;
-  ANB_FifoSlab_t *send_buffer;
-  ANB_FifoSlab_t *sent_buffer;
+  ANB_FifoSlab_t *tx_buffer;
   UT_hash_handle hh_addr;
-  UT_hash_handle hh_peer_cid;
+  UT_hash_handle hh_cid;
   YAWT_Q_Connection_State_t state;
 
   // RFC 9000 Section 12.3 - Counters for each space
@@ -39,13 +38,22 @@ typedef struct YAWT_Q_Connection {
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
   YAWT_Q_Crypto_Cred_t *cred;
+  YAWT_Q_Cid_t peer_cid;
   
 } YAWT_Q_Con_Create_Info_t;
 
 YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
-YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const uint8_t *cid, uint8_t cid_len);
+YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 void YAWT_q_con_set_state(YAWT_Q_Connection_t *con, YAWT_Q_Connection_State_t new_state);
 YAWT_Q_Connection_State_t YAWT_q_con_get_state(YAWT_Q_Connection_t *con);
 void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred);
+
+// Send callback type for flush_send
+typedef void (*YAWT_Q_Send_Func_t)(const uint8_t *buf, size_t len, void *ctx);
+
+// Pack unsent frames from tx_buffer into packets, encrypt, and send
+void YAWT_q_con_flush_send(YAWT_Q_Connection_t *con,
+                            YAWT_Q_Send_Func_t send_func,
+                            void *send_ctx);
 
