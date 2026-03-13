@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <gnutls/gnutls.h>
 #include <stdbool.h>
+#include "quic.h"
 
 
 typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
@@ -30,7 +31,7 @@ typedef enum {
 } YAWT_Q_Encryption_Level_t;
 
 // Per-level keys derived by GnuTLS
-typedef struct {
+typedef struct YAWT_Q_Level_Keys {
   uint8_t secret_read[48];   // traffic secret for reading (max SHA-384 = 48 bytes)
   uint8_t secret_write[48];  // traffic secret for writing
   size_t secret_len;
@@ -43,7 +44,8 @@ typedef struct {
   uint8_t key_write[32];  // AEAD key for encryption
   uint8_t iv_write[12];
   uint8_t hp_write[32];
-  size_t key_len;         // 16 for AES-128-GCM (hardcoded for now)
+  size_t key_len;         // 16 for AES-128-GCM, 32 for AES-256-GCM
+  int aead_cipher;        // gnutls_cipher_algorithm_t for AEAD encrypt/decrypt
 
   bool available;             // flag: keys installed for this level
 } YAWT_Q_Level_Keys_t;
@@ -60,6 +62,10 @@ typedef struct {
   size_t out_len[4];
 
   int handshake_complete;
+
+  // CIDs for transport parameters (RFC 9000 §18.2)
+  YAWT_Q_Cid_t original_dcid;   // client's random DCID from first Initial
+  YAWT_Q_Cid_t our_cid;         // our source connection ID
 } YAWT_Q_Crypto_t;
 
 YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
@@ -78,38 +84,36 @@ void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto);
 // Feed received CRYPTO frame data at a given encryption level.
 // After calling, check crypto->out_buf[level] for handshake data to send back.
 int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        gnutls_record_encryption_level_t level,
+                        YAWT_Q_Encryption_Level_t level,
                         const uint8_t *data, size_t data_len);
+
+// Fill buf with len nonce-quality random bytes (not cryptographically secure).
+int YAWT_q_crypto_random_nonce(void *buf, size_t len);
 
 // Start the handshake (client calls this to produce initial ClientHello)
 int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto);
 
 // Derive Initial encryption keys from client's Destination Connection ID (RFC 9001 §5.2).
-struct YAWT_Q_Cid;
 int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
-                                       const struct YAWT_Q_Cid *dcid);
+                                       const YAWT_Q_Cid_t *dcid);
 
 // Remove header protection in-place (RFC 9001 §5.4).
 // pn_offset is the byte offset of the packet number within the packet.
 int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
                                     size_t pn_offset,
-                                    const uint8_t *hp_key, size_t hp_key_len);
+                                    const YAWT_Q_Level_Keys_t *keys);
 
 // AEAD decrypt payload (RFC 9001 §5.3).
-int YAWT_q_crypto_decrypt_payload(const uint8_t *key, size_t key_len,
-                                   const uint8_t *iv,
+int YAWT_q_crypto_decrypt_payload(const YAWT_Q_Level_Keys_t *keys,
                                    uint32_t packet_number,
                                    const uint8_t *header, size_t header_len,
                                    const uint8_t *ciphertext, size_t ciphertext_len,
                                    uint8_t *plaintext, size_t *plaintext_len);
 
-// Forward declaration — full type in quic.h
-struct YAWT_Q_Packet;
-
 // Unprotect header + decrypt payload of a parsed packet in-place.
 // After this call, the packet's PN and payload contain true values.
 // Returns 0 on success, negative on error.
-int YAWT_q_crypto_unprotect_packet(struct YAWT_Q_Packet *pkt,
+int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
                                     const YAWT_Q_Level_Keys_t *keys);
 
 // Protect (encrypt + apply header protection) an outbound packet in-place.

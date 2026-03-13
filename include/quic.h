@@ -3,7 +3,13 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <allocnbuffer/fifoslab.h>
+// Forward declaration — full type in crypt.h
+struct YAWT_Q_Level_Keys;
+typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
 #include "logger.h"
+
+#define YAWT_Q_MAX_PKT_SIZE 1350
 
 
 // Quic connection initialization goes like this
@@ -15,6 +21,7 @@
 //Loss detection is at the quic packet level, not per frame, uses counter
 
 //UNIMPLEMENTED: Congestion Windows
+//UNIMPLEMENTED: Packet coalescing
 // QUIC parse error codes
 typedef enum {
   YAWT_Q_OK = 0,
@@ -23,6 +30,17 @@ typedef enum {
   YAWT_Q_ERR_VARINT_OVERFLOW,
   YAWT_Q_ERR_CID_TOO_LONG
 } YAWT_Q_Error_t;
+
+static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
+  switch (err) {
+    case YAWT_Q_OK:                 return "OK";
+    case YAWT_Q_ERR_SHORT_BUFFER:   return "SHORT_BUFFER";
+    case YAWT_Q_ERR_INVALID_PACKET: return "INVALID_PACKET";
+    case YAWT_Q_ERR_VARINT_OVERFLOW: return "VARINT_OVERFLOW";
+    case YAWT_Q_ERR_CID_TOO_LONG:  return "CID_TOO_LONG";
+    default:                         return "UNKNOWN";
+  }
+}
 
 typedef struct YAWT_Q_Cid {
   uint8_t id[20];
@@ -272,7 +290,7 @@ typedef struct {
 // Frame type 0x1e - HANDSHAKE_DONE
 // No fields, just the type byte. No struct needed.
 
-// Generic frame struct for tx_buffer — all frame types in one union
+// Generic frame struct for tx_buffer — wire-ready, self-contained
 typedef struct {
   YAWT_Q_Frame_Type_t type;
   uint8_t level;  // YAWT_Q_Encryption_Level_t — which packet type to send in
@@ -281,32 +299,36 @@ typedef struct {
   uint32_t packet_num;              // PN this was sent in (0 if unsent)
   uint64_t last_sent;               // timestamp of last send (0 = needs sending)
 
-  // Inline data length (for CRYPTO/STREAM data stored after this struct)
-  size_t data_len;
-
-  union {
-    YAWT_Q_Frame_Crypto_t crypto;
-    YAWT_Q_Frame_ACK_t ack;
-    YAWT_Q_Frame_Stream_t stream;
-  } f;
+  // Wire-encoded frame data
+  size_t wire_len;
+  uint8_t wire_data[YAWT_Q_MAX_PKT_SIZE];
 } YAWT_Q_Frame_t;
 
-// Frame handler callback for parse_frames. frame_type is the wire type.
-// frame points to the parsed frame struct (NULL for PADDING/PING).
-// Return 0 to continue, non-zero to stop.
-typedef int (*YAWT_Q_Frame_Handler_t)(uint64_t frame_type, const void *frame, void *ctx);
+// Parsed frame — returned by YAWT_q_parse_frame
+typedef struct {
+  YAWT_Q_Frame_Type_t type;
+  union {
+    YAWT_Q_Frame_ACK_t ack;
+    YAWT_Q_Frame_Crypto_t crypto;
+    YAWT_Q_Frame_Connection_Close_t connection_close;
+    YAWT_Q_Frame_New_Connection_ID_t new_connection_id;
+  };
+} YAWT_Q_ParsedFrame_t;
 
-// Parse frames from a decrypted payload, calling handler for each frame.
-YAWT_Q_Error_t YAWT_q_parse_frames(const uint8_t *payload, size_t payload_len,
-                                     YAWT_Q_Frame_Handler_t handler, void *ctx);
 
-// Encode a CRYPTO frame into buf. Returns total bytes written, or negative on error.
-int YAWT_q_encode_frame_crypto(uint8_t *buf, size_t buf_len,
-                                uint64_t offset, const uint8_t *data, size_t data_len);
+// Encode PADDING frames into buf. Returns bytes written, or negative on error.
+int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
-// Encode a packet (dispatch by type). Returns YAWT_Q_OK on success.
-YAWT_Q_Error_t YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
-                                      uint8_t *buf, size_t len, size_t *written);
+// Encode a CRYPTO frame and push to queue. Returns wire bytes written, or negative on error.
+int YAWT_q_enqueue_frame_crypto(ANB_FifoSlab_t *queue, uint8_t level,
+                                const YAWT_Q_Frame_Crypto_t *frame);
+
+// Encode + encrypt a packet into internal static buffer.
+// Returns total wire bytes (including AEAD tag), or negative on error.
+// *out_buf points to internal buffer — valid until next encode call.
+int YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
+                          const YAWT_Q_Level_Keys_t *level_keys,
+                          const uint8_t **out_buf);
 
 // Read cursor for zero-copy datagram parsing
 typedef struct {
@@ -319,6 +341,9 @@ typedef struct {
 // Parse a QUIC packet from a read cursor (zero-copy: pointers into cursor data).
 // Advances rc->cursor past the parsed packet. Check rc->err after call.
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
+
+// Parse a single frame from the cursor. Caller loops while rc->cursor < rc->len.
+void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_ParsedFrame_t *out);
 
 // Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
 static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {

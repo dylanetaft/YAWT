@@ -1,5 +1,8 @@
 #include <string.h>
 #include "quic.h"
+#include "crypt.h"
+
+static uint8_t _encode_buf[YAWT_Q_MAX_PKT_SIZE];
 
 static void _varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
   if (rc->err != YAWT_Q_OK) return;
@@ -100,23 +103,19 @@ static void _parse_long_header(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
 // Parse common PN + payload fields. cursor must be at the PN field.
 // pkt_start is the absolute cursor of byte 0 for this packet.
 // pkt_end is the absolute cursor of the byte after this packet.
+// Note: packet_number_length from byte 0 is unreliable here (still header-protected).
+// We record pn_offset and set payload to cover everything after it.
+// unprotect_packet will re-read the true PN length after HP removal.
 static void _parse_common(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt,
                            size_t pkt_start, size_t pkt_end) {
   if (rc->err != YAWT_Q_OK) return;
 
-  // Packet Number (variable length, 1-4 bytes)
-  if (rc->cursor + pkt->packet_number_length > rc->len) {
-    rc->err = YAWT_Q_ERR_SHORT_BUFFER;
-    return;
-  }
-  pkt->packet_num = 0;
-  for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    pkt->packet_num = (pkt->packet_num << 8) | rc->data[rc->cursor + i];
-  }
-  rc->cursor += pkt->packet_number_length;
+  // Record pn_offset relative to raw (pkt_start)
+  pkt->pn_offset = rc->cursor - pkt_start;
 
-  // Payload (zero-copy)
-  pkt->payload = (rc->cursor < rc->len) ? (uint8_t *)(rc->data + rc->cursor) : NULL;
+  // Payload = everything from pn_offset to pkt_end (includes PN + ciphertext + tag).
+  // unprotect_packet will sort out the real PN length and adjust payload after HP removal.
+  pkt->payload = (uint8_t *)(rc->data + rc->cursor);
   pkt->payload_len = pkt_end - rc->cursor;
 
   // Advance cursor to next packet boundary
@@ -236,364 +235,403 @@ static void _parse_pkt_1rtt(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   rc->cursor = rc->len;
 }
 
-// --- Encode helpers ---
+// --- Encode helpers (write into file-static _encode_buf) ---
 
-static YAWT_Q_Error_t _encode_long_header(const YAWT_Q_Packet_t *pkt,
-                                           uint8_t long_packet_type,
-                                           uint8_t type_bits,
-                                           uint8_t *buf, size_t len,
-                                           size_t *written) {
-  size_t cursor = 0;
+static int _encode_long_header(const YAWT_Q_Packet_t *pkt, uint8_t long_packet_type,
+                                uint8_t type_bits, size_t *cursor) {
+  size_t c = *cursor;
 
   // Byte 0
-  if (cursor + 1 > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  buf[cursor++] = (1 << 7) | (1 << 6) |
-                  (long_packet_type << 4) | (type_bits & 0x0f);
+  if (c + 1 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  _encode_buf[c++] = (1 << 7) | (1 << 6) |
+                     (long_packet_type << 4) | (type_bits & 0x0f);
 
   // Version (4 bytes big-endian)
-  if (cursor + 4 > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  buf[cursor++] = (uint8_t)(pkt->version >> 24);
-  buf[cursor++] = (uint8_t)(pkt->version >> 16);
-  buf[cursor++] = (uint8_t)(pkt->version >> 8);
-  buf[cursor++] = (uint8_t)(pkt->version);
+  if (c + 4 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  _encode_buf[c++] = (uint8_t)(pkt->version >> 24);
+  _encode_buf[c++] = (uint8_t)(pkt->version >> 16);
+  _encode_buf[c++] = (uint8_t)(pkt->version >> 8);
+  _encode_buf[c++] = (uint8_t)(pkt->version);
 
   // DCID
-  if (pkt->dest_cid.len > sizeof(pkt->dest_cid.id)) return YAWT_Q_ERR_CID_TOO_LONG;
-  if (cursor + 1 + pkt->dest_cid.len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  buf[cursor++] = pkt->dest_cid.len;
-  memcpy(buf + cursor, pkt->dest_cid.id, pkt->dest_cid.len);
-  cursor += pkt->dest_cid.len;
+  if (pkt->dest_cid.len > sizeof(pkt->dest_cid.id)) return -1;
+  if (c + 1 + pkt->dest_cid.len > YAWT_Q_MAX_PKT_SIZE) return -1;
+  _encode_buf[c++] = pkt->dest_cid.len;
+  memcpy(_encode_buf + c, pkt->dest_cid.id, pkt->dest_cid.len);
+  c += pkt->dest_cid.len;
 
   // SCID
-  if (pkt->src_cid.len > sizeof(pkt->src_cid.id)) return YAWT_Q_ERR_CID_TOO_LONG;
-  if (cursor + 1 + pkt->src_cid.len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  buf[cursor++] = pkt->src_cid.len;
-  memcpy(buf + cursor, pkt->src_cid.id, pkt->src_cid.len);
-  cursor += pkt->src_cid.len;
+  if (pkt->src_cid.len > sizeof(pkt->src_cid.id)) return -1;
+  if (c + 1 + pkt->src_cid.len > YAWT_Q_MAX_PKT_SIZE) return -1;
+  _encode_buf[c++] = pkt->src_cid.len;
+  memcpy(_encode_buf + c, pkt->src_cid.id, pkt->src_cid.len);
+  c += pkt->src_cid.len;
 
-  *written = cursor;
-  return YAWT_Q_OK;
+  *cursor = c;
+  return 0;
 }
 
-static YAWT_Q_Error_t _encode_pkt_initial(const YAWT_Q_Packet_t *pkt,
-                                           uint8_t *buf, size_t len,
-                                           size_t *written) {
+static int _encode_pkt_initial(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
   size_t cursor = 0;
-  YAWT_Q_Error_t err;
   int n;
+  YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
-  size_t hdr_written;
-  err = _encode_long_header(pkt, YAWT_Q_PKT_INITIAL, type_bits, buf, len, &hdr_written);
-  if (err != YAWT_Q_OK) return err;
-  cursor = hdr_written;
+  if (_encode_long_header(pkt, YAWT_Q_PKT_INITIAL, type_bits, &cursor) < 0) return -1;
 
   // Token Length (varint)
-  err = _varint_encode(pkt->extra.initial.token_len, buf + cursor, len - cursor, &n);
-  if (err != YAWT_Q_OK) return err;
+  err = _varint_encode(pkt->extra.initial.token_len, _encode_buf + cursor,
+                       YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
   // Token
   if (pkt->extra.initial.token_len > 0) {
-    if (cursor + pkt->extra.initial.token_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->extra.initial.token, pkt->extra.initial.token_len);
+    if (cursor + pkt->extra.initial.token_len > YAWT_Q_MAX_PKT_SIZE) return -1;
+    memcpy(_encode_buf + cursor, pkt->extra.initial.token, pkt->extra.initial.token_len);
     cursor += pkt->extra.initial.token_len;
   }
 
-  // Length (varint): pkt_num_len + payload_len
-  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len;
-  err = _varint_encode(wire_len, buf + cursor, len - cursor, &n);
-  if (err != YAWT_Q_OK) return err;
+  // Calculate PADDING needed for 1200-byte minimum datagram (RFC 9000 §14.1)
+  // Assume 2-byte varint for Length (always correct when padding is applied)
+  size_t base_total = cursor + 2 + pkt->packet_number_length + pkt->payload_len + 16;
+  size_t padding_len = (base_total < 1200) ? (1200 - base_total) : 0;
+
+  // Length (varint): pkt_num_len + payload_len + padding + 16 (AEAD tag)
+  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + padding_len + 16;
+  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
+  // PN offset
+  *pn_off = cursor;
+
   // Packet Number (big-endian)
-  if (cursor + pkt->packet_number_length > len) return YAWT_Q_ERR_SHORT_BUFFER;
+  if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
   for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
+    _encode_buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
   }
   cursor += pkt->packet_number_length;
 
   // Payload
   if (pkt->payload_len > 0) {
-    if (cursor + pkt->payload_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->payload, pkt->payload_len);
+    if (cursor + pkt->payload_len > YAWT_Q_MAX_PKT_SIZE) return -1;
+    memcpy(_encode_buf + cursor, pkt->payload, pkt->payload_len);
     cursor += pkt->payload_len;
   }
 
+  // PADDING frames
+  if (padding_len > 0) {
+    int pad = YAWT_q_encode_frame_padding(_encode_buf + cursor,
+                                           YAWT_Q_MAX_PKT_SIZE - cursor, padding_len);
+    if (pad < 0) return -1;
+    cursor += pad;
+  }
+
+  // AEAD tag space
+  if (cursor + 16 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  memset(_encode_buf + cursor, 0, 16);
+  cursor += 16;
+
   *written = cursor;
-  return YAWT_Q_OK;
+  return 0;
 }
 
-static YAWT_Q_Error_t _encode_pkt_0rtt(const YAWT_Q_Packet_t *pkt,
-                                        uint8_t *buf, size_t len,
-                                        size_t *written) {
+static int _encode_pkt_0rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
   size_t cursor = 0;
-  YAWT_Q_Error_t err;
   int n;
+  YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
-  size_t hdr_written;
-  err = _encode_long_header(pkt, YAWT_Q_PKT_0RTT, type_bits, buf, len, &hdr_written);
-  if (err != YAWT_Q_OK) return err;
-  cursor = hdr_written;
+  if (_encode_long_header(pkt, YAWT_Q_PKT_0RTT, type_bits, &cursor) < 0) return -1;
 
-  // Length (varint): pkt_num_len + payload_len
-  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len;
-  err = _varint_encode(wire_len, buf + cursor, len - cursor, &n);
-  if (err != YAWT_Q_OK) return err;
+  // Length (varint): pkt_num_len + payload_len + 16 (AEAD tag)
+  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + 16;
+  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
+  *pn_off = cursor;
+
   // Packet Number (big-endian)
-  if (cursor + pkt->packet_number_length > len) return YAWT_Q_ERR_SHORT_BUFFER;
+  if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
   for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
+    _encode_buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
   }
   cursor += pkt->packet_number_length;
 
-  // Payload
+  // Payload + AEAD tag space
+  if (cursor + pkt->payload_len + 16 > YAWT_Q_MAX_PKT_SIZE) return -1;
   if (pkt->payload_len > 0) {
-    if (cursor + pkt->payload_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->payload, pkt->payload_len);
+    memcpy(_encode_buf + cursor, pkt->payload, pkt->payload_len);
     cursor += pkt->payload_len;
   }
+  memset(_encode_buf + cursor, 0, 16);
+  cursor += 16;
 
   *written = cursor;
-  return YAWT_Q_OK;
+  return 0;
 }
 
-static YAWT_Q_Error_t _encode_pkt_handshake(const YAWT_Q_Packet_t *pkt,
-                                             uint8_t *buf, size_t len,
-                                             size_t *written) {
+static int _encode_pkt_handshake(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
   size_t cursor = 0;
-  YAWT_Q_Error_t err;
   int n;
+  YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
-  size_t hdr_written;
-  err = _encode_long_header(pkt, YAWT_Q_PKT_HANDSHAKE, type_bits, buf, len, &hdr_written);
-  if (err != YAWT_Q_OK) return err;
-  cursor = hdr_written;
+  if (_encode_long_header(pkt, YAWT_Q_PKT_HANDSHAKE, type_bits, &cursor) < 0) return -1;
 
-  // Length (varint): pkt_num_len + payload_len
-  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len;
-  err = _varint_encode(wire_len, buf + cursor, len - cursor, &n);
-  if (err != YAWT_Q_OK) return err;
+  // Length (varint): pkt_num_len + payload_len + 16 (AEAD tag)
+  uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + 16;
+  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
+  *pn_off = cursor;
+
   // Packet Number (big-endian)
-  if (cursor + pkt->packet_number_length > len) return YAWT_Q_ERR_SHORT_BUFFER;
+  if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
   for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
+    _encode_buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
   }
   cursor += pkt->packet_number_length;
 
-  // Payload
+  // Payload + AEAD tag space
+  if (cursor + pkt->payload_len + 16 > YAWT_Q_MAX_PKT_SIZE) return -1;
   if (pkt->payload_len > 0) {
-    if (cursor + pkt->payload_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->payload, pkt->payload_len);
+    memcpy(_encode_buf + cursor, pkt->payload, pkt->payload_len);
     cursor += pkt->payload_len;
   }
+  memset(_encode_buf + cursor, 0, 16);
+  cursor += 16;
 
   *written = cursor;
-  return YAWT_Q_OK;
+  return 0;
 }
 
-static YAWT_Q_Error_t _encode_pkt_retry(const YAWT_Q_Packet_t *pkt,
-                                         uint8_t *buf, size_t len,
-                                         size_t *written) {
+static int _encode_pkt_retry(const YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
-  YAWT_Q_Error_t err;
 
   uint8_t type_bits = pkt->reserved & 0x0f;
-  size_t hdr_written;
-  err = _encode_long_header(pkt, YAWT_Q_PKT_RETRY, type_bits, buf, len, &hdr_written);
-  if (err != YAWT_Q_OK) return err;
-  cursor = hdr_written;
+  if (_encode_long_header(pkt, YAWT_Q_PKT_RETRY, type_bits, &cursor) < 0) return -1;
 
   // Token
   if (pkt->extra.retry.token_len > 0) {
-    if (cursor + pkt->extra.retry.token_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->extra.retry.token, pkt->extra.retry.token_len);
+    if (cursor + pkt->extra.retry.token_len > YAWT_Q_MAX_PKT_SIZE) return -1;
+    memcpy(_encode_buf + cursor, pkt->extra.retry.token, pkt->extra.retry.token_len);
     cursor += pkt->extra.retry.token_len;
   }
 
   // Retry Integrity Tag (16 bytes)
-  if (cursor + 16 > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  memcpy(buf + cursor, pkt->extra.retry.retry_integrity_tag, 16);
+  if (cursor + 16 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  memcpy(_encode_buf + cursor, pkt->extra.retry.retry_integrity_tag, 16);
   cursor += 16;
 
   *written = cursor;
-  return YAWT_Q_OK;
+  return 0;
 }
 
-static YAWT_Q_Error_t _encode_pkt_1rtt(const YAWT_Q_Packet_t *pkt,
-                                        uint8_t *buf, size_t len,
-                                        size_t *written) {
+static int _encode_pkt_1rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
   size_t cursor = 0;
 
   // Byte 0
-  if (cursor + 1 > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  buf[cursor++] = (0 << 7) | (1 << 6) | (pkt->extra.one_rtt.spin_bit << 5) |
-                  (pkt->reserved << 3) | (pkt->extra.one_rtt.key_phase << 2) |
-                  ((pkt->packet_number_length - 1) & 3);
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  _encode_buf[cursor++] = (0 << 7) | (1 << 6) | (pkt->extra.one_rtt.spin_bit << 5) |
+                           (pkt->reserved << 3) | (pkt->extra.one_rtt.key_phase << 2) |
+                           ((pkt->packet_number_length - 1) & 3);
 
-  // DCID (variable length, known from connection state)
-  if (cursor + pkt->dest_cid.len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-  memcpy(buf + cursor, pkt->dest_cid.id, pkt->dest_cid.len);
+  // DCID
+  if (cursor + pkt->dest_cid.len > YAWT_Q_MAX_PKT_SIZE) return -1;
+  memcpy(_encode_buf + cursor, pkt->dest_cid.id, pkt->dest_cid.len);
   cursor += pkt->dest_cid.len;
 
+  *pn_off = cursor;
+
   // Packet Number (big-endian)
-  if (cursor + pkt->packet_number_length > len) return YAWT_Q_ERR_SHORT_BUFFER;
+  if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
   for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
+    _encode_buf[cursor + i] = (uint8_t)(pkt->packet_num >> (8 * (pkt->packet_number_length - 1 - i)));
   }
   cursor += pkt->packet_number_length;
 
-  // Payload
+  // Payload + AEAD tag space
+  if (cursor + pkt->payload_len + 16 > YAWT_Q_MAX_PKT_SIZE) return -1;
   if (pkt->payload_len > 0) {
-    if (cursor + pkt->payload_len > len) return YAWT_Q_ERR_SHORT_BUFFER;
-    memcpy(buf + cursor, pkt->payload, pkt->payload_len);
+    memcpy(_encode_buf + cursor, pkt->payload, pkt->payload_len);
     cursor += pkt->payload_len;
   }
+  memset(_encode_buf + cursor, 0, 16);
+  cursor += 16;
 
   *written = cursor;
-  return YAWT_Q_OK;
+  return 0;
 }
 
-YAWT_Q_Error_t YAWT_q_parse_frames(const uint8_t *payload, size_t payload_len,
-                                     YAWT_Q_Frame_Handler_t handler, void *ctx) {
-  YAWT_Q_ReadCursor_t rc = { .data = (uint8_t *)payload, .len = payload_len, .cursor = 0, .err = YAWT_Q_OK };
+void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_ParsedFrame_t *out) {
+  memset(out, 0, sizeof(*out));
+  if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
 
-  while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {
-    uint64_t frame_type;
-    _varint_decode(&rc, &frame_type);
-    if (rc.err != YAWT_Q_OK) break;
+  uint64_t frame_type;
+  _varint_decode(rc, &frame_type);
+  if (rc->err != YAWT_Q_OK) return;
+  out->type = (YAWT_Q_Frame_Type_t)frame_type;
 
-    if (frame_type == YAWT_Q_FRAME_PADDING) {
-      // PADDING: single zero byte, no fields
-      if (handler && handler(frame_type, NULL, ctx) != 0) break;
-      continue;
-    }
+  switch (frame_type) {
+    case YAWT_Q_FRAME_PADDING:
+    case YAWT_Q_FRAME_PING:
+    case YAWT_Q_FRAME_HANDSHAKE_DONE:
+      break;
 
-    if (frame_type == YAWT_Q_FRAME_PING) {
-      // PING: single byte, no fields
-      if (handler && handler(frame_type, NULL, ctx) != 0) break;
-      continue;
-    }
-
-    if (frame_type == YAWT_Q_FRAME_ACK) {
-      YAWT_Q_Frame_ACK_t ack;
-      _varint_decode(&rc, &ack.largest_ack);
-      _varint_decode(&rc, &ack.ack_delay);
-      _varint_decode(&rc, &ack.ack_range_count);
-      _varint_decode(&rc, &ack.first_ack_range);
-      if (rc.err != YAWT_Q_OK) break;
-      // Skip additional ACK ranges
-      for (uint64_t i = 0; i < ack.ack_range_count; i++) {
+    case YAWT_Q_FRAME_ACK:
+      _varint_decode(rc, &out->ack.largest_ack);
+      _varint_decode(rc, &out->ack.ack_delay);
+      _varint_decode(rc, &out->ack.ack_range_count);
+      _varint_decode(rc, &out->ack.first_ack_range);
+      if (rc->err != YAWT_Q_OK) return;
+      for (uint64_t i = 0; i < out->ack.ack_range_count; i++) {
         uint64_t gap, range_len;
-        _varint_decode(&rc, &gap);
-        _varint_decode(&rc, &range_len);
-        if (rc.err != YAWT_Q_OK) break;
+        _varint_decode(rc, &gap);
+        _varint_decode(rc, &range_len);
+        if (rc->err != YAWT_Q_OK) return;
       }
-      if (rc.err != YAWT_Q_OK) break;
-      if (handler && handler(frame_type, &ack, ctx) != 0) break;
-      continue;
-    }
+      break;
 
-    if (frame_type == YAWT_Q_FRAME_CRYPTO) {
-      YAWT_Q_Frame_Crypto_t crypto;
-      _varint_decode(&rc, &crypto.offset);
-      _varint_decode(&rc, &crypto.len);
-      if (rc.err != YAWT_Q_OK) break;
-      if (rc.cursor + crypto.len > rc.len) { rc.err = YAWT_Q_ERR_SHORT_BUFFER; break; }
-      crypto.data = (uint8_t *)(rc.data + rc.cursor);
-      rc.cursor += crypto.len;
-      if (handler && handler(frame_type, &crypto, ctx) != 0) break;
-      continue;
-    }
+    case YAWT_Q_FRAME_CRYPTO:
+      _varint_decode(rc, &out->crypto.offset);
+      _varint_decode(rc, &out->crypto.len);
+      if (rc->err != YAWT_Q_OK) return;
+      if (rc->cursor + out->crypto.len > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+      out->crypto.data = (uint8_t *)(rc->data + rc->cursor);
+      rc->cursor += out->crypto.len;
+      break;
 
-    if (frame_type == YAWT_Q_FRAME_HANDSHAKE_DONE) {
-      if (handler && handler(frame_type, NULL, ctx) != 0) break;
-      continue;
-    }
-
-    if (frame_type == YAWT_Q_FRAME_CONNECTION_CLOSE) {
-      YAWT_Q_Frame_Connection_Close_t cc;
-      _varint_decode(&rc, &cc.error_code);
-      _varint_decode(&rc, &cc.frame_type);
-      _varint_decode(&rc, &cc.reason_phrase_len);
-      if (rc.err != YAWT_Q_OK) break;
-      if (rc.cursor + cc.reason_phrase_len > rc.len) { rc.err = YAWT_Q_ERR_SHORT_BUFFER; break; }
-      cc.reason_phrase = cc.reason_phrase_len > 0 ? (uint8_t *)(rc.data + rc.cursor) : NULL;
-      rc.cursor += cc.reason_phrase_len;
-      if (handler && handler(frame_type, &cc, ctx) != 0) break;
-      continue;
-    }
-
-    if (frame_type == YAWT_Q_FRAME_NEW_CONNECTION_ID) {
-      YAWT_Q_Frame_New_Connection_ID_t ncid;
-      _varint_decode(&rc, &ncid.seq_num);
-      _varint_decode(&rc, &ncid.retire_prior_to);
-      if (rc.err != YAWT_Q_OK) break;
-      if (rc.cursor >= rc.len) { rc.err = YAWT_Q_ERR_SHORT_BUFFER; break; }
-      ncid.cid.len = rc.data[rc.cursor++];
-      if (ncid.cid.len > 20 || rc.cursor + ncid.cid.len + 16 > rc.len) {
-        rc.err = YAWT_Q_ERR_SHORT_BUFFER; break;
+    case YAWT_Q_FRAME_CONNECTION_CLOSE:
+      _varint_decode(rc, &out->connection_close.error_code);
+      _varint_decode(rc, &out->connection_close.frame_type);
+      _varint_decode(rc, &out->connection_close.reason_phrase_len);
+      if (rc->err != YAWT_Q_OK) return;
+      if (rc->cursor + out->connection_close.reason_phrase_len > rc->len) {
+        rc->err = YAWT_Q_ERR_SHORT_BUFFER; return;
       }
-      memcpy(ncid.cid.id, rc.data + rc.cursor, ncid.cid.len);
-      rc.cursor += ncid.cid.len;
-      memcpy(ncid.stateless_reset_token, rc.data + rc.cursor, 16);
-      rc.cursor += 16;
-      if (handler && handler(frame_type, &ncid, ctx) != 0) break;
-      continue;
-    }
+      out->connection_close.reason_phrase = out->connection_close.reason_phrase_len > 0
+        ? (uint8_t *)(rc->data + rc->cursor) : NULL;
+      rc->cursor += out->connection_close.reason_phrase_len;
+      break;
 
-    // Unknown frame type — error
-    rc.err = YAWT_Q_ERR_INVALID_PACKET;
-    break;
+    case YAWT_Q_FRAME_NEW_CONNECTION_ID:
+      _varint_decode(rc, &out->new_connection_id.seq_num);
+      _varint_decode(rc, &out->new_connection_id.retire_prior_to);
+      if (rc->err != YAWT_Q_OK) return;
+      if (rc->cursor >= rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+      out->new_connection_id.cid.len = rc->data[rc->cursor++];
+      if (out->new_connection_id.cid.len > 20 ||
+          rc->cursor + out->new_connection_id.cid.len + 16 > rc->len) {
+        rc->err = YAWT_Q_ERR_SHORT_BUFFER; return;
+      }
+      memcpy(out->new_connection_id.cid.id, rc->data + rc->cursor, out->new_connection_id.cid.len);
+      rc->cursor += out->new_connection_id.cid.len;
+      memcpy(out->new_connection_id.stateless_reset_token, rc->data + rc->cursor, 16);
+      rc->cursor += 16;
+      break;
+
+    default:
+      rc->err = YAWT_Q_ERR_INVALID_PACKET;
+      break;
   }
-
-  return rc.err;
 }
 
-int YAWT_q_encode_frame_crypto(uint8_t *buf, size_t buf_len,
-                                uint64_t offset, const uint8_t *data, size_t data_len) {
+int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len) {
+  if (pad_len > buf_len) return -1;
+  memset(buf, 0x00, pad_len);
+  return (int)pad_len;
+}
+
+int YAWT_q_enqueue_frame_crypto(ANB_FifoSlab_t *queue, uint8_t level,
+                                const YAWT_Q_Frame_Crypto_t *frame) {
+  YAWT_Q_Frame_t f;
+  memset(&f, 0, sizeof(f));
+
   size_t cursor = 0;
   int n;
   YAWT_Q_Error_t err;
 
   // Frame type 0x06
-  if (cursor + 1 > buf_len) return -1;
-  buf[cursor++] = 0x06;
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  f.wire_data[cursor++] = 0x06;
 
   // Offset (varint)
-  err = _varint_encode(offset, buf + cursor, buf_len - cursor, &n);
+  err = _varint_encode(frame->offset, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
   // Length (varint)
-  err = _varint_encode(data_len, buf + cursor, buf_len - cursor, &n);
+  err = _varint_encode(frame->len, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
   // Data
-  if (cursor + data_len > buf_len) return -1;
-  memcpy(buf + cursor, data, data_len);
-  cursor += data_len;
+  if (cursor + frame->len > YAWT_Q_MAX_PKT_SIZE) return -1;
+  memcpy(f.wire_data + cursor, frame->data, frame->len);
+  cursor += frame->len;
+
+  f.type = YAWT_Q_FRAME_CRYPTO;
+  f.level = level;
+  f.wire_len = cursor;
+
+  ANB_fifoslab_push_item(queue, (const uint8_t *)&f, sizeof(f));
 
   return (int)cursor;
 }
 
-YAWT_Q_Error_t YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
-                                      uint8_t *buf, size_t len, size_t *written) {
-  switch (pkt->type) {
-    case YAWT_Q_PKT_TYPE_INITIAL:   return _encode_pkt_initial(pkt, buf, len, written);
-    case YAWT_Q_PKT_TYPE_0RTT:      return _encode_pkt_0rtt(pkt, buf, len, written);
-    case YAWT_Q_PKT_TYPE_HANDSHAKE: return _encode_pkt_handshake(pkt, buf, len, written);
-    case YAWT_Q_PKT_TYPE_RETRY:     return _encode_pkt_retry(pkt, buf, len, written);
-    case YAWT_Q_PKT_TYPE_1RTT:      return _encode_pkt_1rtt(pkt, buf, len, written);
-    default: return YAWT_Q_ERR_INVALID_PACKET;
+static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
+  switch (type) {
+    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
+    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
+    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
+    default:                         return YAWT_Q_LEVEL_APPLICATION;
   }
+}
+
+int YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
+                          const YAWT_Q_Level_Keys_t *level_keys,
+                          const uint8_t **out_buf) {
+  size_t written = 0;
+  size_t pn_offset = 0;
+  int rc;
+
+  switch (pkt->type) {
+    case YAWT_Q_PKT_TYPE_INITIAL:
+      rc = _encode_pkt_initial(pkt, &written, &pn_offset);
+      break;
+    case YAWT_Q_PKT_TYPE_0RTT:
+      rc = _encode_pkt_0rtt(pkt, &written, &pn_offset);
+      break;
+    case YAWT_Q_PKT_TYPE_HANDSHAKE:
+      rc = _encode_pkt_handshake(pkt, &written, &pn_offset);
+      break;
+    case YAWT_Q_PKT_TYPE_RETRY:
+      rc = _encode_pkt_retry(pkt, &written);
+      break;
+    case YAWT_Q_PKT_TYPE_1RTT:
+      rc = _encode_pkt_1rtt(pkt, &written, &pn_offset);
+      break;
+    default: return -1;
+  }
+
+  if (rc < 0) return rc;
+
+  // Encrypt (not for Retry)
+  if (pkt->type != YAWT_Q_PKT_TYPE_RETRY) {
+    YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+    const YAWT_Q_Level_Keys_t *keys = &level_keys[level];
+    int ret = YAWT_q_crypto_protect_packet(_encode_buf, written,
+                                            pn_offset, pkt->packet_number_length,
+                                            pkt->packet_num, keys);
+    if (ret < 0) return ret;
+  }
+
+  *out_buf = _encode_buf;
+  return (int)written;
 }
 
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out) {
@@ -639,8 +677,5 @@ void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out) {
     _parse_pkt_1rtt(rc, out);
   }
 
-  // Compute pn_offset from payload pointer (payload starts right after PN)
-  if (out->type != YAWT_Q_PKT_TYPE_RETRY && out->payload) {
-    out->pn_offset = (size_t)(out->payload - out->raw) - out->packet_number_length;
-  }
+  // pn_offset is set by _parse_common (not needed for Retry)
 }

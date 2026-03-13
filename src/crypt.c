@@ -51,19 +51,22 @@ static int _hkdf_expand_label(gnutls_mac_algorithm_t hash,
 }
 
 // Derive key/iv/hp from a traffic secret. key_len is the AEAD key size (e.g. 16).
-static int _derive_pkt_keys(gnutls_mac_algorithm_t hash,
-                             const uint8_t *secret, size_t secret_len,
-                             uint8_t *key, uint8_t *iv, uint8_t *hp,
-                             size_t key_len) {
+// is_read: 1 = derive read keys, 0 = derive write keys
+static int _derive_pkt_keys(YAWT_Q_Level_Keys_t *keys,
+                             gnutls_mac_algorithm_t hash, int is_read) {
+
+  const uint8_t *secret = is_read ? keys->secret_read : keys->secret_write;
+  uint8_t *key = is_read ? keys->key_read : keys->key_write;
+  uint8_t *iv  = is_read ? keys->iv_read  : keys->iv_write;
+  uint8_t *hp  = is_read ? keys->hp_read  : keys->hp_write;
   int ret;
-
-  ret = _hkdf_expand_label(hash, secret, secret_len, "quic key", 8, key, key_len);
+  // Key expansion labels (RFC 9001 §5.1)
+  ret = _hkdf_expand_label(hash, secret, keys->secret_len, "quic key", 8, key, keys->key_len);
   if (ret < 0) return ret;
-
-  ret = _hkdf_expand_label(hash, secret, secret_len, "quic iv", 7, iv, 12);
+  // IV is always 12 bytes for QUIC (RFC 9001 §5.3)
+  ret = _hkdf_expand_label(hash, secret, keys->secret_len, "quic iv", 7, iv, 12);
   if (ret < 0) return ret;
-
-  ret = _hkdf_expand_label(hash, secret, secret_len, "quic hp", 7, hp, key_len);
+  ret = _hkdf_expand_label(hash, secret, keys->secret_len, "quic hp", 7, hp, keys->key_len);
   if (ret < 0) return ret;
 
   return 0;
@@ -73,8 +76,11 @@ static int _on_handshake_read(gnutls_session_t session,
                                gnutls_record_encryption_level_t level,
                                gnutls_handshake_description_t htype,
                                const void *data, size_t data_size) {
-  (void)htype;
   YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
+  YAWT_LOG(YAWT_LOG_DEBUG, "handshake_read: level=%d, htype=%d, size=%zu", level, htype, data_size);
+
+  // QUIC must not send ChangeCipherSpec (RFC 9001 §8.4)
+  if (htype == GNUTLS_HANDSHAKE_CHANGE_CIPHER_SPEC) return 0;
 
   uint8_t *new_buf = realloc(crypto->out_buf[level],
                               crypto->out_len[level] + data_size);
@@ -93,24 +99,27 @@ static int _on_secret(gnutls_session_t session,
   YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
   YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
 
+  gnutls_cipher_algorithm_t neg_cipher = gnutls_cipher_get(session);
+  gnutls_mac_algorithm_t neg_mac = gnutls_mac_get(session);
+  YAWT_LOG(YAWT_LOG_DEBUG, "_on_secret: level=%d, secret_read=%p, secret_write=%p, size=%zu, "
+           "cipher=%d (%s), mac=%d (%s), key_size=%zu",
+           level, secret_read, secret_write, secret_size,
+           neg_cipher, gnutls_cipher_get_name(neg_cipher),
+           neg_mac, gnutls_mac_get_name(neg_mac),
+           gnutls_cipher_get_key_size(neg_cipher));
+
   if (secret_read) memcpy(keys->secret_read, secret_read, secret_size);
   if (secret_write) memcpy(keys->secret_write, secret_write, secret_size);
   keys->secret_len = secret_size;
 
-  // Derive packet protection keys immediately
-  // TLS 1.3 with AES-128-GCM uses SHA-256 and 16-byte keys
-  gnutls_mac_algorithm_t hash = GNUTLS_MAC_SHA256;
-  size_t key_len = 16; // AES-128-GCM
+  // Derive packet protection keys from negotiated cipher suite
+  // gnutls_mac_get() returns GNUTLS_MAC_AEAD for TLS 1.3 — use PRF hash instead
+  gnutls_mac_algorithm_t hash = (gnutls_mac_algorithm_t)gnutls_prf_hash_get(session);
+  keys->key_len = gnutls_cipher_get_key_size(gnutls_cipher_get(session));
+  keys->aead_cipher = gnutls_cipher_get(session);
 
-  if (secret_read) {
-    _derive_pkt_keys(hash, keys->secret_read, secret_size,
-                     keys->key_read, keys->iv_read, keys->hp_read, key_len);
-  }
-  if (secret_write) {
-    _derive_pkt_keys(hash, keys->secret_write, secret_size,
-                     keys->key_write, keys->iv_write, keys->hp_write, key_len);
-  }
-  keys->key_len = key_len;
+  if (secret_read) _derive_pkt_keys(keys, hash, 1);
+  if (secret_write) _derive_pkt_keys(keys, hash, 0);
   keys->available = 1;
   return 0;
 }
@@ -168,6 +177,63 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred) {
   *cred = NULL;
 }
 
+// QUIC transport parameters extension (RFC 9000 §18, extension type 0x0039)
+#define QUIC_TP_EXT_TYPE 0x0039
+
+// Receive client's transport parameters (we ignore them for now)
+static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t len) {
+  (void)session; (void)data; (void)len;
+  return 0;
+}
+
+// Append a single transport parameter: varint ID + varint length + raw value
+static int _tp_append(gnutls_buffer_t extdata, uint8_t id,
+                       const uint8_t *val, size_t val_len) {
+  int ret;
+  ret = gnutls_buffer_append_data(extdata, &id, 1);
+  if (ret < 0) return ret;
+  uint8_t len = (uint8_t)val_len;
+  ret = gnutls_buffer_append_data(extdata, &len, 1);
+  if (ret < 0) return ret;
+  if (val_len > 0) {
+    ret = gnutls_buffer_append_data(extdata, val, val_len);
+    if (ret < 0) return ret;
+  }
+  return 0;
+}
+
+// Send our transport parameters (RFC 9000 §18)
+static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
+  YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
+  int ret;
+  size_t total = 0;
+
+  // RFC 9000 §18.2: server MUST include original_destination_connection_id (0x00)
+  ret = _tp_append(extdata, 0x00, crypto->original_dcid.id, crypto->original_dcid.len);
+  if (ret < 0) return ret;
+  total += 2 + crypto->original_dcid.len;
+
+  // RFC 9000 §18.2: both endpoints MUST include initial_source_connection_id (0x0f)
+  ret = _tp_append(extdata, 0x0f, crypto->our_cid.id, crypto->our_cid.len);
+  if (ret < 0) return ret;
+  total += 2 + crypto->our_cid.len;
+
+  // Flow control parameters
+  uint8_t params[] = {
+    0x04, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_data = 1MB
+    0x05, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_bidi_local = 1MB
+    0x06, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_bidi_remote = 1MB
+    0x07, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_uni = 1MB
+    0x08, 0x01, 0x10,                    // initial_max_streams_bidi = 16
+    0x09, 0x01, 0x10,                    // initial_max_streams_uni = 16
+  };
+  ret = gnutls_buffer_append_data(extdata, params, sizeof(params));
+  if (ret < 0) return ret;
+  total += sizeof(params);
+
+  return (int)total;
+}
+
 int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
                     int is_server, YAWT_Q_Crypto_Cred_t *cred) {
 
@@ -206,6 +272,19 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
   ret = gnutls_alpn_set_protocols(crypto->session, &alpn, 1, 0);
   if (ret < 0) return ret;
 
+  // Register QUIC transport parameters extension (RFC 9000 §18)
+  unsigned int ext_flags = GNUTLS_EXT_FLAG_TLS
+                         | GNUTLS_EXT_FLAG_CLIENT_HELLO
+                         | GNUTLS_EXT_FLAG_EE;
+  ret = gnutls_session_ext_register(crypto->session,
+                                     "QUIC Transport Parameters",
+                                     QUIC_TP_EXT_TYPE,
+                                     GNUTLS_EXT_APPLICATION,
+                                     _tp_recv, _tp_send,
+                                     NULL, NULL, NULL,
+                                     ext_flags);
+  if (ret < 0) return ret;
+
   return 0;
 }
 
@@ -237,26 +316,39 @@ int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto) {
 }
 
 int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        gnutls_record_encryption_level_t level,
+                        YAWT_Q_Encryption_Level_t level,
                         const uint8_t *data, size_t data_len) {
   int ret;
 
-  ret = gnutls_handshake_write(crypto->session, level, data, data_len);
-  if (ret < 0) return ret;
+  ret = gnutls_handshake_write(crypto->session,
+                                (gnutls_record_encryption_level_t)level,
+                                data, data_len);
+  if (ret < 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "handshake_write failed: %d (%s)", ret, gnutls_strerror(ret));
+    return ret;
+  }
 
   if (!crypto->handshake_complete) {
     ret = gnutls_handshake(crypto->session);
     if (ret == GNUTLS_E_SUCCESS) {
+      YAWT_LOG(YAWT_LOG_INFO, "handshake complete");
       crypto->handshake_complete = 1;
       return 0;
     }
     if (ret == GNUTLS_E_AGAIN) {
-      return 0; // waiting for more data
+      YAWT_LOG(YAWT_LOG_DEBUG, "handshake needs more data, out_buf: [%zu, %zu, %zu, %zu]",
+               crypto->out_len[0], crypto->out_len[1], crypto->out_len[2], crypto->out_len[3]);
+      return 0;
     }
-    return ret; // error
+    YAWT_LOG(YAWT_LOG_ERROR, "handshake failed: %d (%s)", ret, gnutls_strerror(ret));
+    return ret;
   }
 
   return 0;
+}
+
+int YAWT_q_crypto_random_nonce(void *buf, size_t len) {
+  return gnutls_rnd(GNUTLS_RND_NONCE, buf, len);
 }
 
 // RFC 9001 §5.2 — Initial keys derived from client's Destination Connection ID.
@@ -272,10 +364,14 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
 // For a client: secret_read = server secret, secret_write = client secret.
 int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
                                        const YAWT_Q_Cid_t *dcid) {
+  // RFC 9000 §7.2 — client DCID must be at least 8 bytes
+  if (dcid->len < 8) return -1;
+  // RFC 9001 §5.2 initial keys are always derived 
+  // using HKDF-SHA256 with AES-128-GCM
   YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[YAWT_Q_LEVEL_INITIAL];
   gnutls_mac_algorithm_t hash = GNUTLS_MAC_SHA256;
-  size_t hash_len = 32; // SHA-256 output
-  size_t key_len = 16;  // AES-128-GCM
+  const size_t hash_len = 32; // SHA-256 output
+  const size_t key_len = 16;  // AES-128-GCM
   int ret;
 
   // Step 1: HKDF-Extract(salt, client_dcid) → initial_secret
@@ -304,17 +400,16 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
   memcpy(keys->secret_read, read_secret, hash_len);
   memcpy(keys->secret_write, write_secret, hash_len);
   keys->secret_len = hash_len;
+  keys->key_len = key_len;
+  keys->aead_cipher = GNUTLS_CIPHER_AES_128_GCM; // RFC 9001 §5.2: Initial always AES-128-GCM
 
   // Step 5: derive packet keys
-  ret = _derive_pkt_keys(hash, read_secret, hash_len,
-                          keys->key_read, keys->iv_read, keys->hp_read, key_len);
+  ret = _derive_pkt_keys(keys, hash, 1);
   if (ret < 0) return ret;
 
-  ret = _derive_pkt_keys(hash, write_secret, hash_len,
-                          keys->key_write, keys->iv_write, keys->hp_write, key_len);
+  ret = _derive_pkt_keys(keys, hash, 0);
   if (ret < 0) return ret;
 
-  keys->key_len = key_len;
   keys->available = 1;
 
   return 0;
@@ -326,9 +421,18 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
 // 3. XOR mask[0] onto byte 0: & 0x0f for long headers, & 0x1f for short
 // 4. Read the now-visible PN length from byte 0
 // 5. XOR mask[1..pn_len] onto the PN bytes at pn_offset
+// RFC 9001 §5.4.3: HP cipher is the block cipher underlying the negotiated AEAD.
+// AES-ECB is emulated via CBC with zero IV on a single block.
+static gnutls_cipher_algorithm_t _hp_cipher_for_aead(int aead_cipher) {
+  switch (aead_cipher) {
+    case GNUTLS_CIPHER_AES_256_GCM: return GNUTLS_CIPHER_AES_256_CBC;
+    default:                         return GNUTLS_CIPHER_AES_128_CBC;
+  }
+}
+
 int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
                                     size_t pn_offset,
-                                    const uint8_t *hp_key, size_t hp_key_len) {
+                                    const YAWT_Q_Level_Keys_t *keys) {
   // Need at least pn_offset + 4 + 16 bytes for the sample
   if (pn_offset + 4 + 16 > packet_len) return -1;
 
@@ -336,15 +440,16 @@ int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
   const uint8_t *sample = packet + pn_offset + 4;
 
   // AES-ECB encrypt the sample to get the mask
+  // CBC with zero IV on a single block is equivalent to ECB
   gnutls_cipher_hd_t cipher;
-  gnutls_datum_t key_d = { .data = (void *)hp_key, .size = hp_key_len };
-  int ret = gnutls_cipher_init(&cipher, GNUTLS_CIPHER_AES_128_CBC, &key_d, NULL);
+  gnutls_datum_t key_d = { .data = (void *)keys->hp_read, .size = keys->key_len };
+  uint8_t zero_iv[16] = {0};
+  gnutls_datum_t iv_d = { .data = zero_iv, .size = sizeof(zero_iv) };
+  int ret = gnutls_cipher_init(&cipher, _hp_cipher_for_aead(keys->aead_cipher), &key_d, &iv_d);
   if (ret < 0) return ret;
 
   uint8_t mask[16];
   memcpy(mask, sample, 16);
-  // For ECB-like single block: encrypt in-place with CBC and zero IV
-  // gnutls doesn't have AES-128-ECB, so use CBC with zero IV for a single block
   ret = gnutls_cipher_encrypt(cipher, mask, 16);
   gnutls_cipher_deinit(cipher);
   if (ret < 0) return ret;
@@ -374,8 +479,7 @@ int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
 // 2. AAD = unprotected header bytes (byte 0 through end of PN field)
 // 3. Ciphertext includes 16-byte GCM authentication tag at the end
 // 4. gnutls_aead_cipher_decrypt() verifies tag and produces plaintext
-int YAWT_q_crypto_decrypt_payload(const uint8_t *key, size_t key_len,
-                                   const uint8_t *iv,
+int YAWT_q_crypto_decrypt_payload(const YAWT_Q_Level_Keys_t *keys,
                                    uint32_t packet_number,
                                    const uint8_t *header, size_t header_len,
                                    const uint8_t *ciphertext, size_t ciphertext_len,
@@ -385,15 +489,15 @@ int YAWT_q_crypto_decrypt_payload(const uint8_t *key, size_t key_len,
 
   // Construct nonce: iv XOR packet_number (right-aligned in 12 bytes)
   uint8_t nonce[12];
-  memcpy(nonce, iv, 12);
+  memcpy(nonce, keys->iv_read, 12);
   nonce[11] ^= (uint8_t)(packet_number);
   nonce[10] ^= (uint8_t)(packet_number >> 8);
   nonce[9]  ^= (uint8_t)(packet_number >> 16);
   nonce[8]  ^= (uint8_t)(packet_number >> 24);
 
   gnutls_aead_cipher_hd_t cipher;
-  gnutls_datum_t key_d = { .data = (void *)key, .size = key_len };
-  int ret = gnutls_aead_cipher_init(&cipher, GNUTLS_CIPHER_AES_128_GCM, &key_d);
+  gnutls_datum_t key_d = { .data = (void *)keys->key_read, .size = keys->key_len };
+  int ret = gnutls_aead_cipher_init(&cipher, keys->aead_cipher, &key_d);
   if (ret < 0) return ret;
 
   size_t tag_size = 16;
@@ -424,8 +528,7 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
 
   // Step 1: Header unprotection
   int ret = YAWT_q_crypto_unprotect_header(packet, packet_len,
-                                            pkt->pn_offset,
-                                            keys->hp_read, keys->key_len);
+                                            pkt->pn_offset, keys);
   if (ret < 0) return ret;
 
   // Step 2: Re-read true PN length and PN value from unmasked bytes
@@ -439,22 +542,23 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
   // AAD = header bytes (byte 0 through end of PN)
   size_t header_len = pkt->pn_offset + pkt->packet_number_length;
   // Ciphertext starts right after PN
-  const uint8_t *ciphertext = packet + header_len;
+  uint8_t *ciphertext = packet + header_len;
   size_t ciphertext_len = (size_t)(pkt->payload + pkt->payload_len - ciphertext);
 
-  // Decrypt in-place: write plaintext starting at payload pointer
-  size_t plaintext_len = pkt->payload_len;
-  ret = YAWT_q_crypto_decrypt_payload(keys->key_read, keys->key_len,
-                                       keys->iv_read, pkt->packet_num,
+  // Decrypt in-place: write plaintext over the ciphertext
+  size_t plaintext_len = ciphertext_len;
+  ret = YAWT_q_crypto_decrypt_payload(keys, pkt->packet_num,
                                        packet, header_len,
                                        ciphertext, ciphertext_len,
-                                       pkt->payload, &plaintext_len);
+                                       ciphertext, &plaintext_len);
   if (ret < 0) return ret;
 
+  // Update payload to point past PN to the decrypted frames
+  pkt->payload = ciphertext;
   pkt->payload_len = plaintext_len;
 
-  printf("  decrypted %zu bytes (PN=%u, pn_len=%u)\n",
-         plaintext_len, pkt->packet_num, pkt->packet_number_length);
+  YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted %zu bytes (PN=%u, pn_len=%u)",
+           plaintext_len, pkt->packet_num, pkt->packet_number_length);
   return 0;
 }
 
@@ -490,7 +594,7 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
   // AEAD encrypt
   gnutls_aead_cipher_hd_t cipher;
   gnutls_datum_t key_d = { .data = (void *)keys->key_write, .size = keys->key_len };
-  int ret = gnutls_aead_cipher_init(&cipher, GNUTLS_CIPHER_AES_128_GCM, &key_d);
+  int ret = gnutls_aead_cipher_init(&cipher, keys->aead_cipher, &key_d);
   if (ret < 0) return ret;
 
   // Encrypt plaintext in-place. Output goes to same location (header_len offset).
@@ -514,7 +618,9 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
 
   gnutls_cipher_hd_t hp_cipher;
   gnutls_datum_t hp_key_d = { .data = (void *)keys->hp_write, .size = keys->key_len };
-  ret = gnutls_cipher_init(&hp_cipher, GNUTLS_CIPHER_AES_128_CBC, &hp_key_d, NULL);
+  uint8_t zero_iv[16] = {0};
+  gnutls_datum_t hp_iv_d = { .data = zero_iv, .size = sizeof(zero_iv) };
+  ret = gnutls_cipher_init(&hp_cipher, _hp_cipher_for_aead(keys->aead_cipher), &hp_key_d, &hp_iv_d);
   if (ret < 0) return ret;
 
   uint8_t mask[16];
