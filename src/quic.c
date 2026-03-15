@@ -261,7 +261,7 @@ static int _encode_long_header(const YAWT_Q_Packet_t *pkt, uint8_t long_packet_t
   return 0;
 }
 
-static int _encode_pkt_initial(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
+static int _encode_pkt_initial(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
   int n;
   YAWT_Q_Error_t err;
@@ -293,8 +293,7 @@ static int _encode_pkt_initial(const YAWT_Q_Packet_t *pkt, size_t *written, size
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
-  // PN offset
-  *pn_off = cursor;
+  pkt->pn_offset = cursor;
 
   // Packet Number (big-endian)
   if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
@@ -327,7 +326,7 @@ static int _encode_pkt_initial(const YAWT_Q_Packet_t *pkt, size_t *written, size
   return 0;
 }
 
-static int _encode_pkt_0rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
+static int _encode_pkt_0rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
   int n;
   YAWT_Q_Error_t err;
@@ -341,7 +340,7 @@ static int _encode_pkt_0rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t 
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
-  *pn_off = cursor;
+  pkt->pn_offset = cursor;
 
   // Packet Number (big-endian)
   if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
@@ -363,7 +362,7 @@ static int _encode_pkt_0rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t 
   return 0;
 }
 
-static int _encode_pkt_handshake(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
+static int _encode_pkt_handshake(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
   int n;
   YAWT_Q_Error_t err;
@@ -377,7 +376,7 @@ static int _encode_pkt_handshake(const YAWT_Q_Packet_t *pkt, size_t *written, si
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
-  *pn_off = cursor;
+  pkt->pn_offset = cursor;
 
   // Packet Number (big-endian)
   if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
@@ -421,7 +420,7 @@ static int _encode_pkt_retry(const YAWT_Q_Packet_t *pkt, size_t *written) {
   return 0;
 }
 
-static int _encode_pkt_1rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t *pn_off) {
+static int _encode_pkt_1rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
 
   // Byte 0
@@ -435,7 +434,7 @@ static int _encode_pkt_1rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t 
   memcpy(_encode_buf + cursor, pkt->dest_cid.id, pkt->dest_cid.len);
   cursor += pkt->dest_cid.len;
 
-  *pn_off = cursor;
+  pkt->pn_offset = cursor;
 
   // Packet Number (big-endian)
   if (cursor + pkt->packet_number_length > YAWT_Q_MAX_PKT_SIZE) return -1;
@@ -610,37 +609,27 @@ int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_
   return (int)cursor;
 }
 
-static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
-  switch (type) {
-    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
-    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
-    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
-    default:                         return YAWT_Q_LEVEL_APPLICATION;
-  }
-}
-
-int YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
-                          const YAWT_Q_Level_Keys_t *level_keys,
+int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
+                          YAWT_Q_Crypto_t *crypto,
                           const uint8_t **out_buf) {
   size_t written = 0;
-  size_t pn_offset = 0;
   int rc;
 
   switch (pkt->type) {
     case YAWT_Q_PKT_TYPE_INITIAL:
-      rc = _encode_pkt_initial(pkt, &written, &pn_offset);
+      rc = _encode_pkt_initial(pkt, &written);
       break;
     case YAWT_Q_PKT_TYPE_0RTT:
-      rc = _encode_pkt_0rtt(pkt, &written, &pn_offset);
+      rc = _encode_pkt_0rtt(pkt, &written);
       break;
     case YAWT_Q_PKT_TYPE_HANDSHAKE:
-      rc = _encode_pkt_handshake(pkt, &written, &pn_offset);
+      rc = _encode_pkt_handshake(pkt, &written);
       break;
     case YAWT_Q_PKT_TYPE_RETRY:
       rc = _encode_pkt_retry(pkt, &written);
       break;
     case YAWT_Q_PKT_TYPE_1RTT:
-      rc = _encode_pkt_1rtt(pkt, &written, &pn_offset);
+      rc = _encode_pkt_1rtt(pkt, &written);
       break;
     default: return -1;
   }
@@ -649,11 +638,7 @@ int YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
 
   // Encrypt (not for Retry)
   if (pkt->type != YAWT_Q_PKT_TYPE_RETRY) {
-    YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
-    const YAWT_Q_Level_Keys_t *keys = &level_keys[level];
-    int ret = YAWT_q_crypto_protect_packet(_encode_buf, written,
-                                            pn_offset, pkt->packet_number_length,
-                                            pkt->packet_num, keys);
+    int ret = YAWT_q_crypto_protect_packet(_encode_buf, written, pkt, crypto);
     if (ret < 0) return ret;
   }
 

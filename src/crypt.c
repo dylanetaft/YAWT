@@ -642,10 +642,15 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
 // After header protection:
 //   [masked header] [masked PN] [ciphertext + tag]
 int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
-                                  size_t pn_offset, uint8_t pn_length,
-                                  uint32_t packet_num,
-                                  const YAWT_Q_Level_Keys_t *keys) {
-  if (!packet || !keys || !keys->available) return -1;
+                                  const YAWT_Q_Packet_t *pkt,
+                                  YAWT_Q_Crypto_t *crypto) {
+  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
+  if (!packet || !keys->available) return -1;
+
+  size_t pn_offset = pkt->pn_offset;
+  uint8_t pn_length = pkt->packet_number_length;
+  uint32_t packet_num = pkt->packet_num;
 
   size_t header_len = pn_offset + pn_length;
   if (header_len >= packet_len) return -1;

@@ -343,7 +343,7 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
     }
 
     const uint8_t *wire_data;
-    int wire_len = YAWT_q_encode_packet(&pkt, con->crypto.level_keys, &wire_data);
+    int wire_len = YAWT_q_encode_packet(&pkt, &con->crypto, &wire_data);
     if (wire_len < 0) {
       printf("  error: encode packet failed: %d\n", wire_len);
       continue;

@@ -331,8 +331,11 @@ int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_
 // Encode + encrypt a packet into internal static buffer.
 // Returns total wire bytes (including AEAD tag), or negative on error.
 // *out_buf points to internal buffer — valid until next encode call.
-int YAWT_q_encode_packet(const YAWT_Q_Packet_t *pkt,
-                          const YAWT_Q_Level_Keys_t *level_keys,
+struct YAWT_Q_Crypto;
+typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
+
+int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
+                          YAWT_Q_Crypto_t *crypto,
                           const uint8_t **out_buf);
 
 // Read cursor for zero-copy datagram parsing

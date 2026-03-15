@@ -50,7 +50,7 @@ typedef struct YAWT_Q_Level_Keys {
   bool available;             // flag: keys installed for this level
 } YAWT_Q_Level_Keys_t;
 
-typedef struct {
+typedef struct YAWT_Q_Crypto {
   gnutls_session_t session;
   int is_server;
 
@@ -127,12 +127,9 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
                                     const YAWT_Q_Level_Keys_t *keys);
 
 // Protect (encrypt + apply header protection) an outbound packet in-place.
-// packet must contain: unprotected header + plaintext payload + 16 bytes space for AEAD tag.
-// packet_len is the total buffer length including the tag space.
-// pn_offset is the byte offset of the packet number within the packet.
-// pn_length is the length of the packet number field (1-4).
+// Determines encryption level and selects keys from pkt->type.
+// buf must contain: unprotected header + plaintext payload + 16 bytes space for AEAD tag.
 // Returns 0 on success, negative on error.
-int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
-                                  size_t pn_offset, uint8_t pn_length,
-                                  uint32_t packet_num,
-                                  const YAWT_Q_Level_Keys_t *keys);
+int YAWT_q_crypto_protect_packet(uint8_t *buf, size_t buf_len,
+                                  const YAWT_Q_Packet_t *pkt,
+                                  YAWT_Q_Crypto_t *crypto);
