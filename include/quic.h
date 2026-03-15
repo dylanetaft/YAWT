@@ -3,13 +3,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <allocnbuffer/fifoslab.h>
+#include <allocnbuffer/slab.h>
 // Forward declaration — full type in crypt.h
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
 #include "logger.h"
 
 #define YAWT_Q_MAX_PKT_SIZE 1350
+#define YAWT_Q_CID_LEN 20
 
 
 // Quic connection initialization goes like this
@@ -307,6 +308,7 @@ typedef struct {
 // Parsed frame — returned by YAWT_q_parse_frame
 typedef struct {
   YAWT_Q_Frame_Type_t type;
+  YAWT_Q_Packet_Type_t pkt_type;  // source packet type (set by parser)
   union {
     YAWT_Q_Frame_ACK_t ack;
     YAWT_Q_Frame_Crypto_t crypto;
@@ -320,8 +322,11 @@ typedef struct {
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
 // Encode a CRYPTO frame and push to queue. Returns wire bytes written, or negative on error.
-int YAWT_q_enqueue_frame_crypto(ANB_FifoSlab_t *queue, uint8_t level,
+int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
                                 const YAWT_Q_Frame_Crypto_t *frame);
+
+// Encode an ACK frame and push to queue. Acknowledges packets [0..largest_ack].
+int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_ack);
 
 // Encode + encrypt a packet into internal static buffer.
 // Returns total wire bytes (including AEAD tag), or negative on error.
@@ -343,7 +348,9 @@ typedef struct {
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 // Parse a single frame from the cursor. Caller loops while rc->cursor < rc->len.
-void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_ParsedFrame_t *out);
+// pkt_type is stored on the output so consumers know the source encryption level.
+void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
+                         YAWT_Q_ParsedFrame_t *out);
 
 // Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
 static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {

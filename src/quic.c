@@ -203,8 +203,9 @@ static void _parse_pkt_retry(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
 
 static void _parse_pkt_1rtt(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   if (rc->err != YAWT_Q_OK) return;
-
   if (rc->cursor >= rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+
+  size_t pkt_start = rc->cursor;
 
   uint8_t b0 = rc->data[rc->cursor++];
   uint8_t fixed_bit = (b0 >> 6) & 1;
@@ -212,27 +213,16 @@ static void _parse_pkt_1rtt(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   pkt->extra.one_rtt.spin_bit = (b0 >> 5) & 1;
   pkt->reserved = (b0 >> 3) & 3;
   pkt->extra.one_rtt.key_phase = (b0 >> 2) & 1;
-  pkt->packet_number_length = (b0 & 3) + 1;
+  pkt->packet_number_length = (b0 & 3) + 1; // still header-protected, unreliable until HP removal
 
-  // 1-RTT DCID length is not encoded on wire — it's known from connection state.
-  // The caller must know the DCID length from the connection context.
+  // RFC 9000 §17.3.1: DCID length not on wire — known from connection state (YAWT_Q_CID_LEN)
+  if (rc->cursor + YAWT_Q_CID_LEN > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+  pkt->dest_cid.len = YAWT_Q_CID_LEN;
+  memcpy(pkt->dest_cid.id, rc->data + rc->cursor, YAWT_Q_CID_LEN);
+  rc->cursor += YAWT_Q_CID_LEN;
 
-  // Packet Number
-  if (rc->cursor + pkt->packet_number_length > rc->len) {
-    rc->err = YAWT_Q_ERR_SHORT_BUFFER;
-    return;
-  }
-  pkt->packet_num = 0;
-  for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    pkt->packet_num = (pkt->packet_num << 8) | rc->data[rc->cursor + i];
-  }
-  rc->cursor += pkt->packet_number_length;
-
-  pkt->payload = (rc->cursor < rc->len) ? (uint8_t *)(rc->data + rc->cursor) : NULL;
-  pkt->payload_len = rc->len - rc->cursor;
-
-  // 1-RTT must be last in datagram
-  rc->cursor = rc->len;
+  // 1-RTT is always last in datagram (RFC 9000 §12.2)
+  _parse_common(rc, pkt, pkt_start, rc->len);
 }
 
 // --- Encode helpers (write into file-static _encode_buf) ---
@@ -467,8 +457,10 @@ static int _encode_pkt_1rtt(const YAWT_Q_Packet_t *pkt, size_t *written, size_t 
   return 0;
 }
 
-void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_ParsedFrame_t *out) {
+void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
+                         YAWT_Q_ParsedFrame_t *out) {
   memset(out, 0, sizeof(*out));
+  out->pkt_type = pkt_type;
   if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
 
   uint64_t frame_type;
@@ -546,7 +538,7 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len) {
   return (int)pad_len;
 }
 
-int YAWT_q_enqueue_frame_crypto(ANB_FifoSlab_t *queue, uint8_t level,
+int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
                                 const YAWT_Q_Frame_Crypto_t *frame) {
   YAWT_Q_Frame_t f;
   memset(&f, 0, sizeof(f));
@@ -578,8 +570,43 @@ int YAWT_q_enqueue_frame_crypto(ANB_FifoSlab_t *queue, uint8_t level,
   f.level = level;
   f.wire_len = cursor;
 
-  ANB_fifoslab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
 
+  return (int)cursor;
+}
+
+int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_ack) {
+  YAWT_Q_Frame_t f;
+  memset(&f, 0, sizeof(f));
+
+  size_t cursor = 0;
+  int n;
+  YAWT_Q_Error_t err;
+
+  // Frame type 0x02
+  f.wire_data[cursor++] = 0x02;
+
+  // Largest Acknowledged (varint)
+  err = _varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
+  cursor += n;
+
+  // ACK Delay (varint) = 0
+  f.wire_data[cursor++] = 0x00;
+
+  // ACK Range Count (varint) = 0
+  f.wire_data[cursor++] = 0x00;
+
+  // First ACK Range = largest_ack (acknowledges packets [0..largest_ack])
+  err = _varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
+  cursor += n;
+
+  f.type = YAWT_Q_FRAME_ACK;
+  f.level = level;
+  f.wire_len = cursor;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
   return (int)cursor;
 }
 

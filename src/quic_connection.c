@@ -15,12 +15,12 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   if (info == NULL) return NULL;
   YAWT_Q_Connection_t *con = calloc(1, sizeof(YAWT_Q_Connection_t));
   if (!con) return NULL;
-  con->cid.len = 20;
+  con->cid.len = YAWT_Q_CID_LEN;
   YAWT_q_crypto_random_nonce(con->cid.id, con->cid.len);
   YAWT_q_cid_set(&con->peer_cid, info->peer_cid.id, info->peer_cid.len);
   con->version = 0;
-  con->recv_buffer = ANB_fifoslab_create(4096);
-  con->tx_buffer = ANB_fifoslab_create(4096);
+  con->recv_buffer = ANB_slab_create(4096);
+  con->tx_buffer = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
   YAWT_q_crypto_init(&con->crypto, info->is_server, info->cred);
   // Set CIDs for transport parameters (RFC 9000 §18.2)
@@ -47,8 +47,8 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   YAWT_q_con_clear_odcid(c);
   HASH_DELETE(hh_addr, _hash_addr, c);
   YAWT_q_crypto_free(&c->crypto);
-  ANB_fifoslab_destroy(c->recv_buffer);
-  ANB_fifoslab_destroy(c->tx_buffer);
+  ANB_slab_destroy(c->recv_buffer);
+  ANB_slab_destroy(c->tx_buffer);
   free(c);
   *con = NULL;
 }
@@ -102,39 +102,31 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
 }
 
 
-// Push outbound CRYPTO frames from crypto->out_buf into tx_buffer
+// Push outbound CRYPTO frames into tx_buffer
 static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
-  YAWT_Q_Crypto_t *crypto = &con->crypto;
   for (int lvl = 0; lvl < 4; lvl++) {
-    if (crypto->out_len[lvl] == 0) continue;
+    size_t data_len;
+    const uint8_t *data = YAWT_q_crypto_pop_tx(&con->crypto, lvl, &data_len);
+    if (!data) continue;
 
-    YAWT_Q_Frame_Crypto_t cf = {
-      .offset = 0,
-      .len = crypto->out_len[lvl],
-      .data = crypto->out_buf[lvl],
-    };
+    YAWT_Q_Frame_Crypto_t cf = { .offset = 0, .len = data_len, .data = (uint8_t *)data };
     int frame_len = YAWT_q_enqueue_frame_crypto(con->tx_buffer, lvl, &cf);
     if (frame_len < 0) {
       printf("  error: encode CRYPTO frame failed for level %d\n", lvl);
       continue;
     }
 
-    printf("  queued CRYPTO frame: level=%d, %zu bytes of TLS data\n",
-           lvl, crypto->out_len[lvl]);
-
-    free(crypto->out_buf[lvl]);
-    crypto->out_buf[lvl] = NULL;
-    crypto->out_len[lvl] = 0;
+    printf("  queued CRYPTO frame: level=%d, %zu bytes of TLS data\n", lvl, data_len);
   }
 }
 
-static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Encryption_Level_t level,
+static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Packet_Type_t pkt_type,
                             const uint8_t *payload, size_t payload_len) {
   YAWT_Q_ReadCursor_t frc = { .data = (uint8_t *)payload, .len = payload_len, .cursor = 0, .err = YAWT_Q_OK };
 
   while (frc.cursor < frc.len && frc.err == YAWT_Q_OK) {
     YAWT_Q_ParsedFrame_t frame;
-    YAWT_q_parse_frame(&frc, &frame);
+    YAWT_q_parse_frame(&frc, pkt_type, &frame);
     if (frc.err != YAWT_Q_OK) break;
 
     switch (frame.type) {
@@ -149,11 +141,10 @@ static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Encryption_Level_t l
         break;
 
       case YAWT_Q_FRAME_CRYPTO: {
-        YAWT_LOG(YAWT_LOG_INFO, "Received CRYPTO frame at level %d: offset=%lu, len=%lu",
-                  level, frame.crypto.offset, frame.crypto.len);
+        YAWT_LOG(YAWT_LOG_INFO, "Received CRYPTO frame (pkt=%d): offset=%lu, len=%lu",
+                  pkt_type, frame.crypto.offset, frame.crypto.len);
 
-        int ret = YAWT_q_crypto_feed(&con->crypto, level,
-                                      frame.crypto.data, frame.crypto.len);
+        int ret = YAWT_q_crypto_feed(&con->crypto, &frame);
         if (ret < 0) {
           YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %d", ret);
           return;
@@ -163,6 +154,14 @@ static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Encryption_Level_t l
 
         if (con->crypto.handshake_complete) {
           YAWT_q_con_clear_odcid(con);
+          // RFC 9000 §19.20: server MUST send HANDSHAKE_DONE in a 1-RTT packet
+          YAWT_Q_Frame_t hd_frame;
+          memset(&hd_frame, 0, sizeof(hd_frame));
+          hd_frame.type = YAWT_Q_FRAME_HANDSHAKE_DONE;
+          hd_frame.level = YAWT_Q_LEVEL_APPLICATION;
+          hd_frame.wire_data[0] = 0x1e;
+          hd_frame.wire_len = 1;
+          ANB_slab_push_item(con->tx_buffer, (const uint8_t *)&hd_frame, sizeof(hd_frame));
         }
         break;
       }
@@ -258,7 +257,10 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cr
     YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
              pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
              pkt.payload[4], pkt.payload[5], pkt.payload[6], pkt.payload[7]);
-    _handle_frames(con, level, pkt.payload, pkt.payload_len);
+    _handle_frames(con, pkt.type, pkt.payload, pkt.payload_len);
+
+    // Queue ACK for received packet
+    YAWT_q_enqueue_frame_ack(con->tx_buffer, level, pkt.packet_num);
   }
   if (rc.err != YAWT_Q_OK) {
     printf("  parse error: %d at cursor %zu\n", rc.err, rc.cursor);
@@ -295,11 +297,11 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
     size_t payload_len = 0;
     int found = 0;
 
-    ANB_FifoSlabIter_t iter = {0};
+    ANB_SlabIter_t iter = {0};
     size_t item_size;
     uint8_t *item;
 
-    while ((item = ANB_fifoslab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
+    while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
       if (item_size < sizeof(YAWT_Q_Frame_t)) continue;
       YAWT_Q_Frame_t *f = (YAWT_Q_Frame_t *)item;
 
@@ -365,8 +367,8 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
     clock_gettime(CLOCK_MONOTONIC, &ts);
     uint64_t now = (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 
-    ANB_FifoSlabIter_t iter2 = {0};
-    while ((item = ANB_fifoslab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
+    ANB_SlabIter_t iter2 = {0};
+    while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
       if (item_size < sizeof(YAWT_Q_Frame_t)) continue;
       YAWT_Q_Frame_t *f = (YAWT_Q_Frame_t *)item;
       if (f->level == lvl && f->last_sent == 0) {
@@ -382,7 +384,7 @@ void YAWT_q_con_flush_send(YAWT_Q_Send_Func_t send_func, void *send_ctx) {
 
   YAWT_Q_Connection_t *con, *tmp;
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
-    if (ANB_fifoslab_item_count(con->tx_buffer) > 0) {
+    if (ANB_slab_item_count(con->tx_buffer) > 0) {
       _flush_connection(con, send_func, send_ctx);
     }
   }

@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <allocnbuffer/fifoslab.h>
+#include <allocnbuffer/slab.h>
 #include <uthash/uthash.h>
 #include "quic.h"
 #include "crypt.h"
@@ -26,8 +26,8 @@ typedef struct YAWT_Q_Connection {
   YAWT_Q_Cid_t peer_cid;
   YAWT_Q_Cid_t original_dcid;  // client's random DCID from first Initial (temporary index)
   uint32_t version;
-  ANB_FifoSlab_t *recv_buffer;
-  ANB_FifoSlab_t *tx_buffer;
+  ANB_Slab_t *recv_buffer;
+  ANB_Slab_t *tx_buffer;
   UT_hash_handle hh_addr;
   UT_hash_handle hh_cid;
   UT_hash_handle hh_odcid;

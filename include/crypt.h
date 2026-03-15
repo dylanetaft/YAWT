@@ -61,6 +61,10 @@ typedef struct {
   uint8_t *out_buf[4];
   size_t out_len[4];
 
+  // Inbound CRYPTO reassembly — handles out-of-order CRYPTO frames
+  ANB_Slab_t *rx_crypto_buf;              // buffered out-of-order CRYPTO frames
+  uint64_t rx_crypto_next_offset[4];      // next expected contiguous byte offset per level
+
   int handshake_complete;
 
   // CIDs for transport parameters (RFC 9000 §18.2)
@@ -81,11 +85,17 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
 // Cleanup / free GnuTLS resources
 void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto);
 
-// Feed received CRYPTO frame data at a given encryption level.
-// After calling, check crypto->out_buf[level] for handshake data to send back.
+// Get outbound TLS data for a given level. Returns pointer and length.
+// Marks the data as consumed (resets length to 0). The pointer remains valid
+// until the next crypto_feed call or crypto_free.
+// Returns NULL if no data available.
+const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *out_len);
+
+// Feed a received CRYPTO frame. Determines encryption level from frame->pkt_type.
+// Handles offset-based reassembly internally. After calling, check
+// crypto->out_buf[level] for handshake data to send back.
 int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        YAWT_Q_Encryption_Level_t level,
-                        const uint8_t *data, size_t data_len);
+                        const YAWT_Q_ParsedFrame_t *frame);
 
 // Fill buf with len nonce-quality random bytes (not cryptographically secure).
 int YAWT_q_crypto_random_nonce(void *buf, size_t len);

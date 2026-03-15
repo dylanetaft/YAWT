@@ -245,6 +245,7 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
 
   memset(crypto, 0, sizeof(*crypto));
   crypto->is_server = is_server;
+  crypto->rx_crypto_buf = ANB_slab_create(4096);
 
   unsigned int flags = is_server
     ? GNUTLS_SERVER | GNUTLS_NO_AUTO_SEND_TICKET
@@ -301,6 +302,10 @@ void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto) {
     crypto->out_buf[i] = NULL;
     crypto->out_len[i] = 0;
   }
+  if (crypto->rx_crypto_buf) {
+    ANB_slab_destroy(crypto->rx_crypto_buf);
+    crypto->rx_crypto_buf = NULL;
+  }
 }
 
 int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto) {
@@ -315,14 +320,13 @@ int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto) {
   return ret; // error
 }
 
-int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        YAWT_Q_Encryption_Level_t level,
-                        const uint8_t *data, size_t data_len) {
-  int ret;
-
-  ret = gnutls_handshake_write(crypto->session,
-                                (gnutls_record_encryption_level_t)level,
-                                data, data_len);
+// Write contiguous data to GnuTLS and drive the handshake forward
+static int _crypto_handshake_write(YAWT_Q_Crypto_t *crypto,
+                                    YAWT_Q_Encryption_Level_t level,
+                                    const uint8_t *data, size_t data_len) {
+  int ret = gnutls_handshake_write(crypto->session,
+                                    (gnutls_record_encryption_level_t)level,
+                                    data, data_len);
   if (ret < 0) {
     YAWT_LOG(YAWT_LOG_ERROR, "handshake_write failed: %d (%s)", ret, gnutls_strerror(ret));
     return ret;
@@ -345,6 +349,74 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   }
 
   return 0;
+}
+
+// Map packet type to encryption level
+static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t pkt_type) {
+  switch (pkt_type) {
+    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
+    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
+    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
+    default:                         return YAWT_Q_LEVEL_APPLICATION;
+  }
+}
+
+// Drain buffered out-of-order CRYPTO frames that are now contiguous
+static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
+    YAWT_Q_ParsedFrame_t *buffered = (YAWT_Q_ParsedFrame_t *)item;
+    YAWT_Q_Encryption_Level_t lvl = _pkt_type_to_level(buffered->pkt_type);
+
+    if (buffered->crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
+      int ret = _crypto_handshake_write(crypto, lvl,
+                                         buffered->crypto.data, buffered->crypto.len);
+      if (ret < 0) return ret;
+      crypto->rx_crypto_next_offset[lvl] += buffered->crypto.len;
+      ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+    }
+  }
+  return 0;
+}
+
+int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
+                        const YAWT_Q_ParsedFrame_t *frame) {
+  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(frame->pkt_type);
+  uint64_t offset = frame->crypto.offset;
+  uint64_t end = offset + frame->crypto.len;
+
+  // Skip fully duplicate data
+  if (end <= crypto->rx_crypto_next_offset[level]) return 0;
+
+  // In-order: feed directly to TLS
+  if (offset == crypto->rx_crypto_next_offset[level]) {
+    int ret = _crypto_handshake_write(crypto, level,
+                                       frame->crypto.data, frame->crypto.len);
+    if (ret < 0) return ret;
+    crypto->rx_crypto_next_offset[level] = end;
+
+    // Check if any buffered frames are now contiguous
+    return _drain_crypto_buf(crypto);
+  }
+
+  // Out-of-order: buffer for later
+  YAWT_LOG(YAWT_LOG_DEBUG, "CRYPTO gap at level %d: expected %lu, got offset %lu — buffering",
+            level, crypto->rx_crypto_next_offset[level], offset);
+  ANB_slab_push_item(crypto->rx_crypto_buf, (const uint8_t *)frame, sizeof(*frame));
+  return 0;
+}
+
+const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *out_len) {
+  if (!crypto || level < 0 || level > 3 || crypto->out_len[level] == 0) {
+    if (out_len) *out_len = 0;
+    return NULL;
+  }
+  if (out_len) *out_len = crypto->out_len[level];
+  const uint8_t *ptr = crypto->out_buf[level];
+  crypto->out_len[level] = 0;
+  return ptr;
 }
 
 int YAWT_q_crypto_random_nonce(void *buf, size_t len) {
