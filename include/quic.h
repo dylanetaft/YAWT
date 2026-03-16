@@ -303,7 +303,7 @@ typedef struct {
   // Wire-encoded frame data
   size_t wire_len;
   uint8_t wire_data[YAWT_Q_MAX_PKT_SIZE];
-} YAWT_Q_Frame_t;
+} YAWT_Q_WireFrame_t;
 
 // Parsed frame — returned by YAWT_q_parse_frame
 typedef struct {
@@ -315,7 +315,13 @@ typedef struct {
     YAWT_Q_Frame_Connection_Close_t connection_close;
     YAWT_Q_Frame_New_Connection_ID_t new_connection_id;
   };
-} YAWT_Q_ParsedFrame_t;
+} YAWT_Q_Frame_t;
+
+// Result from processing frames in a packet
+typedef struct {
+  YAWT_Q_Error_t err;
+  int requires_ack;  // 1 if any ack-eliciting frame was seen
+} YAWT_Q_FrameHandler_Res_t;
 
 
 // Encode PADDING frames into buf. Returns bytes written, or negative on error.
@@ -353,7 +359,7 @@ void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 // Parse a single frame from the cursor. Caller loops while rc->cursor < rc->len.
 // pkt_type is stored on the output so consumers know the source encryption level.
 void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
-                         YAWT_Q_ParsedFrame_t *out);
+                         YAWT_Q_Frame_t *out);
 
 // Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
 static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {

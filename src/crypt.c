@@ -7,9 +7,51 @@
 #include "logger.h"
 
 
+// Per-level keys derived by GnuTLS
+typedef struct YAWT_Q_Level_Keys {
+  uint8_t secret_read[48];   // traffic secret for reading (max SHA-384 = 48 bytes)
+  uint8_t secret_write[48];  // traffic secret for writing
+  size_t secret_len;
+
+  // Derived from traffic secret via HKDF-Expand-Label("quic key"/"quic iv"/"quic hp").
+  // HKDF-Expand-Label builds TLS 1.3 info: { uint16 length, "tls13 " + label, "" }
+  uint8_t key_read[32];   // AEAD key for decryption (16 bytes for AES-128-GCM)
+  uint8_t iv_read[12];    // AEAD IV — XOR'd with packet number to form nonce
+  uint8_t hp_read[32];    // Header protection key — used with AES-ECB on ciphertext sample
+  uint8_t key_write[32];  // AEAD key for encryption
+  uint8_t iv_write[12];
+  uint8_t hp_write[32];
+  size_t key_len;         // 16 for AES-128-GCM, 32 for AES-256-GCM
+  int aead_cipher;        // gnutls_cipher_algorithm_t for AEAD encrypt/decrypt
+
+  bool available;             // flag: keys installed for this level
+} YAWT_Q_Level_Keys_t;
+
+typedef struct YAWT_Q_Crypto {
+  gnutls_session_t session;
+  int is_server;
+
+  // Keys per encryption level (Initial=0, Early=1, Handshake=2, Application=3)
+  YAWT_Q_Level_Keys_t level_keys[4];
+
+  // Outbound handshake data buffered per level (to be wrapped in CRYPTO frames)
+  uint8_t *out_buf[4];
+  size_t out_len[4];
+
+  // Inbound CRYPTO reassembly — handles out-of-order CRYPTO frames
+  ANB_Slab_t *rx_crypto_buf;              // buffered out-of-order CRYPTO frames
+  uint64_t rx_crypto_next_offset[4];      // next expected contiguous byte offset per level
+
+  int handshake_complete;
+
+  // CIDs for transport parameters (RFC 9000 §18.2)
+  YAWT_Q_Cid_t original_dcid;   // client's random DCID from first Initial
+  YAWT_Q_Cid_t our_cid;         // our source connection ID
+} YAWT_Q_Crypto_t;
 typedef struct YAWT_Q_Crypto_Cred {
   gnutls_certificate_credentials_t cred;
 } YAWT_Q_Crypto_Cred_t;
+
 
 // RFC 9001 §5.2 — QUIC v1 initial salt
 static const uint8_t INITIAL_SALT[] = {
@@ -235,9 +277,11 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
 }
 
 int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
-                    int is_server, YAWT_Q_Crypto_Cred_t *cred) {
+                    int is_server, YAWT_Q_Crypto_Cred_t *cred,
+                    const YAWT_Q_Cid_t *original_dcid,
+                    const YAWT_Q_Cid_t *our_cid) {
 
-  if (!crypto || !cred) {
+  if (!crypto || !cred || !original_dcid || !our_cid) {
     YAWT_LOG(YAWT_LOG_ERROR, "Invalid arguments to YAWT_q_crypto_init");
     return -1;
   }
@@ -246,6 +290,9 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
   memset(crypto, 0, sizeof(*crypto));
   crypto->is_server = is_server;
   crypto->rx_crypto_buf = ANB_slab_create(4096);
+  // Set CIDs for transport parameters (RFC 9000 §18.2)
+  YAWT_q_cid_set(&crypto->original_dcid, original_dcid->id, original_dcid->len);
+  YAWT_q_cid_set(&crypto->our_cid, our_cid->id, our_cid->len);
 
   unsigned int flags = is_server
     ? GNUTLS_SERVER | GNUTLS_NO_AUTO_SEND_TICKET
@@ -367,7 +414,7 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   size_t item_size;
   uint8_t *item;
   while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
-    YAWT_Q_ParsedFrame_t *buffered = (YAWT_Q_ParsedFrame_t *)item;
+    YAWT_Q_Frame_t *buffered = (YAWT_Q_Frame_t *)item;
     YAWT_Q_Encryption_Level_t lvl = _pkt_type_to_level(buffered->pkt_type);
 
     if (buffered->crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
@@ -382,7 +429,7 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
 }
 
 int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        const YAWT_Q_ParsedFrame_t *frame) {
+                        const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(frame->pkt_type);
   uint64_t offset = frame->crypto.offset;
   uint64_t end = offset + frame->crypto.len;
@@ -502,9 +549,13 @@ static gnutls_cipher_algorithm_t _hp_cipher_for_aead(int aead_cipher) {
   }
 }
 
-int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
-                                    size_t pn_offset,
-                                    const YAWT_Q_Level_Keys_t *keys) {
+int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
+  if (!pkt || !crypto) return -1;
+  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
+  size_t pn_offset = pkt->pn_offset;
+  uint8_t *packet = pkt->raw;
+  size_t packet_len = (size_t)(pkt->payload + pkt->payload_len - packet);
   // Need at least pn_offset + 4 + 16 bytes for the sample
   if (pn_offset + 4 + 16 > packet_len) return -1;
 
@@ -551,21 +602,31 @@ int YAWT_q_crypto_unprotect_header(uint8_t *packet, size_t packet_len,
 // 2. AAD = unprotected header bytes (byte 0 through end of PN field)
 // 3. Ciphertext includes 16-byte GCM authentication tag at the end
 // 4. gnutls_aead_cipher_decrypt() verifies tag and produces plaintext
-int YAWT_q_crypto_decrypt_payload(const YAWT_Q_Level_Keys_t *keys,
-                                   uint32_t packet_number,
-                                   const uint8_t *header, size_t header_len,
-                                   const uint8_t *ciphertext, size_t ciphertext_len,
-                                   uint8_t *plaintext, size_t *plaintext_len) {
+// Decrypts in-place and updates pkt->payload / pkt->payload_len.
+// Must be called after unprotect_header (needs true PN).
+int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
+  if (!pkt || !crypto) return -1;
+
+  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
+  uint8_t *packet = pkt->raw;
+
+  // AAD = header bytes (byte 0 through end of PN)
+  size_t header_len = pkt->pn_offset + pkt->packet_number_length;
+  // Ciphertext starts right after PN
+  uint8_t *ciphertext = packet + header_len;
+  size_t ciphertext_len = (size_t)(pkt->payload + pkt->payload_len - ciphertext);
+
   // Ciphertext must contain at least the 16-byte auth tag
   if (ciphertext_len < 16) return -1;
 
   // Construct nonce: iv XOR packet_number (right-aligned in 12 bytes)
   uint8_t nonce[12];
   memcpy(nonce, keys->iv_read, 12);
-  nonce[11] ^= (uint8_t)(packet_number);
-  nonce[10] ^= (uint8_t)(packet_number >> 8);
-  nonce[9]  ^= (uint8_t)(packet_number >> 16);
-  nonce[8]  ^= (uint8_t)(packet_number >> 24);
+  nonce[11] ^= (uint8_t)(pkt->packet_num);
+  nonce[10] ^= (uint8_t)(pkt->packet_num >> 8);
+  nonce[9]  ^= (uint8_t)(pkt->packet_num >> 16);
+  nonce[8]  ^= (uint8_t)(pkt->packet_num >> 24);
 
   gnutls_aead_cipher_hd_t cipher;
   gnutls_datum_t key_d = { .data = (void *)keys->key_read, .size = keys->key_len };
@@ -573,13 +634,19 @@ int YAWT_q_crypto_decrypt_payload(const YAWT_Q_Level_Keys_t *keys,
   if (ret < 0) return ret;
 
   size_t tag_size = 16;
+  size_t plaintext_len = ciphertext_len;
   ret = gnutls_aead_cipher_decrypt(cipher, nonce, 12,
-                                    header, header_len,
+                                    packet, header_len,
                                     tag_size,
                                     ciphertext, ciphertext_len,
-                                    plaintext, plaintext_len);
+                                    ciphertext, &plaintext_len);
   gnutls_aead_cipher_deinit(cipher);
-  return ret;
+  if (ret < 0) return ret;
+
+  // Update payload to point to decrypted frames
+  pkt->payload = ciphertext;
+  pkt->payload_len = plaintext_len;
+  return 0;
 }
 
 // Unprotect header + decrypt payload of a parsed packet in-place.
@@ -587,20 +654,17 @@ int YAWT_q_crypto_decrypt_payload(const YAWT_Q_Level_Keys_t *keys,
 // 2. Re-reads the true PN from the now-unmasked bytes
 // 3. AEAD decrypts payload in-place (plaintext replaces ciphertext)
 // 4. Updates common struct fields (packet_num, payload_len)
-int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
-                                    const YAWT_Q_Level_Keys_t *keys) {
-  if (!pkt || !keys || !keys->available) return -1;
+int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
+
+  if (!pkt || !crypto) return -1;
+
   if (pkt->type == YAWT_Q_PKT_TYPE_RETRY) return 0; // Retry — nothing to decrypt
   if (!pkt->raw || !pkt->payload || pkt->payload_len == 0) return -1;
 
   uint8_t *packet = pkt->raw;
 
-  // Total packet length: from raw through end of payload
-  size_t packet_len = (size_t)(pkt->payload + pkt->payload_len - packet);
-
   // Step 1: Header unprotection
-  int ret = YAWT_q_crypto_unprotect_header(packet, packet_len,
-                                            pkt->pn_offset, keys);
+  int ret = YAWT_q_crypto_unprotect_header(pkt, crypto); 
   if (ret < 0) return ret;
 
   // Step 2: Re-read true PN length and PN value from unmasked bytes
@@ -611,26 +675,11 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
   }
 
   // Step 3: AEAD decrypt
-  // AAD = header bytes (byte 0 through end of PN)
-  size_t header_len = pkt->pn_offset + pkt->packet_number_length;
-  // Ciphertext starts right after PN
-  uint8_t *ciphertext = packet + header_len;
-  size_t ciphertext_len = (size_t)(pkt->payload + pkt->payload_len - ciphertext);
-
-  // Decrypt in-place: write plaintext over the ciphertext
-  size_t plaintext_len = ciphertext_len;
-  ret = YAWT_q_crypto_decrypt_payload(keys, pkt->packet_num,
-                                       packet, header_len,
-                                       ciphertext, ciphertext_len,
-                                       ciphertext, &plaintext_len);
+  ret = YAWT_q_crypto_decrypt_payload(pkt, crypto);
   if (ret < 0) return ret;
 
-  // Update payload to point past PN to the decrypted frames
-  pkt->payload = ciphertext;
-  pkt->payload_len = plaintext_len;
-
   YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted %zu bytes (PN=%u, pn_len=%u)",
-           plaintext_len, pkt->packet_num, pkt->packet_number_length);
+           pkt->payload_len, pkt->packet_num, pkt->packet_number_length);
   return 0;
 }
 
@@ -641,6 +690,9 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt,
 //   [header] [PN] [ciphertext + tag]
 // After header protection:
 //   [masked header] [masked PN] [ciphertext + tag]
+// Note: protect_packet takes a separate buffer+length (rather than using pkt->raw)
+// because the encode path rebuilds packets from buffered frames with fresh PNs —
+// the output buffer is owned by the encoder, not the packet struct.
 int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
                                   const YAWT_Q_Packet_t *pkt,
                                   YAWT_Q_Crypto_t *crypto) {
@@ -722,3 +774,13 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
 
   return 0;
 }
+
+int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto) {
+  return crypto ? crypto->handshake_complete : 0;
+}
+
+int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level) {
+  if (!crypto || level < 0 || level > 3) return 0;
+  return crypto->level_keys[level].available;
+}
+

@@ -457,7 +457,7 @@ static int _encode_pkt_1rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
 }
 
 void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
-                         YAWT_Q_ParsedFrame_t *out) {
+                         YAWT_Q_Frame_t *out) {
   memset(out, 0, sizeof(*out));
   out->pkt_type = pkt_type;
   if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
@@ -539,7 +539,7 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len) {
 
 int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
                                 const YAWT_Q_Frame_Crypto_t *frame) {
-  YAWT_Q_Frame_t f;
+  YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
@@ -575,7 +575,7 @@ int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
 }
 
 int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_ack) {
-  YAWT_Q_Frame_t f;
+  YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;

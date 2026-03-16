@@ -22,10 +22,8 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->recv_buffer = ANB_slab_create(4096);
   con->tx_buffer = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
-  YAWT_q_crypto_init(&con->crypto, info->is_server, info->cred);
-  // Set CIDs for transport parameters (RFC 9000 §18.2)
-  YAWT_q_cid_set(&con->crypto.original_dcid, info->original_dcid.id, info->original_dcid.len);
-  YAWT_q_cid_set(&con->crypto.our_cid, con->cid.id, con->cid.len);
+  YAWT_q_crypto_init(con->crypto, info->is_server, info->cred,
+                      &info->original_dcid, &con->cid);
   HASH_ADD(hh_cid, _hash_cid, cid.id, con->cid.len, con);
 
   // Temporary index by original DCID (removed once client uses our real CID)
@@ -46,7 +44,7 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   HASH_DELETE(hh_cid, _hash_cid, c);
   YAWT_q_con_clear_odcid(c);
   HASH_DELETE(hh_addr, _hash_addr, c);
-  YAWT_q_crypto_free(&c->crypto);
+  YAWT_q_crypto_free(c->crypto);
   ANB_slab_destroy(c->recv_buffer);
   ANB_slab_destroy(c->tx_buffer);
   free(c);
@@ -106,7 +104,7 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
 static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t data_len;
-    const uint8_t *data = YAWT_q_crypto_pop_tx(&con->crypto, lvl, &data_len);
+    const uint8_t *data = YAWT_q_crypto_pop_tx(con->crypto, lvl, &data_len);
     if (!data) continue;
 
     YAWT_Q_Frame_Crypto_t cf = { .offset = 0, .len = data_len, .data = (uint8_t *)data };
@@ -120,14 +118,20 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
   }
 }
 
-static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Packet_Type_t pkt_type,
-                            const uint8_t *payload, size_t payload_len) {
-  YAWT_Q_ReadCursor_t frc = { .data = (uint8_t *)payload, .len = payload_len, .cursor = 0, .err = YAWT_Q_OK };
+static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
+                                                  YAWT_Q_Packet_t *pkt) {
+  YAWT_Q_FrameHandler_Res_t res = { .err = YAWT_Q_OK, .requires_ack = 0 };
+  YAWT_Q_ReadCursor_t frc = { .data = pkt->payload, .len = pkt->payload_len, .cursor = 0, .err = YAWT_Q_OK };
 
   while (frc.cursor < frc.len && frc.err == YAWT_Q_OK) {
-    YAWT_Q_ParsedFrame_t frame;
-    YAWT_q_parse_frame(&frc, pkt_type, &frame);
+    YAWT_Q_Frame_t frame;
+    YAWT_q_parse_frame(&frc, pkt->type, &frame);
     if (frc.err != YAWT_Q_OK) break;
+
+    // RFC 9000 §13.2: only ACK and PADDING are non-ack-eliciting
+    if (frame.type != YAWT_Q_FRAME_ACK && frame.type != YAWT_Q_FRAME_PADDING) {
+      res.requires_ack = 1;
+    }
 
     switch (frame.type) {
       case YAWT_Q_FRAME_PADDING:
@@ -142,20 +146,21 @@ static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Packet_Type_t pkt_ty
 
       case YAWT_Q_FRAME_CRYPTO: {
         YAWT_LOG(YAWT_LOG_INFO, "Received CRYPTO frame (pkt=%d): offset=%lu, len=%lu",
-                  pkt_type, frame.crypto.offset, frame.crypto.len);
+                  pkt->type, frame.crypto.offset, frame.crypto.len);
 
-        int ret = YAWT_q_crypto_feed(&con->crypto, &frame);
+        int ret = YAWT_q_crypto_feed(con->crypto, &frame);
         if (ret < 0) {
           YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %d", ret);
-          return;
+          res.err = YAWT_Q_ERR_INVALID_PACKET;
+          return res;
         }
 
         _push_crypto_frames(con);
 
-        if (con->crypto.handshake_complete) {
+        if (YAWT_q_crypto_is_handshake_complete(con->crypto)) {
           YAWT_q_con_clear_odcid(con);
           // RFC 9000 §19.20: server MUST send HANDSHAKE_DONE in a 1-RTT packet
-          YAWT_Q_Frame_t hd_frame;
+          YAWT_Q_WireFrame_t hd_frame;
           memset(&hd_frame, 0, sizeof(hd_frame));
           hd_frame.type = YAWT_Q_FRAME_HANDSHAKE_DONE;
           hd_frame.level = YAWT_Q_LEVEL_APPLICATION;
@@ -167,8 +172,7 @@ static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Packet_Type_t pkt_ty
       }
 
       case YAWT_Q_FRAME_HANDSHAKE_DONE:
-        YAWT_LOG(YAWT_LOG_INFO, "Received HANDSHAKE_DONE frame");
-        con->crypto.handshake_complete = 1;
+        YAWT_LOG(YAWT_LOG_INFO, "TODO: handshake done, drop handshake keys");
         break;
 
       case YAWT_Q_FRAME_CONNECTION_CLOSE:
@@ -190,7 +194,9 @@ static void _handle_frames(YAWT_Q_Connection_t *con, YAWT_Q_Packet_Type_t pkt_ty
 
   if (frc.err != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "Frame parse error: %s (%d)", YAWT_q_err_str(frc.err), frc.err);
+    res.err = frc.err;
   }
+  return res;
 }
 
 void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
@@ -227,11 +233,11 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cr
     }
 
     YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt.type);
+    int lvl_key_avail = YAWT_q_crypto_key_level_available(con->crypto, level);
 
     // For Initial packets: derive keys from DCID if not done yet
-    if (level == YAWT_Q_LEVEL_INITIAL &&
-        !con->crypto.level_keys[YAWT_Q_LEVEL_INITIAL].available) {
-      int ret = YAWT_q_crypto_derive_initial_keys(&con->crypto, &pkt.dest_cid);  //RFC 9001 §5.2 - the dest cid in initial packet is randomly generated by remote party
+    if (level == YAWT_Q_LEVEL_INITIAL && !lvl_key_avail) {
+      int ret = YAWT_q_crypto_derive_initial_keys(con->crypto, &pkt.dest_cid);  //RFC 9001 §5.2 - the dest cid in initial packet is randomly generated by remote party
       if (ret < 0) {
         YAWT_LOG(YAWT_LOG_ERROR, "Failed to derive initial keys for CID=%s: %d",
                   YAWT_q_cid_to_hex(&pkt.dest_cid), ret);
@@ -239,15 +245,16 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cr
       }
       YAWT_LOG(YAWT_LOG_INFO, "Derived initial keys for CID=%s from DCID (%u bytes)",
                 YAWT_q_cid_to_hex(&pkt.dest_cid), pkt.dest_cid.len);
-    }
 
-    YAWT_Q_Level_Keys_t *keys = &con->crypto.level_keys[level];
-    if (!keys->available) {
+      lvl_key_avail = YAWT_q_crypto_key_level_available(con->crypto, level);
+    }
+    
+    if (!lvl_key_avail) {
       YAWT_LOG(YAWT_LOG_WARN, "no keys for level %d, skipping decrypt", level);
       continue;
     }
 
-    int ret = YAWT_q_crypto_unprotect_packet(&pkt, keys);
+    int ret = YAWT_q_crypto_unprotect_packet(&pkt, con->crypto);
     if (ret < 0) {
       printf("  error: unprotect/decrypt failed: %d\n", ret);
       continue;
@@ -257,10 +264,12 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cr
     YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
              pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
              pkt.payload[4], pkt.payload[5], pkt.payload[6], pkt.payload[7]);
-    _handle_frames(con, pkt.type, pkt.payload, pkt.payload_len);
+    YAWT_Q_FrameHandler_Res_t res = _handle_frames(con, &pkt);
 
-    // Queue ACK for received packet
-    YAWT_q_enqueue_frame_ack(con->tx_buffer, level, pkt.packet_num);
+    // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
+    if (res.requires_ack) {
+      YAWT_q_enqueue_frame_ack(con->tx_buffer, level, pkt.packet_num);
+    }
   }
   if (rc.err != YAWT_Q_OK) {
     printf("  parse error: %d at cursor %zu\n", rc.err, rc.cursor);
@@ -302,8 +311,8 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
     uint8_t *item;
 
     while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
-      if (item_size < sizeof(YAWT_Q_Frame_t)) continue;
-      YAWT_Q_Frame_t *f = (YAWT_Q_Frame_t *)item;
+      if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+      YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
 
       if (f->level != lvl || f->last_sent != 0) continue;
 
@@ -316,8 +325,7 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
 
     if (!found) continue;
 
-    YAWT_Q_Level_Keys_t *keys = &con->crypto.level_keys[lvl];
-    if (!keys->available) {
+    if (!YAWT_q_crypto_key_level_available(con->crypto, lvl)) {
       printf("  no write keys for level %d, skipping send\n", lvl);
       continue;
     }
@@ -343,7 +351,7 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
     }
 
     const uint8_t *wire_data;
-    int wire_len = YAWT_q_encode_packet(&pkt, &con->crypto, &wire_data);
+    int wire_len = YAWT_q_encode_packet(&pkt, con->crypto, &wire_data);
     if (wire_len < 0) {
       printf("  error: encode packet failed: %d\n", wire_len);
       continue;
@@ -369,8 +377,8 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
 
     ANB_SlabIter_t iter2 = {0};
     while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
-      if (item_size < sizeof(YAWT_Q_Frame_t)) continue;
-      YAWT_Q_Frame_t *f = (YAWT_Q_Frame_t *)item;
+      if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+      YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
       if (f->level == lvl && f->last_sent == 0) {
         f->last_sent = now;
         f->packet_num = pn;

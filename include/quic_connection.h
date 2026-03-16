@@ -5,6 +5,7 @@
 #include "quic.h"
 #include "crypt.h"
 
+
 // Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x)
 typedef struct {
   uint8_t  addr[16];  // 128-bit IPv6 address (or IPv4-mapped)
@@ -42,7 +43,7 @@ typedef struct YAWT_Q_Connection {
   uint64_t pkt_num_rx_handshake;
 
   YAWT_Q_PeerAddr_t peer_addr;
-  YAWT_Q_Crypto_t crypto;
+  YAWT_Q_Crypto_t *crypto;
 } YAWT_Q_Connection_t;
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
