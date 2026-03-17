@@ -31,6 +31,16 @@ typedef enum {
   YAWT_Q_LEVEL_APPLICATION = 3
 } YAWT_Q_Encryption_Level_t;
 
+// Per-level key state — tracks lifecycle of encryption keys at each level.
+// INACTIVE: no keys, can't encrypt/decrypt or accept CRYPTO frames.
+// ACTIVE:   keys installed, can encrypt/decrypt, accepts CRYPTO frames.
+// DONE:     keys installed, can still encrypt/decrypt (retransmits), rejects new CRYPTO frames.
+typedef enum {
+  YAWT_Q_KEY_STATE_INACTIVE = 0,
+  YAWT_Q_KEY_STATE_ACTIVE,
+  YAWT_Q_KEY_STATE_DONE
+} YAWT_Q_Key_State_t;
+
 
 YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                               const char *key_file,
@@ -41,10 +51,11 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
 // Initialize crypto state. is_server=1 for server, 0 for client.
 // original_dcid: client's random DCID from first Initial (for transport params).
 // our_cid: our source connection ID (for transport params).
-int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
-                    int is_server, YAWT_Q_Crypto_Cred_t *cred,
+// Returns allocated crypto object, or NULL on error (err set if provided).
+YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
-                    const YAWT_Q_Cid_t *our_cid);
+                    const YAWT_Q_Cid_t *our_cid,
+                    YAWT_Q_Error_t *err);
 
 // Cleanup / free GnuTLS resources
 void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto);

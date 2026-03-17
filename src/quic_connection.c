@@ -22,8 +22,8 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->recv_buffer = ANB_slab_create(4096);
   con->tx_buffer = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
-  YAWT_q_crypto_init(con->crypto, info->is_server, info->cred,
-                      &info->original_dcid, &con->cid);
+  con->crypto = YAWT_q_crypto_init(info->is_server, info->cred,
+                                    &info->original_dcid, &con->cid, NULL);
   HASH_ADD(hh_cid, _hash_cid, cid.id, con->cid.len, con);
 
   // Temporary index by original DCID (removed once client uses our real CID)

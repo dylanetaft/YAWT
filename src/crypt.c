@@ -24,7 +24,7 @@ typedef struct YAWT_Q_Level_Keys {
   size_t key_len;         // 16 for AES-128-GCM, 32 for AES-256-GCM
   int aead_cipher;        // gnutls_cipher_algorithm_t for AEAD encrypt/decrypt
 
-  bool available;             // flag: keys installed for this level
+  YAWT_Q_Key_State_t state;   // lifecycle state for this level's keys
 } YAWT_Q_Level_Keys_t;
 
 typedef struct YAWT_Q_Crypto {
@@ -162,7 +162,14 @@ static int _on_secret(gnutls_session_t session,
 
   if (secret_read) _derive_pkt_keys(keys, hash, 1);
   if (secret_write) _derive_pkt_keys(keys, hash, 0);
-  keys->available = 1;
+  keys->state = YAWT_Q_KEY_STATE_ACTIVE;
+
+  // When a new level activates, the previous level is done
+  if (level == GNUTLS_ENCRYPTION_LEVEL_HANDSHAKE) {
+    crypto->level_keys[YAWT_Q_LEVEL_INITIAL].state = YAWT_Q_KEY_STATE_DONE;
+  } else if (level == GNUTLS_ENCRYPTION_LEVEL_APPLICATION) {
+    crypto->level_keys[YAWT_Q_LEVEL_HANDSHAKE].state = YAWT_Q_KEY_STATE_DONE;
+  }
   return 0;
 }
 
@@ -276,18 +283,23 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   return (int)total;
 }
 
-int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
-                    int is_server, YAWT_Q_Crypto_Cred_t *cred,
+YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
-                    const YAWT_Q_Cid_t *our_cid) {
+                    const YAWT_Q_Cid_t *our_cid,
+                    YAWT_Q_Error_t *err) {
 
-  if (!crypto || !cred || !original_dcid || !our_cid) {
+  if (!cred || !original_dcid || !our_cid) {
     YAWT_LOG(YAWT_LOG_ERROR, "Invalid arguments to YAWT_q_crypto_init");
-    return -1;
+    if (err) *err = YAWT_Q_ERR_INVALID_PARAM;
+    return NULL;
+  }
+
+  YAWT_Q_Crypto_t *crypto = calloc(1, sizeof(YAWT_Q_Crypto_t));
+  if (!crypto) {
+    if (err) *err = YAWT_Q_ERR_ALLOC;
+    return NULL;
   }
   int ret;
-
-  memset(crypto, 0, sizeof(*crypto));
   crypto->is_server = is_server;
   crypto->rx_crypto_buf = ANB_slab_create(4096);
   // Set CIDs for transport parameters (RFC 9000 §18.2)
@@ -298,16 +310,15 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
     ? GNUTLS_SERVER | GNUTLS_NO_AUTO_SEND_TICKET
     : GNUTLS_CLIENT;
   ret = gnutls_init(&crypto->session, flags);
-  if (ret < 0) return ret;
+  if (ret < 0) goto fail;
 
   ret = gnutls_priority_set_direct(crypto->session,
                                     "NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
-  if (ret < 0) return ret;
+  if (ret < 0) goto fail;
 
-  
   ret = gnutls_credentials_set(crypto->session, GNUTLS_CRD_CERTIFICATE,
                                 cred->cred);
-  if (ret < 0) return ret;
+  if (ret < 0) goto fail;
 
   gnutls_session_set_ptr(crypto->session, crypto);
 
@@ -318,7 +329,7 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
   // Set ALPN to "h3"
   gnutls_datum_t alpn = { .data = (unsigned char *)"h3", .size = 2 };
   ret = gnutls_alpn_set_protocols(crypto->session, &alpn, 1, 0);
-  if (ret < 0) return ret;
+  if (ret < 0) goto fail;
 
   // Register QUIC transport parameters extension (RFC 9000 §18)
   unsigned int ext_flags = GNUTLS_EXT_FLAG_TLS
@@ -331,9 +342,15 @@ int YAWT_q_crypto_init(YAWT_Q_Crypto_t *crypto,
                                      _tp_recv, _tp_send,
                                      NULL, NULL, NULL,
                                      ext_flags);
-  if (ret < 0) return ret;
+  if (ret < 0) goto fail;
 
-  return 0;
+  if (err) *err = YAWT_Q_OK;
+  return crypto;
+
+fail:
+  YAWT_q_crypto_free(crypto);
+  if (err) *err = YAWT_Q_ERR_INVALID_PARAM;
+  return NULL;
 }
 
 void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto) {
@@ -353,6 +370,7 @@ void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto) {
     ANB_slab_destroy(crypto->rx_crypto_buf);
     crypto->rx_crypto_buf = NULL;
   }
+  free(crypto);
 }
 
 int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto) {
@@ -431,6 +449,14 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
 int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                         const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(frame->pkt_type);
+
+  // Reject CRYPTO frames at levels that are no longer active
+  if (crypto->level_keys[level].state != YAWT_Q_KEY_STATE_ACTIVE) {
+    YAWT_LOG(YAWT_LOG_WARN, "Rejecting CRYPTO frame at level %d (state=%d)",
+              level, crypto->level_keys[level].state);
+    return -1;
+  }
+
   uint64_t offset = frame->crypto.offset;
   uint64_t end = offset + frame->crypto.len;
 
@@ -529,7 +555,7 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
   ret = _derive_pkt_keys(keys, hash, 0);
   if (ret < 0) return ret;
 
-  keys->available = 1;
+  keys->state = YAWT_Q_KEY_STATE_ACTIVE;
 
   return 0;
 }
@@ -552,6 +578,7 @@ static gnutls_cipher_algorithm_t _hp_cipher_for_aead(int aead_cipher) {
 int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
   if (!pkt || !crypto) return -1;
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  if (!YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
   size_t pn_offset = pkt->pn_offset;
   uint8_t *packet = pkt->raw;
@@ -608,6 +635,7 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
   if (!pkt || !crypto) return -1;
 
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  if (!YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
   uint8_t *packet = pkt->raw;
 
@@ -697,8 +725,8 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
                                   const YAWT_Q_Packet_t *pkt,
                                   YAWT_Q_Crypto_t *crypto) {
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  if (!packet || !YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
-  if (!packet || !keys->available) return -1;
 
   size_t pn_offset = pkt->pn_offset;
   uint8_t pn_length = pkt->packet_number_length;
@@ -781,6 +809,6 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto) {
 
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level) {
   if (!crypto || level < 0 || level > 3) return 0;
-  return crypto->level_keys[level].available;
+  return crypto->level_keys[level].state != YAWT_Q_KEY_STATE_INACTIVE;
 }
 

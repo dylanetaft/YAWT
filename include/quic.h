@@ -29,7 +29,9 @@ typedef enum {
   YAWT_Q_ERR_SHORT_BUFFER,
   YAWT_Q_ERR_INVALID_PACKET,
   YAWT_Q_ERR_VARINT_OVERFLOW,
-  YAWT_Q_ERR_CID_TOO_LONG
+  YAWT_Q_ERR_CID_TOO_LONG,
+  YAWT_Q_ERR_INVALID_PARAM,
+  YAWT_Q_ERR_ALLOC
 } YAWT_Q_Error_t;
 
 static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
@@ -39,6 +41,8 @@ static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
     case YAWT_Q_ERR_INVALID_PACKET: return "INVALID_PACKET";
     case YAWT_Q_ERR_VARINT_OVERFLOW: return "VARINT_OVERFLOW";
     case YAWT_Q_ERR_CID_TOO_LONG:  return "CID_TOO_LONG";
+    case YAWT_Q_ERR_INVALID_PARAM: return "INVALID_PARAM";
+    case YAWT_Q_ERR_ALLOC:         return "ALLOC";
     default:                         return "UNKNOWN";
   }
 }
