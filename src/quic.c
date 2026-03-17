@@ -16,6 +16,11 @@ static void _varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
 
   if ((size_t)vlen > remaining) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
 
+  if (out == NULL) { //parse only, skip value
+    rc->cursor += vlen;
+    return;
+  }
+
   uint64_t val = buf[0] & 0x3f;
   for (int i = 1; i < vlen; i++) {
     val = (val << 8) | buf[i];
@@ -479,11 +484,15 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       _varint_decode(rc, &out->ack.ack_range_count);
       _varint_decode(rc, &out->ack.first_ack_range);
       if (rc->err != YAWT_Q_OK) return;
+      size_t ranges_start = rc->cursor;
+      // This is ensuring the packet is well formed
       for (uint64_t i = 0; i < out->ack.ack_range_count; i++) {
-        uint64_t gap, range_len;
-        _varint_decode(rc, &gap);
-        _varint_decode(rc, &range_len);
+        _varint_decode(rc, NULL);
+        _varint_decode(rc, NULL);
         if (rc->err != YAWT_Q_OK) return;
+      }
+      if (out->ack.ack_range_count > 0) {
+        out->ack.ranges = (uint8_t *)(rc->data + ranges_start);
       }
       break;
 

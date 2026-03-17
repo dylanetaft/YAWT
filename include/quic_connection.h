@@ -34,13 +34,9 @@ typedef struct YAWT_Q_Connection {
   UT_hash_handle hh_odcid;
   YAWT_Q_Connection_State_t state;
 
-  // RFC 9000 Section 12.3 - Counters for each space
-  uint64_t pkt_num_tx_initial;
-  uint64_t pkt_num_rx_initial;
-  uint64_t pkt_num_tx_app;
-  uint64_t pkt_num_rx_app;
-  uint64_t pkt_num_tx_handshake;
-  uint64_t pkt_num_rx_handshake;
+  // RFC 9000 Section 12.3 - Counters for each space, indexed by YAWT_Q_Encryption_Level_t
+  uint64_t pkt_num_tx[4];
+  uint64_t pkt_num_rx[4];
 
   YAWT_Q_PeerAddr_t peer_addr;
   YAWT_Q_Crypto_t *crypto;
@@ -67,5 +63,11 @@ typedef void (*YAWT_Q_Send_Func_t)(const uint8_t *buf, size_t len,
                                     const YAWT_Q_PeerAddr_t *peer_addr, void *ctx);
 
 // Iterate all connections with queued data, pack into packets, encrypt, and send
-void YAWT_q_con_flush_send(YAWT_Q_Send_Func_t send_func, void *send_ctx);
+void YAWT_q_con_flush_send(YAWT_Q_Send_Func_t send_func, void *send_ctx,
+                            double now);
+
+// Check all connections for frames that haven't been ACK'd.
+// Timeout starts at YAWT_Q_RETRANSMIT_INITIAL and grows 50% per attempt.
+// Marks them for resend (picked up by next flush_send call).
+void YAWT_q_con_retransmit_lost(double now);
 

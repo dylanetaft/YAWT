@@ -5,7 +5,44 @@
 #include <allocnbuffer/fifoslab.h>
 #include "logger.h"
 #include <arpa/inet.h>
-#include <time.h>
+
+// RFC 9000 Appendix A: reconstruct full PN from truncated value
+static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen) {
+  uint64_t expected_pn = largest_pn + 1;
+  uint8_t pn_nbits = pn_bytelen * 8;
+  uint64_t pn_win = 1ULL << pn_nbits;   // size of the PN encoding window (e.g. 256 for 1-byte)
+  uint64_t pn_hwin = pn_win / 2;        // half-window: how far candidate can drift from expected
+  uint64_t pn_mask = pn_win - 1;        // bitmask for the truncated portion of the PN
+  uint64_t candidate = (expected_pn & ~pn_mask) | truncated_pn;
+  if (candidate + pn_hwin <= expected_pn && candidate + pn_win < (1ULL << 62)) {
+    return candidate + pn_win;
+  }
+  if (candidate > expected_pn + pn_hwin && candidate >= pn_win) {
+    return candidate - pn_win;
+  }
+  return candidate;
+}
+
+// Remove ACK'd frames from tx_buffer (first contiguous range only, gaps not yet handled)
+static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
+                          const YAWT_Q_Frame_ACK_t *ack) {
+  uint64_t ack_lo = ack->largest_ack - ack->first_ack_range;
+  uint64_t ack_hi = ack->largest_ack;
+  //TODO PROCESS RANGES
+
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
+    if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+    YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
+    if (f->level != level) continue;
+    if (f->last_sent == 0) continue;
+    if (f->packet_num >= ack_lo && f->packet_num <= ack_hi) {
+      ANB_slab_pop_item(con->tx_buffer, &iter);
+    }
+  }
+}
 
 YAWT_Q_Connection_t *_hash_cid = NULL;   // Hash table by our CID
 YAWT_Q_Connection_t *_hash_addr = NULL;  // Hash table by peer addr
@@ -139,9 +176,9 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         break;
 
       case YAWT_Q_FRAME_ACK:
-        printf("  ACK: largest=%lu, delay=%lu, ranges=%lu, first_range=%lu\n",
-               frame.ack.largest_ack, frame.ack.ack_delay,
-               frame.ack.ack_range_count, frame.ack.first_ack_range);
+        YAWT_LOG(YAWT_LOG_DEBUG, "ACK: largest=%lu, first_range=%lu",
+                 frame.ack.largest_ack, frame.ack.first_ack_range);
+        _process_ack(con, _pkt_type_to_level(pkt->type), &frame.ack);
         break;
 
       case YAWT_Q_FRAME_CRYPTO: {
@@ -260,6 +297,11 @@ void YAWT_q_process_datagram(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cr
       continue;
     }
 
+    // Reconstruct full packet number from truncated value
+    uint64_t full_pn = _reconstruct_pn(con->pkt_num_rx[level], pkt.packet_num, pkt.packet_number_length);
+    pkt.packet_num = (uint32_t)full_pn;
+    if (full_pn > con->pkt_num_rx[level]) con->pkt_num_rx[level] = full_pn;
+
     // Parse frames from decrypted payload
     YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
              pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
@@ -291,16 +333,12 @@ static YAWT_Q_Packet_Type_t _level_to_pkt_type(uint8_t level) {
 
 // Get next packet number for a given level
 static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
-  switch (level) {
-    case YAWT_Q_LEVEL_INITIAL:     return (uint32_t)con->pkt_num_tx_initial++;
-    case YAWT_Q_LEVEL_HANDSHAKE:   return (uint32_t)con->pkt_num_tx_handshake++;
-    default:                        return (uint32_t)con->pkt_num_tx_app++;
-  }
+  return (uint32_t)con->pkt_num_tx[level]++;
 }
 
 static void _flush_connection(YAWT_Q_Connection_t *con,
                                YAWT_Q_Send_Func_t send_func,
-                               void *send_ctx) {
+                               void *send_ctx, double now) {
   for (int lvl = 0; lvl < 4; lvl++) {
     uint8_t payload[YAWT_Q_MAX_PKT_SIZE];
     size_t payload_len = 0;
@@ -371,10 +409,6 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
              wire_data[16], wire_data[17], wire_data[18], wire_data[19]);
 
     // Mark frames as sent
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    uint64_t now = (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
-
     ANB_SlabIter_t iter2 = {0};
     while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
       if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
@@ -387,13 +421,53 @@ static void _flush_connection(YAWT_Q_Connection_t *con,
   }
 }
 
-void YAWT_q_con_flush_send(YAWT_Q_Send_Func_t send_func, void *send_ctx) {
+void YAWT_q_con_flush_send(YAWT_Q_Send_Func_t send_func, void *send_ctx,
+                            double now) {
   if (!send_func) return;
 
   YAWT_Q_Connection_t *con, *tmp;
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
     if (ANB_slab_item_count(con->tx_buffer) > 0) {
-      _flush_connection(con, send_func, send_ctx);
+      _flush_connection(con, send_func, send_ctx, now);
+    }
+  }
+}
+
+// Initial retransmit timeout in seconds, grows by 50% each attempt
+#define YAWT_Q_RETRANSMIT_INITIAL 0.5
+#define YAWT_Q_RETRANSMIT_MAX_ATTEMPTS 10
+
+void YAWT_q_con_retransmit_lost(double now) {
+  YAWT_Q_Connection_t *con, *tmp;
+  HASH_ITER(hh_cid, _hash_cid, con, tmp) {
+    ANB_SlabIter_t iter = {0};
+    size_t item_size;
+    uint8_t *item;
+
+    while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
+      if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+      YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
+
+      // Only check frames that have been sent
+      if (f->last_sent == 0) continue;
+
+      if (f->retransmit_count >= YAWT_Q_RETRANSMIT_MAX_ATTEMPTS) {
+        // TODO: give up — close connection
+        continue;
+      }
+
+      // Timeout grows by 50% each attempt: 0.5, 0.75, 1.125, ...
+      double timeout = YAWT_Q_RETRANSMIT_INITIAL;
+      for (uint32_t i = 0; i < f->retransmit_count; i++) {
+        timeout *= 1.5;
+      }
+
+      if (now - f->last_sent > timeout) {
+        YAWT_LOG(YAWT_LOG_DEBUG, "Retransmit: level=%d, type=0x%02x, attempt=%u, timeout=%.3fs",
+                  f->level, f->type, f->retransmit_count + 1, timeout);
+        f->last_sent = 0;
+        f->retransmit_count++;
+      }
     }
   }
 }

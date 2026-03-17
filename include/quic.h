@@ -162,7 +162,8 @@ typedef struct {
   uint64_t ack_delay; //varint
   uint64_t ack_range_count; //varint
   uint64_t first_ack_range; //varint
-  // followed by ack_range_count ACK) Range fields
+  // Pointer into raw packet data where gap/range varint pairs begin (NULL if ack_range_count == 0)
+  uint8_t *ranges;
 } YAWT_Q_Frame_ACK_t;
 
 typedef struct {
@@ -302,7 +303,8 @@ typedef struct {
 
   // Send tracking
   uint32_t packet_num;              // PN this was sent in (0 if unsent)
-  uint64_t last_sent;               // timestamp of last send (0 = needs sending)
+  double last_sent;                 // ev_now() timestamp of last send (0 = needs sending)
+  uint32_t retransmit_count;        // number of times retransmitted
 
   // Wire-encoded frame data
   size_t wire_len;
@@ -352,7 +354,7 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
 typedef struct {
   uint8_t *data;
   size_t len;
-  size_t cursor;
+  size_t cursor; //offset from data start
   YAWT_Q_Error_t err;
 } YAWT_Q_ReadCursor_t;
 
