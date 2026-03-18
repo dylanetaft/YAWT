@@ -23,13 +23,33 @@ static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint
   return candidate;
 }
 
-// Remove ACK'd frames from tx_buffer (first contiguous range only, gaps not yet handled)
+// Check if a packet number falls within any range acknowledged by an ACK frame.
+// Walks the first range then the gap/range pairs from ack->ranges.
+static int _pn_is_acked(uint32_t pn, const YAWT_Q_Frame_ACK_t *ack) {
+  uint64_t hi = ack->largest_ack;
+  uint64_t lo = hi - ack->first_ack_range;
+  if (pn >= lo && pn <= hi) return 1;
+
+  if (ack->ack_range_count == 0 || !ack->ranges) return 0;
+
+  // Walk additional ranges: each is a gap/range varint pair
+  // RFC 9000 §19.3.1: smallest = lo - gap - 2, then range gives count below that
+  YAWT_Q_ReadCursor_t rc = { .data = ack->ranges, .len = (size_t)-1, .cursor = 0, .err = YAWT_Q_OK };
+  for (uint64_t i = 0; i < ack->ack_range_count; i++) {
+    uint64_t gap, range;
+    YAWT_q_varint_decode(&rc, &gap);
+    YAWT_q_varint_decode(&rc, &range);
+    if (rc.err != YAWT_Q_OK) break;
+    hi = lo - gap - 2;
+    lo = hi - range;
+    if (pn >= lo && pn <= hi) return 1;
+  }
+  return 0;
+}
+
+// Remove ACK'd frames from tx_buffer
 static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
                           const YAWT_Q_Frame_ACK_t *ack) {
-  uint64_t ack_lo = ack->largest_ack - ack->first_ack_range;
-  uint64_t ack_hi = ack->largest_ack;
-  //TODO PROCESS RANGES
-
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -38,7 +58,7 @@ static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
     YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
     if (f->level != level) continue;
     if (f->last_sent == 0) continue;
-    if (f->packet_num >= ack_lo && f->packet_num <= ack_hi) {
+    if (_pn_is_acked(f->packet_num, ack)) {
       ANB_slab_pop_item(con->tx_buffer, &iter);
     }
   }
@@ -58,6 +78,8 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->version = 0;
   con->recv_buffer = ANB_slab_create(4096);
   con->tx_buffer = ANB_slab_create(4096);
+  con->stream_rx = ANB_slab_create(4096);
+  con->stream_meta = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
   con->crypto = YAWT_q_crypto_init(info->is_server, info->cred,
                                     &info->original_dcid, &con->cid, NULL);
@@ -84,6 +106,8 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   YAWT_q_crypto_free(c->crypto);
   ANB_slab_destroy(c->recv_buffer);
   ANB_slab_destroy(c->tx_buffer);
+  ANB_slab_destroy(c->stream_rx);
+  ANB_slab_destroy(c->stream_meta);
   free(c);
   *con = NULL;
 }
@@ -136,6 +160,44 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
   return con;
 }
 
+
+// Find stream metadata by stream_id, or create a new entry
+static YAWT_Q_StreamMeta_t *_stream_meta_find(ANB_Slab_t *meta_slab, uint64_t stream_id) {
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  while ((item = ANB_slab_peek_item_iter(meta_slab, &iter, &item_size)) != NULL) {
+    YAWT_Q_StreamMeta_t *m = (YAWT_Q_StreamMeta_t *)item;
+    if (m->stream_id == stream_id) return m;
+  }
+  // Not found — create directly in slab
+  YAWT_Q_StreamMeta_t *m = (YAWT_Q_StreamMeta_t *)ANB_slab_alloc_item(meta_slab, sizeof(YAWT_Q_StreamMeta_t));
+  if (!m) return NULL;
+  memset(m, 0, sizeof(*m));
+  m->stream_id = stream_id;
+  return m;
+}
+
+// Drain contiguous stream frames from rx buffer for a given stream
+static void _drain_stream_rx(ANB_Slab_t *rx_slab, YAWT_Q_StreamMeta_t *meta) {
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  while ((item = ANB_slab_peek_item_iter(rx_slab, &iter, &item_size)) != NULL) {
+    YAWT_Q_Frame_Stream_t *f = (YAWT_Q_Frame_Stream_t *)item;
+    if (f->stream_id != meta->stream_id) continue;
+    if (f->offset == meta->rx_next_offset) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
+                meta->stream_id, f->len, f->offset);
+      meta->rx_next_offset += f->len;
+      if (f->fin) {
+        meta->rx_fin = 1;
+        meta->rx_fin_offset = f->offset + f->len;
+      }
+      ANB_slab_pop_item(rx_slab, &iter);
+    }
+  }
+}
 
 // Push outbound CRYPTO frames into tx_buffer
 static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
@@ -216,6 +278,40 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         printf("  CONNECTION_CLOSE: error=%lu, frame_type=%lu\n",
                frame.connection_close.error_code, frame.connection_close.frame_type);
         break;
+
+      case YAWT_Q_FRAME_STREAM: {
+        YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.stream.stream_id);
+        if (!meta) break;
+        uint64_t end = frame.stream.offset + frame.stream.len;
+
+        // Skip fully duplicate data
+        if (end <= meta->rx_next_offset) break;
+
+        if (frame.stream.offset == meta->rx_next_offset) {
+          // In order — deliver directly from dataptr (still points into UDP buffer)
+          // TODO: deliver frame.stream.dataptr / frame.stream.len to application
+          YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
+                    meta->stream_id, frame.stream.len, frame.stream.offset);
+          meta->rx_next_offset = end;
+          if (frame.stream.fin) {
+            meta->rx_fin = 1;
+            meta->rx_fin_offset = end;
+          }
+          _drain_stream_rx(con->stream_rx, meta);
+        } else {
+          // Out of order — alloc in slab, copy struct + data, single copy
+          YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: buffering %lu bytes at offset %lu (expected %lu)",
+                    meta->stream_id, frame.stream.len, frame.stream.offset, meta->rx_next_offset);
+          uint8_t *slot = ANB_slab_alloc_item(con->stream_rx, sizeof(YAWT_Q_Frame_Stream_t));
+          if (slot) {
+            YAWT_Q_Frame_Stream_t *buf = (YAWT_Q_Frame_Stream_t *)slot;
+            *buf = frame.stream;
+            memcpy(buf->data, frame.stream.dataptr, frame.stream.len);
+            buf->dataptr = NULL;
+          }
+        }
+        break;
+      }
 
       case YAWT_Q_FRAME_NEW_CONNECTION_ID:
         printf("  NEW_CONNECTION_ID: seq=%lu, cid=%s\n",

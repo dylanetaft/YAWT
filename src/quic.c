@@ -4,7 +4,7 @@
 
 static uint8_t _encode_buf[YAWT_Q_MAX_PKT_SIZE];
 
-static void _varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
+void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
   if (rc->err != YAWT_Q_OK) return;
   if (rc->cursor >= rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
 
@@ -135,7 +135,7 @@ static void _parse_pkt_initial(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   if (rc->err != YAWT_Q_OK) return;
 
   // Token Length (varint)
-  _varint_decode(rc, &pkt->extra.initial.token_len);
+  YAWT_q_varint_decode(rc, &pkt->extra.initial.token_len);
   if (rc->err != YAWT_Q_OK) return;
 
   // Token (zero-copy pointer into input)
@@ -145,7 +145,7 @@ static void _parse_pkt_initial(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
 
   // Length (varint) — marks the packet boundary
   uint64_t wire_len;
-  _varint_decode(rc, &wire_len);
+  YAWT_q_varint_decode(rc, &wire_len);
   if (rc->err != YAWT_Q_OK) return;
   size_t pkt_end = rc->cursor + wire_len;
 
@@ -161,7 +161,7 @@ static void _parse_pkt_0rtt(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
 
   // Length (varint)
   uint64_t wire_len;
-  _varint_decode(rc, &wire_len);
+  YAWT_q_varint_decode(rc, &wire_len);
   if (rc->err != YAWT_Q_OK) return;
   size_t pkt_end = rc->cursor + wire_len;
 
@@ -176,7 +176,7 @@ static void _parse_pkt_handshake(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) 
   if (rc->err != YAWT_Q_OK) return;
 
   uint64_t wire_len;
-  _varint_decode(rc, &wire_len);
+  YAWT_q_varint_decode(rc, &wire_len);
   if (rc->err != YAWT_Q_OK) return;
   size_t pkt_end = rc->cursor + wire_len;
 
@@ -468,9 +468,33 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
   if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
 
   uint64_t frame_type;
-  _varint_decode(rc, &frame_type);
+  YAWT_q_varint_decode(rc, &frame_type);
   if (rc->err != YAWT_Q_OK) return;
   out->type = (YAWT_Q_Frame_Type_t)frame_type;
+
+  // STREAM frames use type range 0x08-0x0f, low 3 bits: OFF(0x04) LEN(0x02) FIN(0x01)
+  if (frame_type >= 0x08 && frame_type <= 0x0f) {
+    out->type = YAWT_Q_FRAME_STREAM;
+    uint8_t bits = (uint8_t)(frame_type & 0x07);
+    out->stream.off = (bits & 0x04) ? 1 : 0;
+    out->stream.len_present = (bits & 0x02) ? 1 : 0;
+    out->stream.fin = (bits & 0x01) ? 1 : 0;
+    YAWT_q_varint_decode(rc, &out->stream.stream_id);
+    if (out->stream.off) {
+      YAWT_q_varint_decode(rc, &out->stream.offset);
+    }
+    if (out->stream.len_present) {
+      YAWT_q_varint_decode(rc, &out->stream.len);
+    } else {
+      // No length field — data extends to end of packet
+      out->stream.len = rc->len - rc->cursor;
+    }
+    if (rc->err != YAWT_Q_OK) return;
+    if (rc->cursor + out->stream.len > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+    out->stream.dataptr = rc->data + rc->cursor;
+    rc->cursor += out->stream.len;
+    return;
+  }
 
   switch (frame_type) {
     case YAWT_Q_FRAME_PADDING:
@@ -479,16 +503,16 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       break;
 
     case YAWT_Q_FRAME_ACK:
-      _varint_decode(rc, &out->ack.largest_ack);
-      _varint_decode(rc, &out->ack.ack_delay);
-      _varint_decode(rc, &out->ack.ack_range_count);
-      _varint_decode(rc, &out->ack.first_ack_range);
+      YAWT_q_varint_decode(rc, &out->ack.largest_ack);
+      YAWT_q_varint_decode(rc, &out->ack.ack_delay);
+      YAWT_q_varint_decode(rc, &out->ack.ack_range_count);
+      YAWT_q_varint_decode(rc, &out->ack.first_ack_range);
       if (rc->err != YAWT_Q_OK) return;
       size_t ranges_start = rc->cursor;
       // This is ensuring the packet is well formed
       for (uint64_t i = 0; i < out->ack.ack_range_count; i++) {
-        _varint_decode(rc, NULL);
-        _varint_decode(rc, NULL);
+        YAWT_q_varint_decode(rc, NULL);
+        YAWT_q_varint_decode(rc, NULL);
         if (rc->err != YAWT_Q_OK) return;
       }
       if (out->ack.ack_range_count > 0) {
@@ -497,8 +521,8 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       break;
 
     case YAWT_Q_FRAME_CRYPTO:
-      _varint_decode(rc, &out->crypto.offset);
-      _varint_decode(rc, &out->crypto.len);
+      YAWT_q_varint_decode(rc, &out->crypto.offset);
+      YAWT_q_varint_decode(rc, &out->crypto.len);
       if (rc->err != YAWT_Q_OK) return;
       if (rc->cursor + out->crypto.len > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
       out->crypto.data = (uint8_t *)(rc->data + rc->cursor);
@@ -506,9 +530,9 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       break;
 
     case YAWT_Q_FRAME_CONNECTION_CLOSE:
-      _varint_decode(rc, &out->connection_close.error_code);
-      _varint_decode(rc, &out->connection_close.frame_type);
-      _varint_decode(rc, &out->connection_close.reason_phrase_len);
+      YAWT_q_varint_decode(rc, &out->connection_close.error_code);
+      YAWT_q_varint_decode(rc, &out->connection_close.frame_type);
+      YAWT_q_varint_decode(rc, &out->connection_close.reason_phrase_len);
       if (rc->err != YAWT_Q_OK) return;
       if (rc->cursor + out->connection_close.reason_phrase_len > rc->len) {
         rc->err = YAWT_Q_ERR_SHORT_BUFFER; return;
@@ -519,8 +543,8 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       break;
 
     case YAWT_Q_FRAME_NEW_CONNECTION_ID:
-      _varint_decode(rc, &out->new_connection_id.seq_num);
-      _varint_decode(rc, &out->new_connection_id.retire_prior_to);
+      YAWT_q_varint_decode(rc, &out->new_connection_id.seq_num);
+      YAWT_q_varint_decode(rc, &out->new_connection_id.retire_prior_to);
       if (rc->err != YAWT_Q_OK) return;
       if (rc->cursor >= rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
       out->new_connection_id.cid.len = rc->data[rc->cursor++];

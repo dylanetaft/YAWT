@@ -218,7 +218,8 @@ typedef struct {
   uint64_t stream_id; //varint
   uint64_t offset; //varint, present if off bit set
   uint64_t len; //varint, present if len bit set
-  uint8_t *data;
+  uint8_t *dataptr;  // points into UDP buffer during parse (transient)
+  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // storage for slab-buffered copy
 } YAWT_Q_Frame_Stream_t;
 
 // Frame type 0x10 - MAX_DATA
@@ -318,6 +319,7 @@ typedef struct {
   union {
     YAWT_Q_Frame_ACK_t ack;
     YAWT_Q_Frame_Crypto_t crypto;
+    YAWT_Q_Frame_Stream_t stream;
     YAWT_Q_Frame_Connection_Close_t connection_close;
     YAWT_Q_Frame_New_Connection_ID_t new_connection_id;
   };
@@ -329,6 +331,15 @@ typedef struct {
   int requires_ack;  // 1 if any ack-eliciting frame was seen
 } YAWT_Q_FrameHandler_Res_t;
 
+// Stream metadata — one per open stream, stored in a slab
+typedef struct {
+  uint64_t stream_id;
+  uint64_t rx_next_offset;        // next contiguous byte expected
+  uint64_t tx_next_offset;
+  uint64_t rx_fin_offset;         // final byte offset (set when FIN arrives)
+  uint8_t rx_fin;
+  uint8_t tx_fin_sent;
+} YAWT_Q_StreamMeta_t;
 
 // Encode PADDING frames into buf. Returns bytes written, or negative on error.
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
@@ -357,6 +368,9 @@ typedef struct {
   size_t cursor; //offset from data start
   YAWT_Q_Error_t err;
 } YAWT_Q_ReadCursor_t;
+
+// Decode a QUIC varint from cursor. Pass NULL for out to skip the value.
+void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 
 // Parse a QUIC packet from a read cursor (zero-copy: pointers into cursor data).
 // Advances rc->cursor past the parsed packet. Check rc->err after call.

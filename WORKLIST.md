@@ -17,19 +17,19 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Header protection: apply packet number masking (AES-ECB)
 - [x] Header protection: remove packet number masking
 - [x] Packet number encoding (1-4 byte truncation)
-- [ ] Packet number decoding (reconstruct full PN from truncated)
+- [x] Packet number decoding (reconstruct full PN from truncated)
 
 ## 3. Frame Parse/Encode
 - [x] CRYPTO frame parse
 - [x] CRYPTO frame encode
 - [x] ACK frame parse
-- [ ] ACK frame encode
-- [ ] STREAM frame parse
+- [x] ACK frame encode
+- [x] STREAM frame parse
 - [ ] STREAM frame encode
 - [x] CONNECTION_CLOSE frame parse
 - [ ] CONNECTION_CLOSE frame encode
 - [x] HANDSHAKE_DONE frame parse
-- [ ] HANDSHAKE_DONE frame encode
+- [x] HANDSHAKE_DONE frame encode
 - [x] PING frame parse/encode (trivial, type byte only)
 - [x] PADDING frame parse/encode (trivial, type byte only)
 - [x] NEW_CONNECTION_ID frame parse
@@ -41,7 +41,7 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Build response: take GnuTLS output -> wrap in CRYPTO frames -> build packet -> encrypt -> send
 - [ ] Validate src_cid matches expected peer_cid (after header unprotect, before AEAD decrypt — avoids timing side channel on forged packets)
 - [ ] State transitions: Idle -> Initial -> Handshake -> Established
-- [ ] Server sends HANDSHAKE_DONE after handshake completes
+- [x] Server sends HANDSHAKE_DONE after handshake completes
 - [ ] Drop Initial keys after Handshake keys are available
 - [ ] Drop Handshake keys after handshake confirmed
 
@@ -53,24 +53,41 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [ ] Exchange params during handshake
 
 ## 6. ACK Generation & Basic Loss Detection (RFC 9002, simplified)
-- [ ] Track sent packets: pkt_num -> list of frames contained
-- [ ] Track received packet numbers (per packet number space)
-- [ ] Generate ACK frames from received PN set
+- [x] Track sent packets: pkt_num -> list of frames contained
+- [x] Track received packet numbers (per packet number space)
+- [x] Generate ACK frames from received PN set
 - [ ] Threshold-based loss detection (3 packets past = lost)
-- [ ] Retransmit lost CRYPTO frame data
+- [x] Retransmit lost CRYPTO frame data
 - [ ] Retransmit lost STREAM frame data
 - [ ] PTO (probe timeout) — hardcoded timeout, send PING
 
-## 7. Streams (RFC 9000 Section 2-3)
-- [ ] Stream map: stream_id -> stream state (hash table)
+## 7. Path Validation (RFC 9000 Section 8.2)
+- [ ] PATH_CHALLENGE frame parse (8-byte random data)
+- [ ] PATH_CHALLENGE frame encode
+- [ ] PATH_RESPONSE frame parse
+- [ ] PATH_RESPONSE frame encode
+- [ ] On receiving PATH_CHALLENGE, echo data back in PATH_RESPONSE
+- [ ] Connection migration: update peer_addr on validated new path
+
+## 8. Streams (RFC 9000 Section 2-3)
+- [x] Stream map: stream_id -> stream state (slab-based stream_meta)
 - [ ] Per-stream send buffer with offset tracking
-- [ ] Per-stream receive buffer with offset reassembly
+- [x] Per-stream receive buffer with offset reassembly
 - [ ] Stream state machine (open, half-closed, closed)
-- [ ] FIN handling
+- [x] FIN handling (receive side)
 - [ ] Flow control: track and enforce MAX_DATA (connection-level)
 - [ ] Flow control: track and enforce MAX_STREAM_DATA (per-stream)
 - [ ] Send MAX_DATA / MAX_STREAM_DATA updates as data is consumed
 - [ ] MAX_STREAMS enforcement
+
+## 9. Hardening / DoS Mitigation
+- [ ] CRYPTO reassembly: cap max buffered out-of-order bytes per level (reject/close if exceeded)
+- [ ] STREAM reassembly: cap max buffered out-of-order bytes per stream
+- [ ] Connection-level cap on total buffered inbound data across all streams
+- [ ] Max gap enforcement: reject frames with offset far ahead of expected (prevents memory exhaustion from fake high offsets with missing offset 0)
+- [ ] MAX_STREAMS enforcement: reject stream creation beyond advertised limit
+- [ ] Idle timeout: close connections with no activity
+- [ ] PN duplicate rejection (RFC 9000 §21.4): discard packets with already-seen PNs
 
 ## Done (foundational)
 - [x] Packet parse/encode (all 5 types)
@@ -85,3 +102,6 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Packet decrypt + header unprotect (inbound)
 - [x] Outbound packet packer (flush_send: tx_buffer → encrypt → send)
 - [x] UDP socket + libev event loop (test.c)
+- [x] CRYPTO frame reassembly (ANB_Slab_t based, handles out-of-order)
+- [x] ACK processing: remove acknowledged frames from tx_buffer (with gap ranges)
+- [x] Retransmit timer with backoff (retransmit_lost)

@@ -40,6 +40,8 @@ typedef struct YAWT_Q_Connection {
 
   YAWT_Q_PeerAddr_t peer_addr;
   YAWT_Q_Crypto_t *crypto;
+  ANB_Slab_t *stream_rx;            // buffered YAWT_Q_Frame_Stream_t items
+  ANB_Slab_t *stream_meta;          // YAWT_Q_StreamMeta_t per open stream
 } YAWT_Q_Connection_t;
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
