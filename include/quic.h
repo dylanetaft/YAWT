@@ -211,11 +211,12 @@ typedef struct {
 
 // Frame type 0x08-0x0f - STREAM
 // Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01)
-typedef struct {
+typedef struct YAWT_Q_Frame_Stream {
   uint8_t off; //1 bit, from frame type
   uint8_t len_present; //1 bit, from frame type
   uint8_t fin; //1 bit, from frame type
   uint64_t stream_id; //varint
+  YAWT_Q_Stream_Type_t stream_type; // low 2 bits of stream_id
   uint64_t offset; //varint, present if off bit set
   uint64_t len; //varint, present if len bit set
   uint8_t *dataptr;  // points into UDP buffer during parse (transient)
@@ -302,6 +303,9 @@ typedef struct {
   YAWT_Q_Frame_Type_t type;
   uint8_t level;  // YAWT_Q_Encryption_Level_t — which packet type to send in
 
+  // STREAM-only: stream ID for per-stream flow control in _flush_connection
+  uint64_t stream_id;
+
   // Send tracking
   uint32_t packet_num;              // PN this was sent in (0 if unsent)
   double last_sent;                 // ev_now() timestamp of last send (0 = needs sending)
@@ -322,6 +326,11 @@ typedef struct {
     YAWT_Q_Frame_Stream_t stream;
     YAWT_Q_Frame_Connection_Close_t connection_close;
     YAWT_Q_Frame_New_Connection_ID_t new_connection_id;
+    YAWT_Q_Frame_Max_Data_t max_data;
+    YAWT_Q_Frame_Max_Stream_Data_t max_stream_data;
+    YAWT_Q_Frame_Max_Streams_t max_streams;
+    YAWT_Q_Frame_Path_Challenge_t path_challenge;
+    YAWT_Q_Frame_Path_Response_t path_response;
   };
 } YAWT_Q_Frame_t;
 
@@ -337,9 +346,30 @@ typedef struct {
   uint64_t rx_next_offset;        // next contiguous byte expected
   uint64_t tx_next_offset;
   uint64_t rx_fin_offset;         // final byte offset (set when FIN arrives)
+  uint64_t tx_max_data;           // per-stream TX limit from peer
   uint8_t rx_fin;
   uint8_t tx_fin_sent;
 } YAWT_Q_StreamMeta_t;
+
+// Flow control limits — populated from transport params, updated by MAX_* frames
+typedef struct {
+  uint64_t max_data;                    // 0x04: connection-level byte limit
+  uint64_t max_stream_data_bidi_local;  // 0x05: per-stream, sender-initiated bidi
+  uint64_t max_stream_data_bidi_remote; // 0x06: per-stream, receiver-initiated bidi
+  uint64_t max_stream_data_uni;         // 0x07: per-stream, unidirectional
+  uint64_t max_streams_bidi;            // 0x08
+  uint64_t max_streams_uni;             // 0x09
+} YAWT_Q_FlowControl_t;
+
+// Connection-level counters and packet number tracking
+typedef struct {
+  uint64_t tx_count_bytes;
+  uint64_t rx_count_bytes;
+  // RFC 9000 Section 12.3 - Counters for each space, indexed by YAWT_Q_Encryption_Level_t 
+  uint64_t pkt_num_tx[4];   // per encryption level TX packet number
+  uint64_t pkt_num_rx[4];   // per encryption level RX packet number (largest seen)
+  uint64_t cid_seq_num;     // highest NEW_CONNECTION_ID seq_num seen
+} YAWT_Q_ConnectionStats_t;
 
 // Encode PADDING frames into buf. Returns bytes written, or negative on error.
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
@@ -350,6 +380,13 @@ int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
 
 // Encode an ACK frame and push to queue. Acknowledges packets [0..largest_ack].
 int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_ack);
+
+// Encode a STREAM frame and push to queue. Always enqueued at APPLICATION level.
+int YAWT_q_enqueue_frame_stream(ANB_Slab_t *queue,
+                                const YAWT_Q_Frame_Stream_t *frame);
+
+// Encode a PATH_RESPONSE frame (echo 8 bytes back) and push to queue.
+int YAWT_q_enqueue_frame_path_response(ANB_Slab_t *queue, const uint8_t *data);
 
 // Encode + encrypt a packet into internal static buffer.
 // Returns total wire bytes (including AEAD tag), or negative on error.
@@ -372,6 +409,10 @@ typedef struct {
 // Decode a QUIC varint from cursor. Pass NULL for out to skip the value.
 void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 
+// Encode a QUIC varint into buf. Returns bytes written via *written.
+YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
+                                     int *written);
+
 // Parse a QUIC packet from a read cursor (zero-copy: pointers into cursor data).
 // Advances rc->cursor past the parsed packet. Check rc->err after call.
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
@@ -390,3 +431,4 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
   }
   return buf;
 }
+

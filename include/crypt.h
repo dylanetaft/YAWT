@@ -104,3 +104,6 @@ int YAWT_q_crypto_protect_packet(uint8_t *buf, size_t buf_len,
 int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto);
 
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level);
+
+// Get peer's flow control limits parsed from transport params. Returns NULL if not yet parsed.
+const YAWT_Q_FlowControl_t *YAWT_q_crypto_get_peer_fc(const YAWT_Q_Crypto_t *crypto);

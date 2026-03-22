@@ -47,6 +47,9 @@ typedef struct YAWT_Q_Crypto {
   // CIDs for transport parameters (RFC 9000 §18.2)
   YAWT_Q_Cid_t original_dcid;   // client's random DCID from first Initial
   YAWT_Q_Cid_t our_cid;         // our source connection ID
+
+  YAWT_Q_FlowControl_t peer_fc; // peer's flow control limits from transport params
+  uint8_t peer_fc_parsed;       // 1 if _tp_recv succeeded
 } YAWT_Q_Crypto_t;
 typedef struct YAWT_Q_Crypto_Cred {
   gnutls_certificate_credentials_t cred;
@@ -229,9 +232,41 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred) {
 // QUIC transport parameters extension (RFC 9000 §18, extension type 0x0039)
 #define QUIC_TP_EXT_TYPE 0x0039
 
-// Receive client's transport parameters (we ignore them for now)
+// Decode peer's transport parameters into crypto->peer_fc
 static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t len) {
-  (void)session; (void)data; (void)len;
+  YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
+  YAWT_Q_ReadCursor_t rc;
+  memset(&rc, 0, sizeof(rc));
+  rc.data = (uint8_t *)data;
+  rc.len = len;
+
+  while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {
+    uint64_t param_id, param_len;
+    YAWT_q_varint_decode(&rc, &param_id);
+    YAWT_q_varint_decode(&rc, &param_len);
+    if (rc.err != YAWT_Q_OK) break;
+
+    size_t param_end = rc.cursor + param_len;
+    if (param_end > rc.len) break;
+
+    switch (param_id) {
+      case 0x04: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_data); break;
+      case 0x05: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_bidi_local); break;
+      case 0x06: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_bidi_remote); break;
+      case 0x07: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_uni); break;
+      case 0x08: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_streams_bidi); break;
+      case 0x09: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_streams_uni); break;
+      default: break;
+    }
+    rc.cursor = param_end;
+  }
+
+  crypto->peer_fc_parsed = 1;
+  YAWT_LOG(YAWT_LOG_INFO, "Peer transport params: max_data=%lu, bidi_local=%lu, "
+           "bidi_remote=%lu, uni=%lu, streams_bidi=%lu, streams_uni=%lu",
+           crypto->peer_fc.max_data, crypto->peer_fc.max_stream_data_bidi_local,
+           crypto->peer_fc.max_stream_data_bidi_remote, crypto->peer_fc.max_stream_data_uni,
+           crypto->peer_fc.max_streams_bidi, crypto->peer_fc.max_streams_uni);
   return 0;
 }
 
@@ -267,18 +302,33 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   if (ret < 0) return ret;
   total += 2 + crypto->our_cid.len;
 
-  // Flow control parameters
-  uint8_t params[] = {
-    0x04, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_data = 1MB
-    0x05, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_bidi_local = 1MB
-    0x06, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_bidi_remote = 1MB
-    0x07, 0x04, 0x80, 0x10, 0x00, 0x00, // initial_max_stream_data_uni = 1MB
-    0x08, 0x01, 0x10,                    // initial_max_streams_bidi = 16
-    0x09, 0x01, 0x10,                    // initial_max_streams_uni = 16
+  // Flow control parameters — encode from our defaults
+  YAWT_Q_FlowControl_t our_fc;
+  memset(&our_fc, 0, sizeof(our_fc));
+  our_fc.max_data = 1048576;                    // 1MB
+  our_fc.max_stream_data_bidi_local = 1048576;  // 1MB
+  our_fc.max_stream_data_bidi_remote = 1048576; // 1MB
+  our_fc.max_stream_data_uni = 1048576;         // 1MB
+  our_fc.max_streams_bidi = 16;
+  our_fc.max_streams_uni = 16;
+
+  struct { uint8_t id; uint64_t val; } fc_params[] = {
+    { 0x04, our_fc.max_data },
+    { 0x05, our_fc.max_stream_data_bidi_local },
+    { 0x06, our_fc.max_stream_data_bidi_remote },
+    { 0x07, our_fc.max_stream_data_uni },
+    { 0x08, our_fc.max_streams_bidi },
+    { 0x09, our_fc.max_streams_uni },
   };
-  ret = gnutls_buffer_append_data(extdata, params, sizeof(params));
-  if (ret < 0) return ret;
-  total += sizeof(params);
+  for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
+    uint8_t vbuf[8];
+    int vlen;
+    YAWT_Q_Error_t err = YAWT_q_varint_encode(fc_params[i].val, vbuf, sizeof(vbuf), &vlen);
+    if (err != YAWT_Q_OK) return -1;
+    ret = _tp_append(extdata, fc_params[i].id, vbuf, vlen);
+    if (ret < 0) return ret;
+    total += 2 + vlen;
+  }
 
   return (int)total;
 }
@@ -810,5 +860,10 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto) {
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level) {
   if (!crypto || level < 0 || level > 3) return 0;
   return crypto->level_keys[level].state != YAWT_Q_KEY_STATE_INACTIVE;
+}
+
+const YAWT_Q_FlowControl_t *YAWT_q_crypto_get_peer_fc(const YAWT_Q_Crypto_t *crypto) {
+  if (!crypto || !crypto->peer_fc_parsed) return NULL;
+  return &crypto->peer_fc;
 }
 

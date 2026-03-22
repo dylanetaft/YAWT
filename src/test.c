@@ -69,8 +69,8 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
          nread, inet_ntoa(from_addr.sin_addr), ntohs(from_addr.sin_port));
 
   YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
-  YAWT_q_process_datagram(recv_buf, (size_t)nread, server_cred, &peer);
-  YAWT_q_con_flush_send(udp_send, NULL, ev_now(loop));
+  YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer);
+  YAWT_q_con_tx(udp_send, NULL, ev_now(loop));
 }
 
 static void retransmit_cb(EV_P_ ev_timer *w, int revents) {
@@ -79,7 +79,7 @@ static void retransmit_cb(EV_P_ ev_timer *w, int revents) {
 
   double now = ev_now(loop);
   YAWT_q_con_retransmit_lost(now);
-  YAWT_q_con_flush_send(udp_send, NULL, now);
+  YAWT_q_con_tx(udp_send, NULL, now);
 }
 
 int main(int argc, char *argv[]) {

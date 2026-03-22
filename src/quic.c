@@ -30,8 +30,8 @@ void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
   rc->cursor += vlen;
 }
 
-static YAWT_Q_Error_t _varint_encode(uint64_t val, uint8_t *buf, size_t len,
-                                      int *written) {
+YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
+                                     int *written) {
   int vlen;
   uint8_t prefix;
 
@@ -275,7 +275,7 @@ static int _encode_pkt_initial(YAWT_Q_Packet_t *pkt, size_t *written) {
   if (_encode_long_header(pkt, YAWT_Q_PKT_INITIAL, type_bits, &cursor) < 0) return -1;
 
   // Token Length (varint)
-  err = _varint_encode(pkt->extra.initial.token_len, _encode_buf + cursor,
+  err = YAWT_q_varint_encode(pkt->extra.initial.token_len, _encode_buf + cursor,
                        YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
@@ -294,7 +294,7 @@ static int _encode_pkt_initial(YAWT_Q_Packet_t *pkt, size_t *written) {
 
   // Length (varint): pkt_num_len + payload_len + padding + 16 (AEAD tag)
   uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + padding_len + 16;
-  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -341,7 +341,7 @@ static int _encode_pkt_0rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
 
   // Length (varint): pkt_num_len + payload_len + 16 (AEAD tag)
   uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + 16;
-  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -377,7 +377,7 @@ static int _encode_pkt_handshake(YAWT_Q_Packet_t *pkt, size_t *written) {
 
   // Length (varint): pkt_num_len + payload_len + 16 (AEAD tag)
   uint64_t wire_len = pkt->packet_number_length + pkt->payload_len + 16;
-  err = _varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(wire_len, _encode_buf + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -480,6 +480,7 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
     out->stream.len_present = (bits & 0x02) ? 1 : 0;
     out->stream.fin = (bits & 0x01) ? 1 : 0;
     YAWT_q_varint_decode(rc, &out->stream.stream_id);
+    out->stream.stream_type = (YAWT_Q_Stream_Type_t)(out->stream.stream_id & 0x03);
     if (out->stream.off) {
       YAWT_q_varint_decode(rc, &out->stream.offset);
     }
@@ -558,6 +559,32 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       rc->cursor += 16;
       break;
 
+    case YAWT_Q_FRAME_MAX_DATA:
+      YAWT_q_varint_decode(rc, &out->max_data.max_data);
+      break;
+
+    case YAWT_Q_FRAME_MAX_STREAM_DATA:
+      YAWT_q_varint_decode(rc, &out->max_stream_data.stream_id);
+      YAWT_q_varint_decode(rc, &out->max_stream_data.max_stream_data);
+      break;
+
+    case YAWT_Q_FRAME_MAX_STREAMS_BIDI:
+    case YAWT_Q_FRAME_MAX_STREAMS_UNI:
+      YAWT_q_varint_decode(rc, &out->max_streams.max_streams);
+      break;
+
+    case YAWT_Q_FRAME_PATH_CHALLENGE:
+      if (rc->cursor + 8 > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+      memcpy(out->path_challenge.data, rc->data + rc->cursor, 8);
+      rc->cursor += 8;
+      break;
+
+    case YAWT_Q_FRAME_PATH_RESPONSE:
+      if (rc->cursor + 8 > rc->len) { rc->err = YAWT_Q_ERR_SHORT_BUFFER; return; }
+      memcpy(out->path_response.data, rc->data + rc->cursor, 8);
+      rc->cursor += 8;
+      break;
+
     default:
       rc->err = YAWT_Q_ERR_INVALID_PACKET;
       break;
@@ -584,12 +611,12 @@ int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
   f.wire_data[cursor++] = 0x06;
 
   // Offset (varint)
-  err = _varint_encode(frame->offset, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(frame->offset, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
   // Length (varint)
-  err = _varint_encode(frame->len, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(frame->len, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -619,7 +646,7 @@ int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_
   f.wire_data[cursor++] = 0x02;
 
   // Largest Acknowledged (varint)
-  err = _varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -630,7 +657,7 @@ int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_
   f.wire_data[cursor++] = 0x00;
 
   // First ACK Range = largest_ack (acknowledges packets [0..largest_ack])
-  err = _varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  err = YAWT_q_varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return -1;
   cursor += n;
 
@@ -640,6 +667,71 @@ int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_
 
   ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
   return (int)cursor;
+}
+
+int YAWT_q_enqueue_frame_stream(ANB_Slab_t *queue,
+                                const YAWT_Q_Frame_Stream_t *frame) {
+  YAWT_Q_WireFrame_t f;
+  memset(&f, 0, sizeof(f));
+
+  size_t cursor = 0;
+  int n;
+  YAWT_Q_Error_t err;
+
+  // Type byte: 0x08 | OFF | LEN | FIN
+  uint8_t type_byte = 0x08;
+  if (frame->off) type_byte |= 0x04;
+  if (frame->len_present) type_byte |= 0x02;
+  if (frame->fin) type_byte |= 0x01;
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return -1;
+  f.wire_data[cursor++] = type_byte;
+
+  // Stream ID (varint)
+  err = YAWT_q_varint_encode(frame->stream_id, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return -1;
+  cursor += n;
+
+  // Offset (varint, if OFF bit set)
+  if (frame->off) {
+    err = YAWT_q_varint_encode(frame->offset, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+    if (err != YAWT_Q_OK) return -1;
+    cursor += n;
+  }
+
+  // Length (varint, if LEN bit set)
+  if (frame->len_present) {
+    err = YAWT_q_varint_encode(frame->len, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+    if (err != YAWT_Q_OK) return -1;
+    cursor += n;
+  }
+
+  // Data
+  if (cursor + frame->len > YAWT_Q_MAX_PKT_SIZE) return -1;
+  memcpy(f.wire_data + cursor, frame->data, frame->len);
+  cursor += frame->len;
+
+  f.type = YAWT_Q_FRAME_STREAM;
+  f.level = 3;  // YAWT_Q_LEVEL_APPLICATION — STREAM frames are 1-RTT only
+  f.stream_id = frame->stream_id;
+  f.wire_len = cursor;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  return (int)cursor;
+}
+
+int YAWT_q_enqueue_frame_path_response(ANB_Slab_t *queue, const uint8_t *data) {
+  YAWT_Q_WireFrame_t f;
+  memset(&f, 0, sizeof(f));
+
+  f.wire_data[0] = 0x1b;  // PATH_RESPONSE
+  memcpy(f.wire_data + 1, data, 8);
+
+  f.type = YAWT_Q_FRAME_PATH_RESPONSE;
+  f.level = 3;  // APPLICATION level — 1-RTT only
+  f.wire_len = 9;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  return 9;
 }
 
 int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
