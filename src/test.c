@@ -49,9 +49,6 @@ static void udp_send(const uint8_t *buf, size_t len,
   }
 }
 
-// How often to check for retransmits (seconds)
-#define RETRANSMIT_INTERVAL 0.25
-
 static void udp_read_cb(EV_P_ ev_io *w, int revents) {
   (void)w;
   (void)revents;
@@ -69,17 +66,21 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
          nread, inet_ntoa(from_addr.sin_addr), ntohs(from_addr.sin_port));
 
   YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
-  YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer);
-  YAWT_q_con_tx(udp_send, NULL, ev_now(loop));
+  double now = ev_now(loop);
+  YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer, now);
+  YAWT_q_con_tx(udp_send, NULL, now);
 }
 
-static void retransmit_cb(EV_P_ ev_timer *w, int revents) {
+static void maintain_cb(EV_P_ ev_timer *w, int revents) {
   (void)w;
   (void)revents;
 
   double now = ev_now(loop);
-  YAWT_q_con_retransmit_lost(now);
-  YAWT_q_con_tx(udp_send, NULL, now);
+  YAWT_q_con_maintain(udp_send, NULL, now);
+  const YAWT_Q_MaintenanceConfig_t *mcfg = YAWT_q_con_get_maint_config();
+  w->repeat = mcfg->min_maint_interval;
+  ev_timer_again(loop, w);
+
 }
 
 int main(int argc, char *argv[]) {
@@ -128,9 +129,9 @@ int main(int argc, char *argv[]) {
   ev_io_init(&udp_watcher, udp_read_cb, sockfd, EV_READ);
   ev_io_start(loop, &udp_watcher);
 
-  ev_timer retransmit_watcher;
-  ev_timer_init(&retransmit_watcher, retransmit_cb, RETRANSMIT_INTERVAL, RETRANSMIT_INTERVAL);
-  ev_timer_start(loop, &retransmit_watcher);
+  ev_timer maintain_watcher;
+  ev_timer_init(&maintain_watcher, maintain_cb, 0.5, 0);
+  ev_timer_start(loop, &maintain_watcher);
 
   ev_run(loop, 0);
 

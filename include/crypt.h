@@ -55,6 +55,8 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
 YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
                     const YAWT_Q_Cid_t *our_cid,
+                    YAWT_Q_FlowControl_t *local_fc,
+                    YAWT_Q_FlowControl_t *peer_fc,
                     YAWT_Q_Error_t *err);
 
 // Cleanup / free GnuTLS resources
@@ -105,5 +107,3 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto);
 
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level);
 
-// Get peer's flow control limits parsed from transport params. Returns NULL if not yet parsed.
-const YAWT_Q_FlowControl_t *YAWT_q_crypto_get_peer_fc(const YAWT_Q_Crypto_t *crypto);

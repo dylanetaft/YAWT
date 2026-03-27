@@ -27,7 +27,7 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] STREAM frame parse
 - [x] STREAM frame encode
 - [x] CONNECTION_CLOSE frame parse
-- [ ] CONNECTION_CLOSE frame encode
+- [x] CONNECTION_CLOSE frame encode (enqueue_frame_connection_close + con_close)
 - [x] HANDSHAKE_DONE frame parse
 - [x] HANDSHAKE_DONE frame encode
 - [x] PING frame parse/encode (trivial, type byte only)
@@ -86,7 +86,17 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [ ] Send MAX_DATA / MAX_STREAM_DATA updates as data is consumed
 - [x] MAX_STREAMS enforcement (checked in send_stream before stream creation)
 
-## 10. Application Callback API
+## 10. DATAGRAM Extension (RFC 9221)
+- [x] DATAGRAM frame types in enum (0x30, 0x31)
+- [x] DATAGRAM frame parse (with/without length)
+- [x] DATAGRAM frame encode (enqueue_frame_datagram)
+- [x] Transport param: max_datagram_frame_size (0x20) decode
+- [x] Transport param: max_datagram_frame_size (0x20) encode
+- [x] on_datagram callback in vtable
+- [ ] Wire on_datagram callback in frame handler
+- [ ] Enforce peer's max_datagram_frame_size on send
+
+## 11. Application Callback API
 - [x] `YAWT_Q_Callbacks_t` vtable struct (`include/callbacks.h`)
 - [x] Forward declarations for `YAWT_Q_Connection_t`, `YAWT_Q_PeerAddr_t`, `YAWT_Q_Frame_Stream_t`
 - [x] `on_tx` — encrypted packet ready for UDP send
@@ -104,7 +114,11 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [ ] Connection-level cap on total buffered inbound data across all streams
 - [ ] Max gap enforcement: reject frames with offset far ahead of expected (prevents memory exhaustion from fake high offsets with missing offset 0)
 - [x] MAX_STREAMS enforcement: reject stream creation beyond advertised limit
-- [ ] Idle timeout: close connections with no activity
+- [x] Idle timeout: close connections with no activity (send PING to keep alive before expiry)
+- [x] Maintenance API: `YAWT_q_con_maintain` — unified retransmit + idle timeout + keepalive PING
+- [x] `YAWT_Q_MaintenanceConfig_t` — global config struct with retransmit/interval tunables
+- [x] Security policy module: `security.h`/`security.c` — centralized policy with getter/setter API
+- [x] Min idle timeout floor: clamp effective idle timeout via `YAWT_Q_SecurityPolicy_t.min_idle_timeout_ms`
 - [ ] PN duplicate rejection (RFC 9000 §21.4): discard packets with already-seen PNs
 
 ## Done (foundational)

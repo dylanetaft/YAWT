@@ -7,6 +7,8 @@
 // Forward declaration — full type in crypt.h
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
+// Forward declaration — full type in quic_connection.h
+typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 #include "logger.h"
 
 #define YAWT_Q_MAX_PKT_SIZE 1350
@@ -102,7 +104,10 @@ typedef enum {
   YAWT_Q_FRAME_PATH_RESPONSE = 0x1b,
   YAWT_Q_FRAME_CONNECTION_CLOSE = 0x1c,
   YAWT_Q_FRAME_CONNECTION_CLOSE_APP = 0x1d,
-  YAWT_Q_FRAME_HANDSHAKE_DONE = 0x1e
+  YAWT_Q_FRAME_HANDSHAKE_DONE = 0x1e,
+  // RFC 9221 §5 — DATAGRAM extension (not in RFC 9000 core)
+  YAWT_Q_FRAME_DATAGRAM      = 0x30,  // no length field, extends to end of packet
+  YAWT_Q_FRAME_DATAGRAM_LEN  = 0x31   // has length field
 } YAWT_Q_Frame_Type_t;
 
 typedef enum {
@@ -298,6 +303,14 @@ typedef struct {
 // Frame type 0x1e - HANDSHAKE_DONE
 // No fields, just the type byte. No struct needed.
 
+// Frame type 0x30-0x31 - DATAGRAM (RFC 9221)
+// Low bit: LEN(0x01) — if set, length varint is present
+typedef struct {
+  uint8_t len_present;          // 1 if frame type 0x31
+  uint64_t len;                 // varint, present if len_present
+  uint8_t *dataptr;             // points into UDP buffer during parse (transient)
+} YAWT_Q_Frame_Datagram_t;
+
 // Generic frame struct for tx_buffer — wire-ready, self-contained
 typedef struct {
   YAWT_Q_Frame_Type_t type;
@@ -331,6 +344,7 @@ typedef struct {
     YAWT_Q_Frame_Max_Streams_t max_streams;
     YAWT_Q_Frame_Path_Challenge_t path_challenge;
     YAWT_Q_Frame_Path_Response_t path_response;
+    YAWT_Q_Frame_Datagram_t datagram;
   };
 } YAWT_Q_Frame_t;
 
@@ -353,12 +367,14 @@ typedef struct {
 
 // Flow control limits — populated from transport params, updated by MAX_* frames
 typedef struct {
+  uint64_t max_idle_timeout;            // 0x01: milliseconds, 0 = disabled
   uint64_t max_data;                    // 0x04: connection-level byte limit
   uint64_t max_stream_data_bidi_local;  // 0x05: per-stream, sender-initiated bidi
   uint64_t max_stream_data_bidi_remote; // 0x06: per-stream, receiver-initiated bidi
   uint64_t max_stream_data_uni;         // 0x07: per-stream, unidirectional
   uint64_t max_streams_bidi;            // 0x08
   uint64_t max_streams_uni;             // 0x09
+  uint64_t max_datagram_frame_size;     // 0x20: RFC 9221, 0 = datagrams not supported
 } YAWT_Q_FlowControl_t;
 
 // Connection-level counters and packet number tracking
@@ -369,24 +385,41 @@ typedef struct {
   uint64_t pkt_num_tx[4];   // per encryption level TX packet number
   uint64_t pkt_num_rx[4];   // per encryption level RX packet number (largest seen)
   uint64_t cid_seq_num;     // highest NEW_CONNECTION_ID seq_num seen
+  double last_rx;           // ev_now() timestamp of last packet received
+  double last_tx;           // ev_now() timestamp of last packet sent
+  double closing_at;        // 0 = open, DBL_MAX = close pending flush, else timestamp of close sent
 } YAWT_Q_ConnectionStats_t;
 
 // Encode PADDING frames into buf. Returns bytes written, or negative on error.
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
-// Encode a CRYPTO frame and push to queue. Returns wire bytes written, or negative on error.
-int YAWT_q_enqueue_frame_crypto(ANB_Slab_t *queue, uint8_t level,
+// Encode a CRYPTO frame and push to tx_buffer. Returns wire bytes written, or negative on error.
+int YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
                                 const YAWT_Q_Frame_Crypto_t *frame);
 
-// Encode an ACK frame and push to queue. Acknowledges packets [0..largest_ack].
-int YAWT_q_enqueue_frame_ack(ANB_Slab_t *queue, uint8_t level, uint64_t largest_ack);
+// Encode an ACK frame and push to tx_buffer. Acknowledges packets [0..largest_ack].
+int YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
-// Encode a STREAM frame and push to queue. Always enqueued at APPLICATION level.
-int YAWT_q_enqueue_frame_stream(ANB_Slab_t *queue,
+// Encode a STREAM frame and push to tx_buffer. Always enqueued at APPLICATION level.
+int YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
                                 const YAWT_Q_Frame_Stream_t *frame);
 
-// Encode a PATH_RESPONSE frame (echo 8 bytes back) and push to queue.
-int YAWT_q_enqueue_frame_path_response(ANB_Slab_t *queue, const uint8_t *data);
+// Encode a PING frame and push to tx_buffer. APPLICATION level only.
+int YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
+
+// Encode a CONNECTION_CLOSE frame (0x1c) and push to tx_buffer.
+int YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
+                                           uint64_t error_code, uint64_t frame_type);
+
+// Encode a PATH_RESPONSE frame (echo 8 bytes back) and push to tx_buffer.
+int YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
+
+// Encode a DATAGRAM frame (0x31, with length) and push to tx_buffer. APPLICATION level only.
+int YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
+                                   const uint8_t *data, size_t data_len);
+
+// Encode a HANDSHAKE_DONE frame (0x1e) and push to tx_buffer. APPLICATION level only.
+int YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
 // Encode + encrypt a packet into internal static buffer.
 // Returns total wire bytes (including AEAD tag), or negative on error.

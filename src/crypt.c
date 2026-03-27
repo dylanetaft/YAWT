@@ -48,8 +48,8 @@ typedef struct YAWT_Q_Crypto {
   YAWT_Q_Cid_t original_dcid;   // client's random DCID from first Initial
   YAWT_Q_Cid_t our_cid;         // our source connection ID
 
-  YAWT_Q_FlowControl_t peer_fc; // peer's flow control limits from transport params
-  uint8_t peer_fc_parsed;       // 1 if _tp_recv succeeded
+  YAWT_Q_FlowControl_t *peer_fc;  // points to connection's peer_fc
+  YAWT_Q_FlowControl_t *local_fc; // points to connection's local_fc
 } YAWT_Q_Crypto_t;
 typedef struct YAWT_Q_Crypto_Cred {
   gnutls_certificate_credentials_t cred;
@@ -250,23 +250,26 @@ static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t 
     if (param_end > rc.len) break;
 
     switch (param_id) {
-      case 0x04: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_data); break;
-      case 0x05: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_bidi_local); break;
-      case 0x06: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_bidi_remote); break;
-      case 0x07: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_stream_data_uni); break;
-      case 0x08: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_streams_bidi); break;
-      case 0x09: YAWT_q_varint_decode(&rc, &crypto->peer_fc.max_streams_uni); break;
+      case 0x01: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_idle_timeout); break;
+      case 0x04: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_data); break;
+      case 0x05: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_stream_data_bidi_local); break;
+      case 0x06: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_stream_data_bidi_remote); break;
+      case 0x07: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_stream_data_uni); break;
+      case 0x08: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_streams_bidi); break;
+      case 0x09: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_streams_uni); break;
+      case 0x20: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_datagram_frame_size); break;
       default: break;
     }
     rc.cursor = param_end;
   }
 
-  crypto->peer_fc_parsed = 1;
-  YAWT_LOG(YAWT_LOG_INFO, "Peer transport params: max_data=%lu, bidi_local=%lu, "
-           "bidi_remote=%lu, uni=%lu, streams_bidi=%lu, streams_uni=%lu",
-           crypto->peer_fc.max_data, crypto->peer_fc.max_stream_data_bidi_local,
-           crypto->peer_fc.max_stream_data_bidi_remote, crypto->peer_fc.max_stream_data_uni,
-           crypto->peer_fc.max_streams_bidi, crypto->peer_fc.max_streams_uni);
+  YAWT_LOG(YAWT_LOG_INFO, "Peer transport params: idle_timeout=%lums, max_data=%lu, bidi_local=%lu, "
+           "bidi_remote=%lu, uni=%lu, streams_bidi=%lu, streams_uni=%lu, max_dgram=%lu",
+           crypto->peer_fc->max_idle_timeout,
+           crypto->peer_fc->max_data, crypto->peer_fc->max_stream_data_bidi_local,
+           crypto->peer_fc->max_stream_data_bidi_remote, crypto->peer_fc->max_stream_data_uni,
+           crypto->peer_fc->max_streams_bidi, crypto->peer_fc->max_streams_uni,
+           crypto->peer_fc->max_datagram_frame_size);
   return 0;
 }
 
@@ -302,23 +305,17 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   if (ret < 0) return ret;
   total += 2 + crypto->our_cid.len;
 
-  // Flow control parameters — encode from our defaults
-  YAWT_Q_FlowControl_t our_fc;
-  memset(&our_fc, 0, sizeof(our_fc));
-  our_fc.max_data = 1048576;                    // 1MB
-  our_fc.max_stream_data_bidi_local = 1048576;  // 1MB
-  our_fc.max_stream_data_bidi_remote = 1048576; // 1MB
-  our_fc.max_stream_data_uni = 1048576;         // 1MB
-  our_fc.max_streams_bidi = 16;
-  our_fc.max_streams_uni = 16;
-
+  // Flow control parameters — encode from connection's local_fc
+  YAWT_Q_FlowControl_t *lfc = crypto->local_fc;
   struct { uint8_t id; uint64_t val; } fc_params[] = {
-    { 0x04, our_fc.max_data },
-    { 0x05, our_fc.max_stream_data_bidi_local },
-    { 0x06, our_fc.max_stream_data_bidi_remote },
-    { 0x07, our_fc.max_stream_data_uni },
-    { 0x08, our_fc.max_streams_bidi },
-    { 0x09, our_fc.max_streams_uni },
+    { 0x01, lfc->max_idle_timeout },
+    { 0x04, lfc->max_data },
+    { 0x05, lfc->max_stream_data_bidi_local },
+    { 0x06, lfc->max_stream_data_bidi_remote },
+    { 0x07, lfc->max_stream_data_uni },
+    { 0x08, lfc->max_streams_bidi },
+    { 0x09, lfc->max_streams_uni },
+    { 0x20, lfc->max_datagram_frame_size },
   };
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];
@@ -336,9 +333,11 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
 YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
                     const YAWT_Q_Cid_t *our_cid,
+                    YAWT_Q_FlowControl_t *local_fc,
+                    YAWT_Q_FlowControl_t *peer_fc,
                     YAWT_Q_Error_t *err) {
 
-  if (!cred || !original_dcid || !our_cid) {
+  if (!cred || !original_dcid || !our_cid || !local_fc || !peer_fc) {
     YAWT_LOG(YAWT_LOG_ERROR, "Invalid arguments to YAWT_q_crypto_init");
     if (err) *err = YAWT_Q_ERR_INVALID_PARAM;
     return NULL;
@@ -351,6 +350,8 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
   }
   int ret;
   crypto->is_server = is_server;
+  crypto->local_fc = local_fc;
+  crypto->peer_fc = peer_fc;
   crypto->rx_crypto_buf = ANB_slab_create(4096);
   // Set CIDs for transport parameters (RFC 9000 §18.2)
   YAWT_q_cid_set(&crypto->original_dcid, original_dcid->id, original_dcid->len);
@@ -862,8 +863,4 @@ int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encr
   return crypto->level_keys[level].state != YAWT_Q_KEY_STATE_INACTIVE;
 }
 
-const YAWT_Q_FlowControl_t *YAWT_q_crypto_get_peer_fc(const YAWT_Q_Crypto_t *crypto) {
-  if (!crypto || !crypto->peer_fc_parsed) return NULL;
-  return &crypto->peer_fc;
-}
 
