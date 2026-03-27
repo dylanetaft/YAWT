@@ -1,5 +1,6 @@
 #include "crypt.h"
 #include "quic.h"
+#include "security.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -525,7 +526,13 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
     return _drain_crypto_buf(crypto);
   }
 
-  // Out-of-order: buffer for later
+  // Out-of-order: buffer for later, enforcing security cap (RFC 9000 §21.6)
+  uint64_t cap = YAWT_q_security_get()->max_crypto_buffer_bytes;
+  if (cap > 0 && ANB_slab_size(crypto->rx_crypto_buf) + frame->crypto.len > cap) {
+    YAWT_LOG(YAWT_LOG_WARN, "CRYPTO buffer exceeded at level %d: %zu + %lu > %lu",
+              level, ANB_slab_size(crypto->rx_crypto_buf), frame->crypto.len, cap);
+    return -2;  // CRYPTO_BUFFER_EXCEEDED
+  }
   YAWT_LOG(YAWT_LOG_DEBUG, "CRYPTO gap at level %d: expected %lu, got offset %lu — buffering",
             level, crypto->rx_crypto_next_offset[level], offset);
   ANB_slab_push_item(crypto->rx_crypto_buf, (const uint8_t *)frame, sizeof(*frame));

@@ -14,6 +14,16 @@ typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 #define YAWT_Q_MAX_PKT_SIZE 1350
 #define YAWT_Q_CID_LEN 20
 
+// Worst-case packet overhead per header type (header + PN + AEAD tag)
+// Long header: 1 byte0 + 4 version + 1+20 DCID + 1+20 SCID + 2 length + 4 PN + 16 AEAD = 69
+// Short header: 1 byte0 + 20 DCID + 4 PN + 16 AEAD = 41
+#define YAWT_Q_LONG_HDR_OVERHEAD  69
+#define YAWT_Q_SHORT_HDR_OVERHEAD 41
+
+// Max frame data that can safely fit in one packet
+#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG  (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_LONG_HDR_OVERHEAD)   // 1281
+#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)  // 1309
+
 
 // Quic connection initialization goes like this
 // Initial -> Handshake -> 1-RTT
@@ -33,7 +43,9 @@ typedef enum {
   YAWT_Q_ERR_VARINT_OVERFLOW,
   YAWT_Q_ERR_CID_TOO_LONG,
   YAWT_Q_ERR_INVALID_PARAM,
-  YAWT_Q_ERR_ALLOC
+  YAWT_Q_ERR_ALLOC,
+  YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED,
+  YAWT_Q_ERR_FRAME_TOO_LARGE
 } YAWT_Q_Error_t;
 
 static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
@@ -45,6 +57,8 @@ static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
     case YAWT_Q_ERR_CID_TOO_LONG:  return "CID_TOO_LONG";
     case YAWT_Q_ERR_INVALID_PARAM: return "INVALID_PARAM";
     case YAWT_Q_ERR_ALLOC:         return "ALLOC";
+    case YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED: return "CRYPTO_BUFFER_EXCEEDED";
+    case YAWT_Q_ERR_FRAME_TOO_LARGE: return "FRAME_TOO_LARGE";
     default:                         return "UNKNOWN";
   }
 }

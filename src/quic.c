@@ -831,6 +831,12 @@ int YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
   f.level = 3;  // YAWT_Q_LEVEL_APPLICATION — 1-RTT only
   f.wire_len = cursor;
 
+  //check against peer's max datagram frame size (RFC 9221 §3)
+  uint64_t max_p_size = con->peer_fc.max_datagram_frame_size;
+  uint64_t max_size = (max_p_size > YAWT_Q_MAX_FRAME_PAYLOAD_SHORT) ? YAWT_Q_MAX_FRAME_PAYLOAD_SHORT : max_p_size;
+  if (f.wire_len > max_size) return -1;
+  
+
   ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
   return (int)cursor;
 }

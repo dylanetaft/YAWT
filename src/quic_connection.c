@@ -304,6 +304,12 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                   pkt->type, frame.crypto.offset, frame.crypto.len);
 
         int ret = YAWT_q_crypto_feed(con->crypto, &frame);
+        if (ret == -2) {
+          YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
+          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), 0x0D, 0x06);
+          res.err = YAWT_Q_ERR_INVALID_PACKET;
+          return res;
+        }
         if (ret < 0) {
           YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %d", ret);
           res.err = YAWT_Q_ERR_INVALID_PACKET;
@@ -541,6 +547,9 @@ static void _drain_tx(YAWT_Q_Connection_t *con,
                                YAWT_Q_Send_Func_t send_func,
                                void *send_ctx, double now) {
   for (int lvl = 0; lvl < 4; lvl++) {
+    size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
+        ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
+        : YAWT_Q_MAX_FRAME_PAYLOAD_SHORT;
     uint8_t payload[YAWT_Q_MAX_PKT_SIZE];
     size_t payload_len = 0;
     int found = 0;
@@ -564,7 +573,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con,
         if (meta && meta->tx_next_offset > meta->tx_max_data) continue;
       }
 
-      if (payload_len + f->wire_len > sizeof(payload)) break;
+      if (payload_len + f->wire_len > max_payload) break;
 
       memcpy(payload + payload_len, f->wire_data, f->wire_len);
       payload_len += f->wire_len;
@@ -644,9 +653,9 @@ void YAWT_q_con_tx(YAWT_Q_Send_Func_t send_func, void *send_ctx,
   }
 }
 
-// Max stream data per STREAM frame: packet size minus worst-case overhead
-// (long header ~25 bytes + varint stream_id + varint offset + varint length)
-#define YAWT_Q_STREAM_CHUNK_MAX 1325
+// STREAM frame overhead: 1 type + 8 stream_id + 8 offset + 8 length = 25 bytes max
+#define YAWT_Q_STREAM_FRAME_OVERHEAD 25
+#define YAWT_Q_STREAM_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_SHORT - YAWT_Q_STREAM_FRAME_OVERHEAD) // 1284
 
 int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                            const uint8_t *data, size_t data_len, int fin) {
