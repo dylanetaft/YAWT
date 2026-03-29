@@ -74,9 +74,8 @@ void YAWT_q_con_tx(YAWT_Q_Send_Func_t send_func, void *send_ctx,
 
 // Enqueue STREAM frames for the given data on stream_id. Fragments as needed.
 // If fin is set, marks the stream as finished after the last chunk.
-// Returns total bytes enqueued, or negative on error.
-int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                           const uint8_t *data, size_t data_len, int fin);
+YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                       const uint8_t *data, size_t data_len, int fin);
 
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 

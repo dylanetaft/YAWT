@@ -73,18 +73,6 @@ static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
 YAWT_Q_Connection_t *_hash_cid = NULL;   // Hash table by our CID
 YAWT_Q_Connection_t *_hash_odcid = NULL; // Hash table by original DCID (temporary, pre-handshake)
 
-// Global default transport settings — used when create info doesn't provide local_fc
-static YAWT_Q_FlowControl_t _default_local_fc = {
-  .max_idle_timeout = 30000,
-  .max_data = 1048576,
-  .max_stream_data_bidi_local = 1048576,
-  .max_stream_data_bidi_remote = 1048576,
-  .max_stream_data_uni = 1048576,
-  .max_streams_bidi = 16,
-  .max_streams_uni = 16,
-  .max_datagram_frame_size = YAWT_Q_MAX_PKT_SIZE,
-};
-
 YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   if (info == NULL) return NULL;
   YAWT_Q_Connection_t *con = calloc(1, sizeof(YAWT_Q_Connection_t));
@@ -98,7 +86,7 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->stream_rx = ANB_slab_create(4096);
   con->stream_meta = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
-  con->local_fc = info->local_fc ? *info->local_fc : _default_local_fc;
+  con->local_fc = info->local_fc ? *info->local_fc : *YAWT_q_security_get_default_fc();
   con->crypto = YAWT_q_crypto_init(info->is_server, info->cred,
                                     &info->original_dcid, &con->cid,
                                     &con->local_fc, &con->peer_fc, NULL);
@@ -263,9 +251,9 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
     if (!data) continue;
 
     YAWT_Q_Frame_Crypto_t cf = { .offset = 0, .len = data_len, .data = (uint8_t *)data };
-    int frame_len = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
-    if (frame_len < 0) {
-      printf("  error: encode CRYPTO frame failed for level %d\n", lvl);
+    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
+    if (err != YAWT_Q_OK) {
+      printf("  error: encode CRYPTO frame failed for level %d: %s\n", lvl, YAWT_q_err_str(err));
       continue;
     }
 
@@ -303,16 +291,16 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_INFO, "Received CRYPTO frame (pkt=%d): offset=%lu, len=%lu",
                   pkt->type, frame.crypto.offset, frame.crypto.len);
 
-        int ret = YAWT_q_crypto_feed(con->crypto, &frame);
-        if (ret == -2) {
+        YAWT_Q_Error_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
+        if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
           YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), 0x0D, 0x06);
-          res.err = YAWT_Q_ERR_INVALID_PACKET;
+          res.err = feed_err;
           return res;
         }
-        if (ret < 0) {
-          YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %d", ret);
-          res.err = YAWT_Q_ERR_INVALID_PACKET;
+        if (feed_err != YAWT_Q_OK) {
+          YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %s", YAWT_q_err_str(feed_err));
+          res.err = feed_err;
           return res;
         }
 
@@ -657,9 +645,9 @@ void YAWT_q_con_tx(YAWT_Q_Send_Func_t send_func, void *send_ctx,
 #define YAWT_Q_STREAM_FRAME_OVERHEAD 25
 #define YAWT_Q_STREAM_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_SHORT - YAWT_Q_STREAM_FRAME_OVERHEAD) // 1284
 
-int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                           const uint8_t *data, size_t data_len, int fin) {
-  if (!con) return -1;
+YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                       const uint8_t *data, size_t data_len, int fin) {
+  if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
   if (!meta) {
@@ -671,12 +659,12 @@ int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
     if (count >= limit) {
       YAWT_LOG(YAWT_LOG_WARN, "max_streams exceeded: type=%u, count=%lu, limit=%lu",
                 stype, count, limit);
-      return -1;
+      return YAWT_Q_ERR_INVALID_PARAM;
     }
     meta = _stream_meta_add(con->stream_meta, stream_id);
-    if (!meta) return -1;
+    if (!meta) return YAWT_Q_ERR_ALLOC;
   }
-  if (meta->tx_fin_sent) return -1;
+  if (meta->tx_fin_sent) return YAWT_Q_ERR_INVALID_PARAM;
 
   // Handle empty FIN (close stream with no data)
   if (data_len == 0 && fin) {
@@ -688,13 +676,12 @@ int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
     sf.len_present = 1;
     sf.len = 0;
     sf.fin = 1;
-    int ret = YAWT_q_enqueue_frame_stream(con, &sf);
-    if (ret < 0) return -1;
+    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
+    if (err != YAWT_Q_OK) return err;
     meta->tx_fin_sent = 1;
-    return 0;
+    return YAWT_Q_OK;
   }
 
-  size_t total = 0;
   size_t remaining = data_len;
   const uint8_t *src = data;
 
@@ -712,8 +699,8 @@ int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
     sf.fin = (fin && remaining == chunk_len) ? 1 : 0;
     memcpy(sf.data, src, chunk_len);
 
-    int ret = YAWT_q_enqueue_frame_stream(con, &sf);
-    if (ret < 0) return -1;
+    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
+    if (err != YAWT_Q_OK) return err;
 
     meta->tx_next_offset += chunk_len;
     // RFC 9000 §4.1: flow control is offset-based — count bytes once here when
@@ -721,11 +708,10 @@ int YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
     con->stats.tx_count_bytes += chunk_len;
     src += chunk_len;
     remaining -= chunk_len;
-    total += chunk_len;
   }
 
   if (fin) meta->tx_fin_sent = 1;
-  return (int)total;
+  return YAWT_Q_OK;
 }
 
 // Global maintenance configuration

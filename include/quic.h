@@ -10,6 +10,7 @@ typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
 // Forward declaration — full type in quic_connection.h
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 #include "logger.h"
+#include "security.h"
 
 #define YAWT_Q_MAX_PKT_SIZE 1350
 #define YAWT_Q_CID_LEN 20
@@ -379,18 +380,6 @@ typedef struct {
   uint8_t tx_fin_sent;
 } YAWT_Q_StreamMeta_t;
 
-// Flow control limits — populated from transport params, updated by MAX_* frames
-typedef struct {
-  uint64_t max_idle_timeout;            // 0x01: milliseconds, 0 = disabled
-  uint64_t max_data;                    // 0x04: connection-level byte limit
-  uint64_t max_stream_data_bidi_local;  // 0x05: per-stream, sender-initiated bidi
-  uint64_t max_stream_data_bidi_remote; // 0x06: per-stream, receiver-initiated bidi
-  uint64_t max_stream_data_uni;         // 0x07: per-stream, unidirectional
-  uint64_t max_streams_bidi;            // 0x08
-  uint64_t max_streams_uni;             // 0x09
-  uint64_t max_datagram_frame_size;     // 0x20: RFC 9221, 0 = datagrams not supported
-} YAWT_Q_FlowControl_t;
-
 // Connection-level counters and packet number tracking
 typedef struct {
   uint64_t tx_count_bytes;
@@ -407,33 +396,33 @@ typedef struct {
 // Encode PADDING frames into buf. Returns bytes written, or negative on error.
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
-// Encode a CRYPTO frame and push to tx_buffer. Returns wire bytes written, or negative on error.
-int YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
-                                const YAWT_Q_Frame_Crypto_t *frame);
+// Encode a CRYPTO frame and push to tx_buffer.
+YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
+                                             const YAWT_Q_Frame_Crypto_t *frame);
 
 // Encode an ACK frame and push to tx_buffer. Acknowledges packets [0..largest_ack].
-int YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
 // Encode a STREAM frame and push to tx_buffer. Always enqueued at APPLICATION level.
-int YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
-                                const YAWT_Q_Frame_Stream_t *frame);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
+                                             const YAWT_Q_Frame_Stream_t *frame);
 
 // Encode a PING frame and push to tx_buffer. APPLICATION level only.
-int YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
 // Encode a CONNECTION_CLOSE frame (0x1c) and push to tx_buffer.
-int YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
-                                           uint64_t error_code, uint64_t frame_type);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
+                                                      uint64_t error_code, uint64_t frame_type);
 
 // Encode a PATH_RESPONSE frame (echo 8 bytes back) and push to tx_buffer.
-int YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
 
 // Encode a DATAGRAM frame (0x31, with length) and push to tx_buffer. APPLICATION level only.
-int YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
-                                   const uint8_t *data, size_t data_len);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
+                                               const uint8_t *data, size_t data_len);
 
 // Encode a HANDSHAKE_DONE frame (0x1e) and push to tx_buffer. APPLICATION level only.
-int YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
+YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
 // Encode + encrypt a packet into internal static buffer.
 // Returns total wire bytes (including AEAD tag), or negative on error.

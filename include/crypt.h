@@ -71,8 +71,8 @@ const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *
 // Feed a received CRYPTO frame. Determines encryption level from frame->pkt_type.
 // Handles offset-based reassembly internally. After calling, check
 // crypto->out_buf[level] for handshake data to send back.
-int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        const YAWT_Q_Frame_t *frame);
+YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
+                                    const YAWT_Q_Frame_t *frame);
 
 // Fill buf with len nonce-quality random bytes (not cryptographically secure).
 int YAWT_q_crypto_random_nonce(void *buf, size_t len);

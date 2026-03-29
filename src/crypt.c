@@ -498,32 +498,32 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   return 0;
 }
 
-int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
-                        const YAWT_Q_Frame_t *frame) {
+YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
+                                    const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(frame->pkt_type);
 
   // Reject CRYPTO frames at levels that are no longer active
   if (crypto->level_keys[level].state != YAWT_Q_KEY_STATE_ACTIVE) {
     YAWT_LOG(YAWT_LOG_WARN, "Rejecting CRYPTO frame at level %d (state=%d)",
               level, crypto->level_keys[level].state);
-    return -1;
+    return YAWT_Q_ERR_INVALID_PACKET;
   }
 
   uint64_t offset = frame->crypto.offset;
   uint64_t end = offset + frame->crypto.len;
 
   // Skip fully duplicate data
-  if (end <= crypto->rx_crypto_next_offset[level]) return 0;
+  if (end <= crypto->rx_crypto_next_offset[level]) return YAWT_Q_OK;
 
   // In-order: feed directly to TLS
   if (offset == crypto->rx_crypto_next_offset[level]) {
     int ret = _crypto_handshake_write(crypto, level,
                                        frame->crypto.data, frame->crypto.len);
-    if (ret < 0) return ret;
+    if (ret < 0) return YAWT_Q_ERR_INVALID_PACKET;
     crypto->rx_crypto_next_offset[level] = end;
 
     // Check if any buffered frames are now contiguous
-    return _drain_crypto_buf(crypto);
+    return _drain_crypto_buf(crypto) < 0 ? YAWT_Q_ERR_INVALID_PACKET : YAWT_Q_OK;
   }
 
   // Out-of-order: buffer for later, enforcing security cap (RFC 9000 §21.6)
@@ -531,12 +531,12 @@ int YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   if (cap > 0 && ANB_slab_size(crypto->rx_crypto_buf) + frame->crypto.len > cap) {
     YAWT_LOG(YAWT_LOG_WARN, "CRYPTO buffer exceeded at level %d: %zu + %lu > %lu",
               level, ANB_slab_size(crypto->rx_crypto_buf), frame->crypto.len, cap);
-    return -2;  // CRYPTO_BUFFER_EXCEEDED
+    return YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED;
   }
   YAWT_LOG(YAWT_LOG_DEBUG, "CRYPTO gap at level %d: expected %lu, got offset %lu — buffering",
             level, crypto->rx_crypto_next_offset[level], offset);
   ANB_slab_push_item(crypto->rx_crypto_buf, (const uint8_t *)frame, sizeof(*frame));
-  return 0;
+  return YAWT_Q_OK;
 }
 
 const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *out_len) {
