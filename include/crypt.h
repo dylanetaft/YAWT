@@ -4,6 +4,8 @@
 #include <gnutls/gnutls.h>
 #include <stdbool.h>
 #include "quic.h"
+#include "security.h"
+
 
 
 typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;

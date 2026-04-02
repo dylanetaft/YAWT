@@ -14,11 +14,6 @@ typedef struct YAWT_Q_PeerAddr {
   uint16_t port;      // network byte order
 } YAWT_Q_PeerAddr_t;
 
-// Callback list node — singly linked via utlist (LL_*)
-typedef struct YAWT_Q_CbNode {
-  YAWT_Q_Callbacks_t cb;
-  struct YAWT_Q_CbNode *next;
-} YAWT_Q_CbNode_t;
 
 typedef struct YAWT_Q_Connection {
   YAWT_Q_Cid_t cid;
@@ -36,7 +31,6 @@ typedef struct YAWT_Q_Connection {
   YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
   YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
   YAWT_Q_ConnectionStats_t stats;   // byte counters
-  YAWT_Q_CbNode_t *cb_list;        // singly-linked callback listeners
 } YAWT_Q_Connection_t;
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
@@ -63,13 +57,6 @@ void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con);
 void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                               const YAWT_Q_PeerAddr_t *peer_addr, double now);
 
-// Send callback type for flush_send
-typedef void (*YAWT_Q_Send_Func_t)(const uint8_t *buf, size_t len,
-                                    const YAWT_Q_PeerAddr_t *peer_addr, void *ctx);
-
-// Iterate all connections with queued data, pack into packets, encrypt, and send
-void YAWT_q_con_tx(YAWT_Q_Send_Func_t send_func, void *send_ctx,
-                            double now);
 
 
 // Enqueue STREAM frames for the given data on stream_id. Fragments as needed.
@@ -79,8 +66,8 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 
-// Append a copy of the callback struct to the connection's listener list.
-void YAWT_q_con_cb_add(YAWT_Q_Connection_t *con, const YAWT_Q_Callbacks_t *cb);
+// Register a global callback set — copied onto every connection automatically.
+void YAWT_q_con_add_default_cb(const YAWT_Q_Callbacks_t *cb);
 
 // Initiate graceful close: enqueue CONNECTION_CLOSE, enter closing state.
 // Maintain loop flushes the frame and frees after 3x PTO.
@@ -91,5 +78,4 @@ const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void);
 
 // Unified maintenance: retransmit lost frames, check idle timeouts,
 // send keepalive PINGs, and flush queued packets for all connections.
-void YAWT_q_con_maintain(YAWT_Q_Send_Func_t send_func, void *send_ctx,
-                          double now);
+void YAWT_q_con_maintain(double now);

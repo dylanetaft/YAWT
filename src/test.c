@@ -68,7 +68,6 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
   YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
   double now = ev_now(loop);
   YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer, now);
-  YAWT_q_con_tx(udp_send, NULL, now);
 }
 
 static void maintain_cb(EV_P_ ev_timer *w, int revents) {
@@ -76,7 +75,7 @@ static void maintain_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
 
   double now = ev_now(loop);
-  YAWT_q_con_maintain(udp_send, NULL, now);
+  YAWT_q_con_maintain(now);
   const YAWT_Q_MaintenanceConfig_t *mcfg = YAWT_q_con_get_maint_config();
   w->repeat = mcfg->min_maint_interval;
   ev_timer_again(loop, w);
@@ -99,6 +98,11 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "failed to load cert %s / key %s\n", cert_file, key_file);
     return 1;
   }
+
+  YAWT_Q_Callbacks_t cb;
+  memset(&cb, 0, sizeof(cb));
+  cb.on_tx = udp_send;
+  YAWT_q_con_add_default_cb(&cb);
 
   YAWT_LOG(YAWT_LOG_INFO, "Starting QUIC server...");
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);

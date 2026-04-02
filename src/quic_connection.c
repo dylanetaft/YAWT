@@ -8,9 +8,15 @@
 #include <arpa/inet.h>
 #include <float.h>
 
+// Callback list node — singly linked via utlist (LL_*)
+typedef struct YAWT_Q_CbNode {
+  YAWT_Q_Callbacks_t cb;
+  struct YAWT_Q_CbNode *next;
+} YAWT_Q_CbNode_t;
+static YAWT_Q_CbNode_t *_default_cb_list = NULL;
+
 // Forward declarations
-static void _drain_tx(YAWT_Q_Connection_t *con, YAWT_Q_Send_Func_t send_func,
-                       void *send_ctx, double now);
+static void _drain_tx(YAWT_Q_Connection_t *con, double now);
 
 // RFC 9000 Appendix A: reconstruct full PN from truncated value
 static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen) {
@@ -115,11 +121,6 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   ANB_slab_destroy(c->tx_buffer);
   ANB_slab_destroy(c->stream_rx);
   ANB_slab_destroy(c->stream_meta);
-  YAWT_Q_CbNode_t *node, *tmp;
-  LL_FOREACH_SAFE(c->cb_list, node, tmp) {
-    LL_DELETE(c->cb_list, node);
-    free(node);
-  }
   free(c);
   *con = NULL;
 }
@@ -140,12 +141,12 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
   YAWT_LOG(YAWT_LOG_INFO, "Peer CID updated: %s", YAWT_q_cid_to_hex(&con->peer_cid));
 }
 
-void YAWT_q_con_cb_add(YAWT_Q_Connection_t *con, const YAWT_Q_Callbacks_t *cb) {
-  if (!con || !cb) return;
+void YAWT_q_con_add_default_cb(const YAWT_Q_Callbacks_t *cb) {
+  if (!cb) return;
   YAWT_Q_CbNode_t *node = calloc(1, sizeof(YAWT_Q_CbNode_t));
   if (!node) return;
   node->cb = *cb;
-  LL_APPEND(con->cb_list, node);
+  LL_APPEND(_default_cb_list, node);
 }
 
 void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con) {
@@ -507,6 +508,11 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     if (res.requires_ack) {
       YAWT_q_enqueue_frame_ack(con, level, pkt.packet_num);
     }
+
+    // Flush queued frames immediately (handshake replies, ACKs, etc.)
+    if (ANB_slab_item_count(con->tx_buffer) > 0) {
+      _drain_tx(con, now);
+    }
   }
   if (rc.err != YAWT_Q_OK) {
     printf("  parse error: %d at cursor %zu\n", rc.err, rc.cursor);
@@ -531,9 +537,7 @@ static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
   return (uint32_t)con->stats.pkt_num_tx[level]++;
 }
 
-static void _drain_tx(YAWT_Q_Connection_t *con,
-                               YAWT_Q_Send_Func_t send_func,
-                               void *send_ctx, double now) {
+static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
         ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
@@ -603,7 +607,12 @@ static void _drain_tx(YAWT_Q_Connection_t *con,
     }
 
     size_t send_size = (size_t)wire_len;
-    send_func(wire_data, send_size, &con->peer_addr, send_ctx);
+    YAWT_Q_CbNode_t *cb_node;
+    LL_FOREACH(_default_cb_list, cb_node) {
+      if (cb_node->cb.on_tx) {
+        cb_node->cb.on_tx(wire_data, send_size, &con->peer_addr, cb_node->cb.ctx);
+      }
+    }
     con->stats.last_tx = now;
 
     YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%u, %zu bytes, first 20: "
@@ -629,17 +638,6 @@ static void _drain_tx(YAWT_Q_Connection_t *con,
   }
 }
 
-void YAWT_q_con_tx(YAWT_Q_Send_Func_t send_func, void *send_ctx,
-                            double now) {
-  if (!send_func) return;
-
-  YAWT_Q_Connection_t *con, *tmp;
-  HASH_ITER(hh_cid, _hash_cid, con, tmp) {
-    if (ANB_slab_item_count(con->tx_buffer) > 0) {
-      _drain_tx(con, send_func, send_ctx, now);
-    }
-  }
-}
 
 // STREAM frame overhead: 1 type + 8 stream_id + 8 offset + 8 length = 25 bytes max
 #define YAWT_Q_STREAM_FRAME_OVERHEAD 25
@@ -818,10 +816,7 @@ static void _maint_retransmit(YAWT_Q_Connection_t *con, double now) {
 }
 
 
-void YAWT_q_con_maintain(YAWT_Q_Send_Func_t send_func, void *send_ctx,
-                          double now) {
-  if (!send_func) return;
-
+void YAWT_q_con_maintain(double now) {
   YAWT_Q_Connection_t *con, *tmp;
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
     double idle_sec = _effective_idle_timeout(con);
@@ -830,7 +825,7 @@ void YAWT_q_con_maintain(YAWT_Q_Send_Func_t send_func, void *send_ctx,
     _maint_retransmit(con, now);
 
     if (ANB_slab_item_count(con->tx_buffer) > 0) {
-      _drain_tx(con, send_func, send_ctx, now);
+      _drain_tx(con, now);
     }
   }
 }
