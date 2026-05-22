@@ -1,0 +1,24 @@
+#pragma once
+#include <stdint.h>
+
+// Flow control limits — populated from transport params, updated by MAX_* frames
+typedef struct {
+  uint64_t max_idle_timeout;            // 0x01: milliseconds, 0 = disabled
+  uint64_t max_data;                    // 0x04: connection-level byte limit
+  uint64_t max_stream_data_bidi_local;  // 0x05: per-stream, sender-initiated bidi
+  uint64_t max_stream_data_bidi_remote; // 0x06: per-stream, receiver-initiated bidi
+  uint64_t max_stream_data_uni;         // 0x07: per-stream, unidirectional
+  uint64_t max_streams_bidi;            // 0x08
+  uint64_t max_streams_uni;             // 0x09
+  uint64_t max_datagram_frame_size;     // 0x20: RFC 9221, 0 = datagrams not supported
+} YAWT_Q_FlowControl_t;
+
+typedef struct {
+  uint64_t min_idle_timeout_ms;    // floor for effective idle timeout (ms), 0 = no floor
+  uint64_t max_crypto_buffer_bytes; // max out-of-order CRYPTO buffering per connection, 0 = unlimited
+} YAWT_Q_SecurityPolicy_t;
+
+const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void);
+void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy);
+
+const YAWT_Q_FlowControl_t *YAWT_q_security_get_default_fc(void);

@@ -168,10 +168,16 @@ static int _on_secret(gnutls_session_t session,
   if (secret_write) _derive_pkt_keys(keys, hash, 0);
   keys->state = YAWT_Q_KEY_STATE_ACTIVE;
 
-  // When a new level activates, the previous level is done
+  // When a new level activates, the previous level is done.
+  // Handshake→DONE only once Application *read* secret is installed: on the server,
+  // gnutls first delivers Application secret_write (after sending its own Finished)
+  // while the client's Finished is still in flight at Handshake level. Dropping
+  // Handshake-rx then would reject the client's Finished. The read secret is only
+  // derived once the client's Finished has been consumed (RFC 9001 §4.9.2 — server
+  // may drop Handshake keys after handshake confirmation).
   if (level == GNUTLS_ENCRYPTION_LEVEL_HANDSHAKE) {
     crypto->level_keys[YAWT_Q_LEVEL_INITIAL].state = YAWT_Q_KEY_STATE_DONE;
-  } else if (level == GNUTLS_ENCRYPTION_LEVEL_APPLICATION) {
+  } else if (level == GNUTLS_ENCRYPTION_LEVEL_APPLICATION && secret_read) {
     crypto->level_keys[YAWT_Q_LEVEL_HANDSHAKE].state = YAWT_Q_KEY_STATE_DONE;
   }
   return 0;

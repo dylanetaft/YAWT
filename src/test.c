@@ -44,9 +44,8 @@ static void udp_send(const uint8_t *buf, size_t len,
   struct sockaddr_in sa = _peer_to_sockaddr(peer_addr);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
                          (struct sockaddr *)&sa, sizeof(sa));
-  if (nsent < 0) {
-    perror("sendto");
-  }
+  YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes to %s:%d\n",
+           nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
 static void udp_read_cb(EV_P_ ev_io *w, int revents) {

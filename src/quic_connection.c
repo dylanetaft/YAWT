@@ -244,21 +244,40 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
   }
 }
 
-// Push outbound CRYPTO frames into tx_buffer
+// Push outbound CRYPTO frames into tx_buffer.
+// Splits one batch of TLS data per level into packet-sized chunks at increasing offsets.
+// Assumes each level produces a single batch over the connection's lifetime (no 0-RTT,
+// session tickets disabled, no post-handshake client auth) — so per-call offsets
+// starting at 0 are correct.
+//
+// Chunk size budget: long-header packet payload (1281) minus CRYPTO frame header overhead
+// (1 type byte + up to 4-byte offset varint + up to 4-byte length varint = 9 worst case).
+#define YAWT_Q_CRYPTO_FRAME_HDR_MAX 9
+#define YAWT_Q_CRYPTO_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_LONG - YAWT_Q_CRYPTO_FRAME_HDR_MAX)
+
 static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t data_len;
     const uint8_t *data = YAWT_q_crypto_pop_tx(con->crypto, lvl, &data_len);
     if (!data) continue;
 
-    YAWT_Q_Frame_Crypto_t cf = { .offset = 0, .len = data_len, .data = (uint8_t *)data };
-    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
-    if (err != YAWT_Q_OK) {
-      printf("  error: encode CRYPTO frame failed for level %d: %s\n", lvl, YAWT_q_err_str(err));
-      continue;
-    }
+    uint64_t off = 0;
+    while (off < data_len) {
+      size_t chunk = data_len - off;
+      if (chunk > YAWT_Q_CRYPTO_CHUNK_MAX) chunk = YAWT_Q_CRYPTO_CHUNK_MAX;
 
-    printf("  queued CRYPTO frame: level=%d, %zu bytes of TLS data\n", lvl, data_len);
+      YAWT_Q_Frame_Crypto_t cf = { .offset = off, .len = chunk, .data = (uint8_t *)data + off };
+      YAWT_Q_Error_t err = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
+      if (err != YAWT_Q_OK) {
+        YAWT_LOG(YAWT_LOG_ERROR, "encode CRYPTO frame failed for level %d at offset %lu: %s",
+                 lvl, off, YAWT_q_err_str(err));
+        break;
+      }
+
+      YAWT_LOG(YAWT_LOG_DEBUG, "queued CRYPTO frame: level=%d, offset=%lu, %zu bytes",
+               lvl, off, chunk);
+      off += chunk;
+    }
   }
 }
 
@@ -625,7 +644,9 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
              wire_data[12], wire_data[13], wire_data[14], wire_data[15],
              wire_data[16], wire_data[17], wire_data[18], wire_data[19]);
 
-    // Mark frames as sent
+    // Mark frames as sent. ACK frames are one-shot — RFC 9000 §13.2.1 says ACK
+    // info is regenerated from current rx state, never retransmitted — so pop
+    // them now instead of leaving them to the retransmit timer.
     ANB_SlabIter_t iter2 = {0};
     while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
       if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
@@ -633,6 +654,9 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
       if (f->level == lvl && f->last_sent == 0) {
         f->last_sent = now;
         f->packet_num = pn;
+        if (f->type == YAWT_Q_FRAME_ACK) {
+          ANB_slab_pop_item(con->tx_buffer, &iter2);
+        }
       }
     }
   }
