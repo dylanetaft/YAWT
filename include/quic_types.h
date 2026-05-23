@@ -42,13 +42,16 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
   return buf;
 }
 
-// QUIC packet type (all 5 forms)
+// QUIC packet type (all 5 forms).
+// Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
+// 1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel,
+// chosen outside any plausible wire-encoded type field for future-proofing.
 typedef enum {
-  YAWT_Q_PKT_TYPE_INITIAL,
-  YAWT_Q_PKT_TYPE_0RTT,
-  YAWT_Q_PKT_TYPE_HANDSHAKE,
-  YAWT_Q_PKT_TYPE_RETRY,
-  YAWT_Q_PKT_TYPE_1RTT
+  YAWT_Q_PKT_TYPE_INITIAL   = 0x00,
+  YAWT_Q_PKT_TYPE_0RTT      = 0x01,
+  YAWT_Q_PKT_TYPE_HANDSHAKE = 0x02,
+  YAWT_Q_PKT_TYPE_RETRY     = 0x03,
+  YAWT_Q_PKT_TYPE_1RTT      = 0xFF
 } YAWT_Q_Packet_Type_t;
 
 // QUIC stream types RFC9000

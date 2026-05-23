@@ -905,28 +905,16 @@ void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out) {
   uint8_t header_form = (b0 >> 7) & 1;
 
   if (header_form == 1) {
-    // Long header
+    // Long header. The 2-bit long-type field maps directly to the enum values
+    // (RFC 9000 §17.2) — see YAWT_Q_PKT_TYPE_* in quic_types.h.
     uint8_t long_type = (b0 >> 4) & 3;
+    out->type = (YAWT_Q_Packet_Type_t)long_type;
     switch (long_type) {
-      case 0x00:
-        out->type = YAWT_Q_PKT_TYPE_INITIAL;
-        _parse_pkt_initial(rc, out);
-        break;
-      case 0x01:
-        out->type = YAWT_Q_PKT_TYPE_0RTT;
-        _parse_pkt_0rtt(rc, out);
-        break;
-      case 0x02:
-        out->type = YAWT_Q_PKT_TYPE_HANDSHAKE;
-        _parse_pkt_handshake(rc, out);
-        break;
-      case 0x03:
-        out->type = YAWT_Q_PKT_TYPE_RETRY;
-        _parse_pkt_retry(rc, out);
-        break;
-      default:
-        rc->err = YAWT_Q_ERR_INVALID_PACKET;
-        break;
+      case YAWT_Q_PKT_TYPE_INITIAL:   _parse_pkt_initial(rc, out);   break;
+      case YAWT_Q_PKT_TYPE_0RTT:      _parse_pkt_0rtt(rc, out);      break;
+      case YAWT_Q_PKT_TYPE_HANDSHAKE: _parse_pkt_handshake(rc, out); break;
+      case YAWT_Q_PKT_TYPE_RETRY:     _parse_pkt_retry(rc, out);     break;
+      default: rc->err = YAWT_Q_ERR_INVALID_PACKET; break;
     }
   } else {
     // Short header (1-RTT)
