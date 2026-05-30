@@ -22,3 +22,14 @@ const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void);
 void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy);
 
 const YAWT_Q_FlowControl_t *YAWT_q_security_get_default_fc(void);
+
+// HTTP/3 layer policy. Separate struct from the QUIC policy — the security
+// module is centralized but each layer keeps its own layer-named config.
+typedef struct {
+  uint64_t max_frame_buffer_bytes; // max bytes the H3 layer accumulates for one
+                                   // must-buffer frame (SETTINGS/HEADERS); a frame
+                                   // whose Length exceeds this is rejected, not buffered
+} YAWT_H3_SecurityPolicy_t;
+
+const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void);
+void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy);

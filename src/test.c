@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <gnutls/gnutls.h>
 #include "../include/quic_connection.h"
+#include "../include/quic_types.h"
+#include "../include/h3.h"
 #include "logger.h"
 
 #define LISTEN_PORT 4433
@@ -39,13 +41,29 @@ static struct sockaddr_in _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa) {
 }
 
 static void udp_send(const uint8_t *buf, size_t len,
-                      const YAWT_Q_PeerAddr_t *peer_addr, void *ctx) {
-  (void)ctx;
+                      const YAWT_Q_PeerAddr_t *peer_addr) {
   struct sockaddr_in sa = _peer_to_sockaddr(peer_addr);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
                          (struct sockaddr *)&sa, sizeof(sa));
   YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes to %s:%d\n",
            nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
+}
+
+// App's single event handler: owns transport glue (TX → UDP write) and forwards
+// the application-facing events to the H3 layer.
+static void on_event(YAWT_Q_Connection_t *con,
+                      YAWT_Q_EventType_t event,
+                      YAWT_Q_EventParam_t param) {
+  switch (event) {
+    case YAWT_Q_EVT_TX:
+      udp_send(param.P_EVT_TX.buf, param.P_EVT_TX.len, param.P_EVT_TX.peer);
+      break;
+
+    default:
+      // CONNECTED / STREAM / DATAGRAM / CLOSE → H3 layer
+      YAWT_h3_on_event(con, event, param);
+      break;
+  }
 }
 
 static void udp_read_cb(EV_P_ ev_io *w, int revents) {
@@ -98,10 +116,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  YAWT_Q_Callbacks_t cb;
-  memset(&cb, 0, sizeof(cb));
-  cb.on_tx = udp_send;
-  YAWT_q_con_add_default_cb(&cb);
+  YAWT_q_con_set_event_handler(on_event);
 
   YAWT_LOG(YAWT_LOG_INFO, "Starting QUIC server...");
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);

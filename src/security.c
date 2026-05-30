@@ -17,6 +17,11 @@ static YAWT_Q_FlowControl_t _default_local_fc = {
   .max_datagram_frame_size = YAWT_Q_MAX_PKT_SIZE,
 };
 
+static YAWT_H3_SecurityPolicy_t _h3_policy = {
+  .max_frame_buffer_bytes = 32768,
+};
+
+
 const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void) {
   return &_policy;
 }
@@ -28,4 +33,12 @@ void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy) {
 
 const YAWT_Q_FlowControl_t *YAWT_q_security_get_default_fc(void) {
   return &_default_local_fc;
+}
+const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void) {
+  return &_h3_policy;
+}
+
+void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy) {
+  if (!policy) return;
+  _h3_policy = *policy;
 }

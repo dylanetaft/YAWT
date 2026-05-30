@@ -8,15 +8,32 @@
 #include <arpa/inet.h>
 #include <float.h>
 
-// Callback list node — singly linked via utlist (LL_*)
-typedef struct YAWT_Q_CbNode {
-  YAWT_Q_Callbacks_t cb;
-  struct YAWT_Q_CbNode *next;
-} YAWT_Q_CbNode_t;
-static YAWT_Q_CbNode_t *_default_cb_list = NULL;
+// Process-wide event handler — installed via YAWT_q_con_set_event_handler.
+// Defaults to a no-op so dispatch sites never need to null-check.
+static void _noop_event_handler(YAWT_Q_Connection_t *con,
+                                 YAWT_Q_EventType_t event,
+                                 YAWT_Q_EventParam_t param) {
+  (void)con; (void)event; (void)param;
+}
+static YAWT_Q_EventHandler_t _event_handler = _noop_event_handler;
 
 // Forward declarations
 static void _drain_tx(YAWT_Q_Connection_t *con, double now);
+
+// Record why a connection is closing. The actual EVT_CLOSE is emitted later,
+// exactly once, by YAWT_q_con_free. reason is copied (bounded) so callers may
+// pass transient buffers or string literals.
+static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
+                          const char *reason, size_t reason_len) {
+  con->close_code = code;
+  if (reason && reason_len) {
+    if (reason_len >= sizeof(con->close_reason)) reason_len = sizeof(con->close_reason) - 1;
+    memcpy(con->close_reason, reason, reason_len);
+    con->close_reason[reason_len] = '\0';
+  } else {
+    con->close_reason[0] = '\0';
+  }
+}
 
 // RFC 9000 Appendix A: reconstruct full PN from truncated value
 static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen) {
@@ -114,6 +131,17 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
 void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   if (con == NULL || *con == NULL) return;
   YAWT_Q_Connection_t *c = *con;
+
+  // Single close chokepoint: every teardown path funnels through here, so
+  // emitting EVT_CLOSE once guarantees the app sees exactly one close per
+  // connection regardless of how it died (peer CC, idle, closing expired,
+  // future paths). Close triggers record code/reason on the connection;
+  // they do not emit themselves.
+  YAWT_Q_EventParam_t param;
+  param.P_EVT_CLOSE.error_code = c->close_code;
+  param.P_EVT_CLOSE.reason = c->close_reason;
+  _event_handler(c, YAWT_Q_EVT_CLOSE, param);
+
   HASH_DELETE(hh_cid, _hash_cid, c);
   YAWT_q_con_clear_odcid(c);
   YAWT_q_crypto_free(c->crypto);
@@ -130,6 +158,7 @@ void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
 
   YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
                                          error_code, 0);
+  _record_close(con, error_code, "local close", sizeof("local close") - 1);
   con->stats.closing_at = DBL_MAX;
   YAWT_LOG(YAWT_LOG_INFO, "Closing connection: CID=%s, error=%lu",
             YAWT_q_cid_to_hex(&con->cid), error_code);
@@ -141,12 +170,8 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
   YAWT_LOG(YAWT_LOG_INFO, "Peer CID updated: %s", YAWT_q_cid_to_hex(&con->peer_cid));
 }
 
-void YAWT_q_con_add_default_cb(const YAWT_Q_Callbacks_t *cb) {
-  if (!cb) return;
-  YAWT_Q_CbNode_t *node = calloc(1, sizeof(YAWT_Q_CbNode_t));
-  if (!node) return;
-  node->cb = *cb;
-  LL_APPEND(_default_cb_list, node);
+void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler) {
+  _event_handler = handler ? handler : _noop_event_handler;
 }
 
 void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con) {
@@ -239,6 +264,11 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
         meta->rx_fin = 1;
         meta->rx_fin_offset = f->offset + f->len;
       }
+
+      YAWT_Q_EventParam_t param;
+      param.P_EVT_STREAM.frame = f;
+      _event_handler(con, YAWT_Q_EVT_STREAM, param);
+
       ANB_slab_pop_item(con->stream_rx, &iter);
     }
   }
@@ -326,13 +356,20 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
         _push_crypto_frames(con);
 
-        if (YAWT_q_crypto_is_handshake_complete(con->crypto)) {
+        // Fire once: gated on original_dcid still being set, which clear_odcid()
+        // tears down. Avoids re-enqueueing HANDSHAKE_DONE / re-firing on_connected
+        // for every post-handshake CRYPTO frame (e.g. NewSessionTicket).
+        if (YAWT_q_crypto_is_handshake_complete(con->crypto) && con->original_dcid.len > 0) {
           YAWT_q_con_clear_odcid(con);
 
           YAWT_LOG(YAWT_LOG_INFO, "Peer flow control: max_data=%lu, streams_bidi=%lu, streams_uni=%lu",
                     con->peer_fc.max_data, con->peer_fc.max_streams_bidi, con->peer_fc.max_streams_uni);
           // RFC 9000 §19.20: server MUST send HANDSHAKE_DONE in a 1-RTT packet
           YAWT_q_enqueue_frame_handshake_done(con);
+
+          YAWT_Q_EventParam_t param;
+          memset(&param, 0, sizeof(param));
+          _event_handler(con, YAWT_Q_EVT_CONNECTED, param);
         }
         break;
       }
@@ -341,10 +378,20 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_INFO, "TODO: handshake done, drop handshake keys");
         break;
 
-      case YAWT_Q_FRAME_CONNECTION_CLOSE:
-        printf("  CONNECTION_CLOSE: error=%lu, frame_type=%lu\n",
-               frame.connection_close.error_code, frame.connection_close.frame_type);
+      case YAWT_Q_FRAME_CONNECTION_CLOSE: {
+        YAWT_LOG(YAWT_LOG_INFO, "CONNECTION_CLOSE: error=%lu, frame_type=%lu",
+                 frame.connection_close.error_code, frame.connection_close.frame_type);
+
+        // Record the reason; EVT_CLOSE is emitted once by con_free. Enter the
+        // closing state (RFC 9000 §10.2 draining) so _maint_kill reaps it —
+        // do not emit here. reason_phrase points into the transient rx buffer;
+        // _record_close copies it.
+        _record_close(con, frame.connection_close.error_code,
+                      (const char *)frame.connection_close.reason_phrase,
+                      frame.connection_close.reason_phrase_len);
+        if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
         break;
+      }
 
       case YAWT_Q_FRAME_STREAM: {
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.stream.stream_id);
@@ -358,8 +405,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (end <= meta->rx_next_offset) break;
 
         if (frame.stream.offset == meta->rx_next_offset) {
-          // In order — deliver directly from dataptr (still points into UDP buffer)
-          // TODO: deliver frame.stream.dataptr / frame.stream.len to application
+          // In order — deliver directly from dataptr (still points into UDP buffer).
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                     meta->stream_id, frame.stream.len, frame.stream.offset);
           meta->rx_next_offset = end;
@@ -368,6 +414,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
             meta->rx_fin = 1;
             meta->rx_fin_offset = end;
           }
+
+          YAWT_Q_EventParam_t param;
+          param.P_EVT_STREAM.frame = &frame.stream;
+          _event_handler(con, YAWT_Q_EVT_STREAM, param);
+
           _drain_stream_rx(con, meta);
         } else {
           // Out of order — alloc in slab, copy struct + data, single copy
@@ -431,10 +482,14 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_DEBUG, "PATH_RESPONSE received (ignored — no pending challenge)");
         break;
 
-      case YAWT_Q_FRAME_DATAGRAM:
+      case YAWT_Q_FRAME_DATAGRAM: {
         YAWT_LOG(YAWT_LOG_DEBUG, "DATAGRAM received, len=%lu", frame.datagram.len);
-        // TODO: deliver via on_datagram callback when wired
+        YAWT_Q_EventParam_t param;
+        param.P_EVT_DATAGRAM.data = frame.datagram.dataptr;
+        param.P_EVT_DATAGRAM.len = frame.datagram.len;
+        _event_handler(con, YAWT_Q_EVT_DATAGRAM, param);
         break;
+      }
 
       default:
         printf("  unhandled frame type: 0x%02lx\n", (uint64_t)frame.type);
@@ -626,12 +681,11 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
     }
 
     size_t send_size = (size_t)wire_len;
-    YAWT_Q_CbNode_t *cb_node;
-    LL_FOREACH(_default_cb_list, cb_node) {
-      if (cb_node->cb.on_tx) {
-        cb_node->cb.on_tx(wire_data, send_size, &con->peer_addr, cb_node->cb.ctx);
-      }
-    }
+    YAWT_Q_EventParam_t param;
+    param.P_EVT_TX.buf = wire_data;
+    param.P_EVT_TX.len = send_size;
+    param.P_EVT_TX.peer = &con->peer_addr;
+    _event_handler(con, YAWT_Q_EVT_TX, param);
     con->stats.last_tx = now;
 
     YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%u, %zu bytes, first 20: "
@@ -781,6 +835,8 @@ static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
     if (now - closing > pto) {
       YAWT_LOG(YAWT_LOG_INFO, "Closing period expired: CID=%s",
                 YAWT_q_cid_to_hex(&(*con)->cid));
+      // close_code/reason already recorded by whoever initiated the close
+      // (con_close or peer CONNECTION_CLOSE); con_free emits EVT_CLOSE.
       YAWT_q_con_free(con);
       return 1;
     }
@@ -792,6 +848,7 @@ static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
   if (now - (*con)->stats.last_rx > idle_sec) {
     YAWT_LOG(YAWT_LOG_INFO, "Idle timeout: CID=%s, %.1fs since last rx",
               YAWT_q_cid_to_hex(&(*con)->cid), now - (*con)->stats.last_rx);
+    _record_close(*con, 0, "idle timeout", sizeof("idle timeout") - 1);
     YAWT_q_con_free(con);
     return 1;
   }

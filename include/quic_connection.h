@@ -5,7 +5,7 @@
 #include <uthash/utlist.h>
 #include "quic.h"
 #include "crypt.h"
-#include "callbacks.h"
+#include "events.h"
 
 
 // Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x)
@@ -31,6 +31,9 @@ typedef struct YAWT_Q_Connection {
   YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
   YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
   YAWT_Q_ConnectionStats_t stats;   // byte counters
+  void *user_data;                  // opaque app/H3 state; QUIC never dereferences it
+  uint64_t close_code;              // recorded by close triggers, emitted once by con_free
+  char close_reason[256];           // bounded, null-terminated; "" if none
 } YAWT_Q_Connection_t;
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
@@ -66,8 +69,20 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 
-// Register a global callback set — copied onto every connection automatically.
-void YAWT_q_con_add_default_cb(const YAWT_Q_Callbacks_t *cb);
+// Install the process-wide event handler. Passing NULL restores the
+// built-in no-op default. Replaces any previously installed handler.
+void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
+
+// Opaque per-connection app state (e.g. the H3 connection object). The QUIC
+// layer stores it and hands it back, never dereferencing it. Lifetime is the
+// app's responsibility: typically allocated on YAWT_Q_EVT_CONNECTED and freed
+// in the YAWT_Q_EVT_CLOSE handler (which con_free guarantees fires exactly once).
+static inline void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
+  if (con) con->user_data = p;
+}
+static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
+  return con ? con->user_data : NULL;
+}
 
 // Initiate graceful close: enqueue CONNECTION_CLOSE, enter closing state.
 // Maintain loop flushes the frame and frees after 3x PTO.
