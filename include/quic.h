@@ -118,7 +118,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level,
 
 // Encode a STREAM frame and push to tx_buffer. Always enqueued at APPLICATION level.
 YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
-                                             const YAWT_Q_Frame_Stream_t *frame);
+                                             const YAWT_Q_Frame_BufferedStream_t *frame);
 
 // Encode a PING frame and push to tx_buffer. APPLICATION level only.
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);

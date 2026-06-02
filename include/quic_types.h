@@ -205,10 +205,15 @@ typedef struct YAWT_Q_Frame_Stream {
   uint64_t stream_id; //varint
   YAWT_Q_Stream_Type_t stream_type; // low 2 bits of stream_id
   uint64_t offset; //varint, present if off bit set
-  uint64_t len; //varint, present if len bit set
-  uint8_t *dataptr;  // points into UDP buffer during parse (transient)
-  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // storage for slab-buffered copy
+  uint64_t data_len; //populated from varint if len_present, else extends to end of packet
+  uint8_t *data;  // points into UDP buffer during parse (transient)
+                     // or slab-buffer during delivery (also transient)
 } YAWT_Q_Frame_Stream_t;
+
+typedef struct YAWT_Q_Frame_BufferedStream {
+  YAWT_Q_Frame_Stream_t frame;
+  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // storage for slab-buffer
+} YAWT_Q_Frame_BufferedStream_t;
 
 // Frame type 0x10 - MAX_DATA
 typedef struct {

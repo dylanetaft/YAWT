@@ -7,46 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Decode a varint from the H3 cursor by delegating to the QUIC codec (the two
-// cursor layouts are identical aside from the error type). Returns 1 on
-// success; 0 on truncation, in which case the cursor is left UNCHANGED
-// (YAWT_q_varint_decode does not advance on SHORT_BUFFER) so the caller can
-// retry the whole frame once more bytes arrive.
-static int _h3_varint(YAWT_H3_ReadCursor_t *rc, uint64_t *out) {
-  YAWT_Q_ReadCursor_t qc = {
-    .data = (uint8_t *)rc->data,  // const cast: decode only reads
-    .len = rc->len,
-    .cursor = rc->cursor,
-    .err = YAWT_Q_OK,
-  };
-  YAWT_q_varint_decode(&qc, out);
-  if (qc.err != YAWT_Q_OK) return 0;
-  rc->cursor = qc.cursor;
-  return 1;
-}
 
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_ReadCursor_t *rc,
-                                     YAWT_H3_Frame_t *out) {
-  memset(out, 0, sizeof(*out));
-  if (!rc) return YAWT_H3_ERR_INVALID_PARAM;
-
-  // Anything short of a complete Type + Length + full payload is INCOMPLETE.
-  // Restore the cursor to the frame start on any shortfall so a later call
-  // (with more stream bytes appended) re-parses from the same point.
-  size_t start = rc->cursor;
-  uint64_t type, len;
-
-  if (!_h3_varint(rc, &type)) { rc->cursor = start; return YAWT_H3_ERR_INCOMPLETE; }
-  if (!_h3_varint(rc, &len))  { rc->cursor = start; return YAWT_H3_ERR_INCOMPLETE; }
-
-  if (len > rc->len - rc->cursor) { rc->cursor = start; return YAWT_H3_ERR_INCOMPLETE; }
-
-  out->type = type;
-  out->len = len;
-  out->payload = (len > 0) ? rc->data + rc->cursor : NULL;
-  rc->cursor += len;
-  return YAWT_H3_OK;
-}
 
 YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
                                       const uint8_t *payload, size_t payload_len,
@@ -86,8 +47,8 @@ typedef struct {
   YAWT_H3_Settings_t peer_settings;
   bool peer_settings_seen;
   ANB_Slab_t *rxbuf;                // stream_id-tagged buffered chunks
-  size_t nstreams;                  // slot pool size (concurrent stream cap)
-  YAWT_H3_StreamState_t *streams;   // preallocated slot pool, linear-scan by id
+  uint64_t nstreams;                  // slot pool size (concurrent stream cap)
+  YAWT_H3_StreamMeta_t *stream_meta;   // preallocated slot pool, linear-scan by id
 } YAWT_H3_Connection_t;
 
 static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
@@ -103,12 +64,11 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
 
   h3->rxbuf = ANB_slab_create(4096);
   h3->nstreams = con->local_fc.max_streams_bidi + con->local_fc.max_streams_uni;
-  h3->streams = calloc(h3->nstreams, sizeof(*h3->streams));
-  if (!h3->rxbuf || !h3->streams) {
-    if (h3->rxbuf) ANB_slab_destroy(h3->rxbuf);
-    free(h3->streams);
-    free(h3);
-    return NULL;
+  h3->stream_meta = calloc(h3->nstreams, sizeof(YAWT_H3_StreamMeta_t));
+
+  if (!h3->rxbuf || !h3->stream_meta) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to allocate connection state");
+    abort();
   }
   return h3;
 }
@@ -116,10 +76,99 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
 static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   if (!h3) return;
   ANB_slab_destroy(h3->rxbuf);
-  free(h3->streams);
+  free(h3->stream_meta);
   free(h3);
 }
 
+YAWT_H3_StreamMeta_t *_h3_stream_meta_find(
+    YAWT_H3_Connection_t *h3, 
+    uint64_t stream_id) {
+  //locate assigned stream slot
+  for (uint64_t i = 0; i < h3->nstreams; i++) {
+    if (h3->stream_meta[i].in_use && h3->stream_meta[i].stream_id == stream_id) {
+      return &h3->stream_meta[i];
+    }
+  }
+  //else assign
+  for (uint64_t i = 0; i < h3->nstreams; i++) {
+    if (!h3->stream_meta[i].in_use) {
+      h3->stream_meta[i].in_use = true;
+      h3->stream_meta[i].stream_id = stream_id;
+      return &h3->stream_meta[i];
+    }
+  }
+  return NULL;
+}
+
+// Read the current H3 frame's header (Type + Length varints) for `meta`,
+// accumulating across QUIC stream chunks. Stream bytes always land in
+// meta->hdr first, then we decode from there — so a header split across two
+// chunks is handled the same as one fully contained in a chunk.
+//
+// Returns true once both varints are decoded (meta->frame_type, payload_len,
+// hdr_size are set). Returns false if more bytes are still needed (the partial
+// header stays in meta->hdr; call again with the next chunk). hdr_size == 0
+// means "header not yet read" — reset it to 0 when starting a new frame.
+inline bool _gather_h3_frame_head (
+    YAWT_H3_Connection_t *h3,
+    YAWT_H3_StreamMeta_t *meta,
+    const YAWT_Q_Frame_Stream_t *chunk
+    ) {
+  // Copy as much of this chunk as can still fit in the header scratch. Only
+  // the leading header bytes matter here; any payload bytes that ride along in
+  // this chunk are re-derived by the caller from hdr_size once we succeed.
+  size_t take = chunk->data_len;
+  if (take > H3_FRAME_MAX_HEADER_BYTES - meta->accumulated) {
+    take = H3_FRAME_MAX_HEADER_BYTES - meta->accumulated;
+  }
+  memcpy(meta->hdr + meta->accumulated, chunk->data, take);
+  meta->accumulated += take;
+
+  YAWT_Q_ReadCursor_t rc = {0};
+  rc.data = meta->hdr;
+  rc.len = meta->accumulated;
+
+  // SHORT_BUFFER just means the header isn't complete yet — not an error.
+  YAWT_q_varint_decode(&rc, &meta->frame_type);
+  if (rc.err != YAWT_Q_OK) goto need_more;
+  YAWT_q_varint_decode(&rc, &meta->payload_len);
+  if (rc.err != YAWT_Q_OK) goto need_more;
+
+  meta->hdr_size = (uint8_t)rc.cursor;
+  return true;
+
+  need_more:
+  // Scratch full and still won't decode: no legal Type+Length is this long, so
+  // the header can never complete — malformed. (Truncation, i.e. the stream
+  // ending mid-header, is the caller's concern via chunk->fin.)
+  if (meta->accumulated == H3_FRAME_MAX_HEADER_BYTES) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: frame header exceeds max len, closing stream_id=%lu",
+             meta->stream_id);
+    //TODO close stream
+  }
+  return false;
+}
+                                 
+
+void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
+   YAWT_Q_EventParam_t *param) {
+  
+  const YAWT_Q_Frame_Stream_t *f = param->P_EVT_STREAM.frame;
+  YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
+  YAWT_H3_StreamMeta_t *meta = _h3_stream_meta_find(h3, f->stream_id);
+  if (!meta) {
+    //TODO we need to close the connection
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", f->stream_id);
+    return;
+  }
+
+  if (meta->hdr_size == 0) { //we have not read header yet
+    bool res = _gather_h3_frame_head(h3, meta, f);
+  }
+
+
+
+}
 // Process-wide event handler for the H3 layer. The app installs this (directly,
 // or by forwarding from its own handler) via YAWT_q_con_set_event_handler. TX is
 // the app's concern (UDP write); H3 consumes the connection lifecycle + streams.
@@ -136,13 +185,13 @@ void YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
     }
     case YAWT_Q_EVT_STREAM: {
       YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
-      if (!h3) break;
+      _handle_rx_stream_chunk(con, &param);
       const YAWT_Q_Frame_Stream_t *f = param.P_EVT_STREAM.frame;
       // TODO: buffer the chunk in rxbuf (tagged by stream_id), then run the
       // per-stream feed/advance state machine (read type prefix, read frame
       // headers, deliver complete frames, renormalize the buffer).
       YAWT_LOG(YAWT_LOG_DEBUG, "h3: rx stream=%lu len=%lu fin=%d",
-               f->stream_id, f->len, f->fin);
+               f->stream_id, f->data_len, f->fin);
       break;
     }
     case YAWT_Q_EVT_CLOSE: {

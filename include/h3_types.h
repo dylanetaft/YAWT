@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#define H3_FRAME_MAX_HEADER_BYTES 16 // max varint size for Type + Length 
 // ---------------------------------------------------------------------------
 // HTTP/3 data types (RFC 9114) — the YAWT_H3 analog of quic_types.h. Holds the
 // enums and structs; the function API lives in h3.h. See docs/reference.md for
@@ -26,6 +27,17 @@ typedef enum {
   YAWT_H3_FRAME_GOAWAY       = 0x07,
   YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d,
 } YAWT_H3_FrameType_t;
+
+// Unidirectional stream types (RFC 9114 §6.2, RFC 9204 §4.2, draft-15). The
+// first varint on a client uni stream selects its role; we read it once into
+// the per-stream slot. Bidi (request) streams have no such prefix.
+typedef enum {
+  YAWT_H3_STREAM_CONTROL      = 0x00,
+  YAWT_H3_STREAM_PUSH         = 0x01,
+  YAWT_H3_STREAM_QPACK_ENCODER = 0x02,
+  YAWT_H3_STREAM_QPACK_DECODER = 0x03,
+  YAWT_H3_STREAM_WEBTRANSPORT  = 0x54,
+} YAWT_H3_StreamType_t;
 
 // SETTINGS identifiers (RFC 9114 §7.2.4.1, RFC 9204, RFC 9220, RFC 9297,
 // draft-ietf-webtrans-http3-15). Values are the on-the-wire identifiers.
@@ -62,41 +74,31 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
   }
 }
 
-// Read cursor for zero-copy H3 frame parsing — mirrors YAWT_Q_ReadCursor_t but
-// carries an H3-layer error. `data` is const: H3 never mutates the stream bytes
-// in place (unlike QUIC header decryption).
+// Per-stream H3 parse state. Lives in a preallocated slot pool on the H3
+// connection (slot index is NOT the stream id — ids are sparse and grow
+// unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta).
+// A slot is claimed (in_use=true) when assigned to a stream id
 typedef struct {
-  const uint8_t *data;
-  size_t len;
-  size_t cursor;        // offset from data start
-  YAWT_H3_Error_t err;
-} YAWT_H3_ReadCursor_t;
+  bool     in_use;
+  uint64_t stream_id;
+  uint64_t h3_stream_type;
+  uint64_t frame_type;
+  uint64_t offset;  //a quic stream chunk may contain multiple/partial H3 frame
+  uint64_t accumulated; //current raw stream bytes accumulated for the current frame (for INCOMPLETE frames)
+  uint8_t  hdr_size;
+  uint64_t payload_len;
+  uint8_t hdr[H3_FRAME_MAX_HEADER_BYTES]; //buffer for the frame header (type + len) of the current frame being parsed
+} YAWT_H3_StreamMeta_t;
+
 
 // A parsed H3 frame. `payload` points into the cursor's buffer (NOT owned, NOT
 // retained): it is valid only for the duration of the call that produced it,
 // because the underlying stream bytes are transient. Anything kept beyond that
 // must be copied.
 typedef struct {
-  uint64_t type;            // raw frame type (see YAWT_H3_FrameType_t)
-  uint64_t len;             // payload length in bytes
-  const uint8_t *payload;   // points into cursor data; NULL if len == 0
+  const YAWT_H3_StreamMeta_t *stream;
+  const uint8_t *payload;   // points into buffered data; NULL if len == 0
 } YAWT_H3_Frame_t;
-
-// Per-stream H3 parse state. Lives in a preallocated slot pool on the H3
-// connection (slot index is NOT the stream id — ids are sparse and grow
-// unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta).
-// A slot is claimed (in_use=true) only once the stream's H3 type prefix has
-// been read, so in_use doubles as "type known". header_read tracks whether the
-// current frame's type+len have been read; we wait for the whole header before
-// reading it, so a single bool suffices.
-typedef struct {
-  bool     in_use;          // claimed once the H3 stream type has been read
-  uint64_t stream_id;
-  uint64_t h3_stream_type;  // control / qpack / WT (from the uni-stream prefix)
-  bool     header_read;     // current frame's type+len read?
-  uint64_t frame_type;
-  uint64_t frame_len;       // declared payload length of current frame
-} YAWT_H3_StreamState_t;
 
 // Negotiated HTTP/3 settings. One instance holds the values we advertise;
 // another holds what the peer sent.

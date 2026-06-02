@@ -2,22 +2,19 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "h3_types.h"
+#include "quic.h"   // YAWT_q_varint_*, YAWT_Q_ReadCursor_t
 #include "events.h"   // YAWT_Q_Connection_t (fwd), YAWT_Q_EventType_t, YAWT_Q_EventParam_t
 
 // ---------------------------------------------------------------------------
 // HTTP/3 (RFC 9114) function API — minimal subset for WebTransport. Data types
-// live in h3_types.h. Symbols use the YAWT_H3 prefix to distinguish this layer
-// from the QUIC core (YAWT_Q).
+// live in h3_types.h.
 // ---------------------------------------------------------------------------
 
-// Parse one H3 frame (Type, Length, Payload) from rc. Returns:
-//   YAWT_H3_OK             — complete frame; *out filled, cursor advanced past it.
-//   YAWT_H3_ERR_INCOMPLETE — the type/length varints or full payload are not all
-//                            present yet; cursor is left UNCHANGED so the caller
-//                            can retry after more stream bytes arrive. Not an
-//                            error unless the stream FINed with bytes pending.
-// On INCOMPLETE rc->err stays OK (it is a flow condition, not corruption).
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_ReadCursor_t *rc, YAWT_H3_Frame_t *out);
+// Assembles a frame from located metadata.  Will deliver partial frames
+// but we can pull the header fields (Type, Length) out of metadata
+YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream, 
+YAWT_H3_StreamMeta_t *meta,
+YAWT_H3_Frame_t *out);
 
 // Encode an H3 frame wrapper (Type varint, Length varint, then payload bytes)
 // into buf. `payload` may be NULL when payload_len is 0. Total bytes written

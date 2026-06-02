@@ -253,20 +253,22 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
   size_t item_size;
   uint8_t *item;
   while ((item = ANB_slab_peek_item_iter(con->stream_rx, &iter, &item_size)) != NULL) {
-    YAWT_Q_Frame_Stream_t *f = (YAWT_Q_Frame_Stream_t *)item;
+    YAWT_Q_Frame_BufferedStream_t *bf = (YAWT_Q_Frame_BufferedStream_t *)item;
+    YAWT_Q_Frame_Stream_t *f = &bf->frame;
     if (f->stream_id != meta->stream_id) continue;
     if (f->offset == meta->rx_next_offset) {
       YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
-                meta->stream_id, f->len, f->offset);
-      meta->rx_next_offset += f->len;
-      con->stats.rx_count_bytes += f->len;
+                meta->stream_id, f->data_len, f->offset);
+      meta->rx_next_offset += f->data_len;
+      con->stats.rx_count_bytes += f->data_len;
       if (f->fin) {
         meta->rx_fin = 1;
-        meta->rx_fin_offset = f->offset + f->len;
+        meta->rx_fin_offset = f->offset + f->data_len;
       }
 
       YAWT_Q_EventParam_t param;
       param.P_EVT_STREAM.frame = f;
+      f->data = bf->data;  // point to the slab's copy of the frame data
       _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
       ANB_slab_pop_item(con->stream_rx, &iter);
@@ -399,7 +401,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           meta = _stream_meta_add(con->stream_meta, frame.stream.stream_id);
           if (!meta) break;
         }
-        uint64_t end = frame.stream.offset + frame.stream.len;
+        uint64_t end = frame.stream.offset + frame.stream.data_len;
 
         // Skip fully duplicate data
         if (end <= meta->rx_next_offset) break;
@@ -407,9 +409,9 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (frame.stream.offset == meta->rx_next_offset) {
           // In order — deliver directly from dataptr (still points into UDP buffer).
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
-                    meta->stream_id, frame.stream.len, frame.stream.offset);
+                    meta->stream_id, frame.stream.data_len, frame.stream.offset);
           meta->rx_next_offset = end;
-          con->stats.rx_count_bytes += frame.stream.len;
+          con->stats.rx_count_bytes += frame.stream.data_len;
           if (frame.stream.fin) {
             meta->rx_fin = 1;
             meta->rx_fin_offset = end;
@@ -423,13 +425,14 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         } else {
           // Out of order — alloc in slab, copy struct + data, single copy
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: buffering %lu bytes at offset %lu (expected %lu)",
-                    meta->stream_id, frame.stream.len, frame.stream.offset, meta->rx_next_offset);
-          uint8_t *slot = ANB_slab_alloc_item(con->stream_rx, sizeof(YAWT_Q_Frame_Stream_t));
+                    meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
+          
+          uint8_t *slot = ANB_slab_alloc_item(con->stream_rx, sizeof(YAWT_Q_Frame_BufferedStream_t));
           if (slot) {
-            YAWT_Q_Frame_Stream_t *buf = (YAWT_Q_Frame_Stream_t *)slot;
-            *buf = frame.stream;
-            memcpy(buf->data, frame.stream.dataptr, frame.stream.len);
-            buf->dataptr = NULL;
+            YAWT_Q_Frame_BufferedStream_t *buf = (YAWT_Q_Frame_BufferedStream_t *)slot;
+
+            buf->frame = frame.stream;
+            memcpy(buf->data, frame.stream.data, frame.stream.data_len);
           }
         }
         break;
@@ -744,14 +747,13 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
   // Handle empty FIN (close stream with no data)
   if (data_len == 0 && fin) {
-    YAWT_Q_Frame_Stream_t sf;
-    memset(&sf, 0, sizeof(sf));
-    sf.stream_id = stream_id;
-    sf.off = (meta->tx_next_offset > 0) ? 1 : 0;
-    sf.offset = meta->tx_next_offset;
-    sf.len_present = 1;
-    sf.len = 0;
-    sf.fin = 1;
+    YAWT_Q_Frame_BufferedStream_t sf = {0};
+    sf.frame.stream_id = stream_id;
+    sf.frame.off = (meta->tx_next_offset > 0) ? 1 : 0;
+    sf.frame.offset = meta->tx_next_offset;
+    sf.frame.len_present = 1;
+    sf.frame.data_len = 0;
+    sf.frame.fin = 1;
     YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
     meta->tx_fin_sent = 1;
@@ -765,14 +767,13 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     size_t chunk_len = remaining;
     if (chunk_len > YAWT_Q_STREAM_CHUNK_MAX) chunk_len = YAWT_Q_STREAM_CHUNK_MAX;
 
-    YAWT_Q_Frame_Stream_t sf;
-    memset(&sf, 0, sizeof(sf));
-    sf.stream_id = stream_id;
-    sf.off = (meta->tx_next_offset > 0) ? 1 : 0;
-    sf.offset = meta->tx_next_offset;
-    sf.len_present = 1;
-    sf.len = chunk_len;
-    sf.fin = (fin && remaining == chunk_len) ? 1 : 0;
+    YAWT_Q_Frame_BufferedStream_t sf = {0};
+    sf.frame.stream_id = stream_id;
+    sf.frame.off = (meta->tx_next_offset > 0) ? 1 : 0;
+    sf.frame.offset = meta->tx_next_offset;
+    sf.frame.len_present = 1;
+    sf.frame.data_len = chunk_len;
+    sf.frame.fin = (fin && remaining == chunk_len) ? 1 : 0;
     memcpy(sf.data, src, chunk_len);
 
     YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
