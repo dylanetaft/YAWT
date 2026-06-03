@@ -74,31 +74,35 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
   }
 }
 
+// The one H3 frame currently in flight on a stream. Holds both the decoded
+// result (type, payload_len, payload) and the byte-level decode scratch
+// (hdr/hdr_size/accumulated) — only one frame parses at a time per stream, so a
+// single embedded instance serves. READ-ONLY / NOT retained when handed to the
+// app: `payload` points into transient stream bytes, and the whole struct is
+// reset and reused for the next frame, so anything kept beyond the delivering
+// call must be copied.
+typedef struct {
+  uint64_t type;          // decoded frame type (raw varint; unknown types survive)
+  uint64_t payload_len;   // decoded Length
+  const uint8_t *payload; // points into buffered data; NULL if payload_len == 0
+
+  uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
+  uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
+  uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
+} YAWT_H3_Frame_t;
+
 // Per-stream H3 parse state. Lives in a preallocated slot pool on the H3
 // connection (slot index is NOT the stream id — ids are sparse and grow
 // unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta).
-// A slot is claimed (in_use=true) when assigned to a stream id
+// A slot is claimed (in_use=true) when assigned to a stream id. A stream
+// outlives any single frame and carries many of them, so the current frame is
+// a member (`cur`), reset when advancing to the next frame.
 typedef struct {
   bool     in_use;
   uint64_t stream_id;
-  uint64_t h3_stream_type;
-  uint64_t frame_type;
-  uint64_t offset;  //a quic stream chunk may contain multiple/partial H3 frame
-  uint64_t accumulated; //current raw stream bytes accumulated for the current frame (for INCOMPLETE frames)
-  uint8_t  hdr_size;
-  uint64_t payload_len;
-  uint8_t hdr[H3_FRAME_MAX_HEADER_BYTES]; //buffer for the frame header (type + len) of the current frame being parsed
+  uint64_t h3_stream_type;  // gates: parse frames vs. raw passthrough (QPACK/WT)
+  YAWT_H3_Frame_t cur;      // the one frame in flight on this stream
 } YAWT_H3_StreamMeta_t;
-
-
-// A parsed H3 frame. `payload` points into the cursor's buffer (NOT owned, NOT
-// retained): it is valid only for the duration of the call that produced it,
-// because the underlying stream bytes are transient. Anything kept beyond that
-// must be copied.
-typedef struct {
-  const YAWT_H3_StreamMeta_t *stream;
-  const uint8_t *payload;   // points into buffered data; NULL if len == 0
-} YAWT_H3_Frame_t;
 
 // Negotiated HTTP/3 settings. One instance holds the values we advertise;
 // another holds what the peer sent.

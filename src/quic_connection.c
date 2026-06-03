@@ -407,7 +407,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (end <= meta->rx_next_offset) break;
 
         if (frame.stream.offset == meta->rx_next_offset) {
-          // In order — deliver directly from dataptr (still points into UDP buffer).
+          // In order — deliver directly from frame.stream.data (still points into UDP buffer).
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset);
           meta->rx_next_offset = end;

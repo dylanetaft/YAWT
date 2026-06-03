@@ -102,14 +102,14 @@ YAWT_H3_StreamMeta_t *_h3_stream_meta_find(
 
 // Read the current H3 frame's header (Type + Length varints) for `meta`,
 // accumulating across QUIC stream chunks. Stream bytes always land in
-// meta->hdr first, then we decode from there — so a header split across two
+// meta->cur.hdr first, then we decode from there — so a header split across two
 // chunks is handled the same as one fully contained in a chunk.
 //
-// Returns true once both varints are decoded (meta->frame_type, payload_len,
+// Returns true once both varints are decoded (meta->cur.type, payload_len,
 // hdr_size are set). Returns false if more bytes are still needed (the partial
-// header stays in meta->hdr; call again with the next chunk). hdr_size == 0
+// header stays in meta->cur.hdr; call again with the next chunk). hdr_size == 0
 // means "header not yet read" — reset it to 0 when starting a new frame.
-inline bool _gather_h3_frame_head (
+static inline bool _gather_h3_frame_head (
     YAWT_H3_Connection_t *h3,
     YAWT_H3_StreamMeta_t *meta,
     const YAWT_Q_Frame_Stream_t *chunk
@@ -118,30 +118,30 @@ inline bool _gather_h3_frame_head (
   // the leading header bytes matter here; any payload bytes that ride along in
   // this chunk are re-derived by the caller from hdr_size once we succeed.
   size_t take = chunk->data_len;
-  if (take > H3_FRAME_MAX_HEADER_BYTES - meta->accumulated) {
-    take = H3_FRAME_MAX_HEADER_BYTES - meta->accumulated;
+  if (take > H3_FRAME_MAX_HEADER_BYTES - meta->cur.accumulated) {
+    take = H3_FRAME_MAX_HEADER_BYTES - meta->cur.accumulated;
   }
-  memcpy(meta->hdr + meta->accumulated, chunk->data, take);
-  meta->accumulated += take;
+  memcpy(meta->cur.hdr + meta->cur.accumulated, chunk->data, take);
+  meta->cur.accumulated += take;
 
   YAWT_Q_ReadCursor_t rc = {0};
-  rc.data = meta->hdr;
-  rc.len = meta->accumulated;
+  rc.data = meta->cur.hdr;
+  rc.len = meta->cur.accumulated;
 
   // SHORT_BUFFER just means the header isn't complete yet — not an error.
-  YAWT_q_varint_decode(&rc, &meta->frame_type);
+  YAWT_q_varint_decode(&rc, &meta->cur.type);
   if (rc.err != YAWT_Q_OK) goto need_more;
-  YAWT_q_varint_decode(&rc, &meta->payload_len);
+  YAWT_q_varint_decode(&rc, &meta->cur.payload_len);
   if (rc.err != YAWT_Q_OK) goto need_more;
 
-  meta->hdr_size = (uint8_t)rc.cursor;
+  meta->cur.hdr_size = (uint8_t)rc.cursor;
   return true;
 
   need_more:
   // Scratch full and still won't decode: no legal Type+Length is this long, so
   // the header can never complete — malformed. (Truncation, i.e. the stream
   // ending mid-header, is the caller's concern via chunk->fin.)
-  if (meta->accumulated == H3_FRAME_MAX_HEADER_BYTES) {
+  if (meta->cur.accumulated == H3_FRAME_MAX_HEADER_BYTES) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: frame header exceeds max len, closing stream_id=%lu",
              meta->stream_id);
     //TODO close stream
@@ -162,7 +162,7 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
     return;
   }
 
-  if (meta->hdr_size == 0) { //we have not read header yet
+  if (meta->cur.hdr_size == 0) { //we have not read header yet
     bool res = _gather_h3_frame_head(h3, meta, f);
   }
 

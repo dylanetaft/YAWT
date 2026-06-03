@@ -99,7 +99,10 @@ typedef enum {
   YAWT_Q_PKT_RETRY = 0x03
 } YAWT_Q_Long_Packet_Type_t;
 
-// Flat packet struct — all packet types collapsed into one
+// Flat packet struct — all packet types collapsed into one.
+// Transience: when produced by YAWT_q_parse_packet, the pointer fields below
+// (payload, raw, and extra.*.token) borrow INTO the input datagram buffer —
+// valid only while that buffer is. Decrypt happens in-place on those bytes.
 typedef struct YAWT_Q_Packet {
   YAWT_Q_Packet_Type_t type;
 
@@ -187,13 +190,13 @@ typedef struct {
 typedef struct {
   uint64_t offset; //varint
   uint64_t len; //varint
-  uint8_t *data;
+  uint8_t *data;  // Transience: borrowed, into the input datagram buffer
 } YAWT_Q_Frame_Crypto_t;
 
 // Frame type 0x07 - NEW_TOKEN
 typedef struct {
   uint64_t token_len; //varint
-  uint8_t *token;
+  uint8_t *token;  // Transience: borrowed, into the input datagram buffer
 } YAWT_Q_Frame_New_Token_t;
 
 // Frame type 0x08-0x0f - STREAM
@@ -205,14 +208,22 @@ typedef struct YAWT_Q_Frame_Stream {
   uint64_t stream_id; //varint
   YAWT_Q_Stream_Type_t stream_type; // low 2 bits of stream_id
   uint64_t offset; //varint, present if off bit set
-  uint64_t data_len; //populated from varint if len_present, else extends to end of packet
-  uint8_t *data;  // points into UDP buffer during parse (transient)
-                     // or slab-buffer during delivery (also transient)
+  uint64_t data_len; // payload byte count; from the LEN varint, else computed as
+                     // "to end of packet" when the LEN bit is absent
+  // Transience: ALWAYS a borrowed pointer — into the UDP datagram buffer during
+  // parse, or into the owning BufferedStream's data[] during delivery. Never
+  // owned, never retain past the current call/event. To keep bytes, copy them.
+  uint8_t *data;
 } YAWT_Q_Frame_Stream_t;
 
+// A STREAM frame plus the storage its .frame.data points at. Used when a frame
+// must outlive the input datagram (out-of-order RX buffering in con->stream_rx,
+// and TX queuing). NOTE the two same-named members one deref apart:
+//   bf->data        — the OWNED inline copy (this struct's storage)
+//   bf->frame.data  — the borrowed pointer, set to point at bf->data when buffered
 typedef struct YAWT_Q_Frame_BufferedStream {
   YAWT_Q_Frame_Stream_t frame;
-  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // storage for slab-buffer
+  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.data points here when buffered
 } YAWT_Q_Frame_BufferedStream_t;
 
 // Frame type 0x10 - MAX_DATA
@@ -277,14 +288,14 @@ typedef struct {
   uint64_t error_code; //varint
   uint64_t frame_type; //varint, frame type that triggered the error
   uint64_t reason_phrase_len; //varint
-  uint8_t *reason_phrase;
+  uint8_t *reason_phrase;  // Transience: borrowed, into the input datagram buffer
 } YAWT_Q_Frame_Connection_Close_t;
 
 // Frame type 0x1d - CONNECTION_CLOSE (application layer)
 typedef struct {
   uint64_t error_code; //varint
   uint64_t reason_phrase_len; //varint
-  uint8_t *reason_phrase;
+  uint8_t *reason_phrase;  // Transience: borrowed, into the input datagram buffer
 } YAWT_Q_Frame_Connection_Close_App_t;
 
 // Frame type 0x1e - HANDSHAKE_DONE
@@ -295,7 +306,7 @@ typedef struct {
 typedef struct {
   uint8_t len_present;          // 1 if frame type 0x31
   uint64_t len;                 // varint, present if len_present
-  uint8_t *dataptr;             // points into UDP buffer during parse (transient)
+  uint8_t *dataptr;             // Transience: borrowed, into the input datagram buffer
 } YAWT_Q_Frame_Datagram_t;
 
 // Parsed frame — returned by YAWT_q_parse_frame

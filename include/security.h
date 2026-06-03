@@ -18,9 +18,14 @@ typedef struct {
   uint64_t max_crypto_buffer_bytes; // max out-of-order CRYPTO buffering per connection, 0 = unlimited
 } YAWT_Q_SecurityPolicy_t;
 
+// Policy accessors. The getters return a const pointer to a STATIC GLOBAL — do
+// not free it; it stays valid for the process lifetime. The pointed-to values
+// are a snapshot: re-get after a set() to observe changes. set() copies *policy
+// into the global, replacing it.
 const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void);
 void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy);
 
+// Default flow-control limits (static global; same lifetime contract as above).
 const YAWT_Q_FlowControl_t *YAWT_q_security_get_default_fc(void);
 
 // HTTP/3 layer policy. Separate struct from the QUIC policy — the security
@@ -31,5 +36,6 @@ typedef struct {
                                    // whose Length exceeds this is rejected, not buffered
 } YAWT_H3_SecurityPolicy_t;
 
+// Same static-global lifetime contract as the QUIC accessors above.
 const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void);
 void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy);
