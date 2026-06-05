@@ -13,7 +13,7 @@
 // Assembles a frame from located metadata.  Will deliver partial frames
 // but we can pull the header fields (Type, Length) out of metadata
 YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream, 
-YAWT_H3_StreamMeta_t *meta,
+YAWT_H3_Stream_t *meta,
 YAWT_H3_Frame_t *out);
 
 // Encode an H3 frame wrapper (Type varint, Length varint, then payload bytes)
