@@ -142,10 +142,9 @@ typedef struct {
 // EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once).
 // ---------------------------------------------------------------------------
 typedef struct {
-  YAWT_H3_Settings_t local_settings;
-  YAWT_H3_Settings_t peer_settings;
-  bool peer_settings_seen;
+  YAWT_H3_Settings_t *local_settings; // NULL until populated
+  YAWT_H3_Settings_t *peer_settings;  // NULL until decoded from peer
   uint64_t nstreams;                  // slot pool size (concurrent stream cap)
-  YAWT_H3_Stream_t *streams;   // preallocated slot pool, linear-scan by id
+  YAWT_H3_Stream_t *streams;          // preallocated slot pool, linear-scan by id
 } YAWT_H3_Connection_t;
 

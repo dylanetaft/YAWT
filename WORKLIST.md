@@ -1,5 +1,7 @@
 # YAWT QUIC Implementation Worklist
 
+All work is tracked in this file. Check off items here as they are completed.
+
 Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection migration.
 
 ## 1. Datagram Processing Loop (RFC 9000 Section 12.2)
@@ -127,7 +129,8 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Frame header gather (`_gather_h3_frame_head`) — Type/Length varints, split-chunk safe
 - [x] Must-buffer frame path (SETTINGS/HEADERS): exact malloc(payload_len), capped by `security.max_frame_buffer_bytes`, buffer from chunk, free + reset on complete
 - [x] **Uni stream-type prefix** — `_gather_h3_stream_type` reads the 1-varint role prefix on client uni streams once before framing (accumulates across chunks in `YAWT_H3_Stream_t.hdr`/`accumulated`), strips it into a forwarded body view, and resolves `type`. `type == UNASSIGNED` is the "prefix not yet read" signal (distinct from wire CONTROL==0). Maps CONTROL→STREAM_FRAME path, QPACK/WT to their types; rejects a server-side push stream (MALFORMED). Bidi resolves straight to STREAM_FRAME. TODO: silently drain unknown uni stream types instead of erroring.
-- [ ] **SETTINGS dispatch** — un-park `YAWT_h3_settings_decode` (adapt to `YAWT_Q_ReadCursor_t`/`YAWT_q_varint_decode`), call it on a complete control-stream SETTINGS frame, store into `peer_settings`, set `peer_settings_seen`; enforce SETTINGS-first + no-duplicate rules (RFC 9114 §7.2.4)
+- [x] **SETTINGS dispatch** — un-park `YAWT_h3_settings_decode` (adapt to `YAWT_Q_ReadCursor_t`/`YAWT_q_varint_decode`), call it on a complete control-stream SETTINGS frame, store into `peer_settings`; enforce SETTINGS-first + no-duplicate rules (RFC 9114 §7.2.4). `local_settings`/`peer_settings` are pointers (NULL = not set).
+- [x] **Cursor-based frame handler** — `_handle_rx_stream_frame` takes `YAWT_Q_ReadCursor_t *` instead of copying `YAWT_Q_Frame_Stream_t`; `_gather_h3_frame_head` advances cursor directly.
 - [ ] **Stream-through + multi-frame-per-chunk** — consume non-buffered frames (DATA/unknown) by tracking remaining payload across chunks (no malloc), and loop the handler over a chunk that carries several sequential frames (current handler buffers a single must-buffer frame; non-buffered frames with payload_len>0 stall)
 - [ ] TX: open server control stream + advertise our SETTINGS (encoder still parked)
 - [ ] H3→app frame delivery callback (HEADERS/DATA); WebTransport passthrough

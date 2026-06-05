@@ -30,13 +30,10 @@ YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
 void YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
                        YAWT_Q_EventParam_t param);
 
-// TODO: settings codec — operates on a SETTINGS frame *body* (the payload that
-// YAWT_h3_parse_frame delimits via Length). Implemented but parked until the
-// control-stream slice wires it to YAWT_h3_parse_frame / YAWT_h3_encode_frame.
-// See src/h3.c for the preserved implementation.
-//
-// YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *s,
-//                                          uint8_t *buf, size_t len,
-//                                          size_t *written);
-// YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_H3_ReadCursor_t *rc,
-//                                          YAWT_H3_Settings_t *out);
+// Decode a SETTINGS frame *body* (the payload delimited by the frame Length).
+// Operates on a `YAWT_Q_ReadCursor_t` whose `data`/`len` cover exactly the
+// SETTINGS payload. The cursor advances as (id, value) pairs are consumed.
+// Enforces: SETTINGS must appear first on the control stream and only once per
+// connection (RFC 9114 §7.2.4).
+YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
+                                         YAWT_H3_Settings_t *out);
