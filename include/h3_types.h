@@ -103,6 +103,22 @@ typedef struct {
 } YAWT_H3_Frame_t;
 
 
+// Header fields — backed by ANB_Slab internally
+typedef struct ANB_Slab ANB_Slab_t;
+
+typedef struct {
+  ANB_Slab_t *slab;
+} YAWT_H3_HeaderFields_t;
+
+// Semantic HTTP request/response — each holds a header field section.
+typedef struct {
+  YAWT_H3_HeaderFields_t headers;
+} YAWT_H3_Request_t;
+
+typedef struct {
+  YAWT_H3_HeaderFields_t headers;
+} YAWT_H3_Response_t;
+
 // Per-stream H3 parse state. Lives in a preallocated slot pool on the H3
 // connection (slot index is NOT the stream id — ids are sparse and grow
 // unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta).
@@ -119,9 +135,9 @@ typedef struct {
   // UNASSIGNED is the "prefix not yet read" signal. Unused once type is set.
   uint8_t  hdr[H3_STREAM_TYPE_MAX_BYTES];
   uint64_t accumulated;
-  // Control and request streams both carry H3 frames, so both use `frame`.
-  // (QPACK / WebTransport stream state will be added alongside as their own
-  // members when those stream types are wired up.)
+  // Semantic request/response state — slab is NULL until headers are parsed.
+  YAWT_H3_Request_t  request;
+  YAWT_H3_Response_t response;
   YAWT_H3_Frame_t frame;
 } YAWT_H3_Stream_t;
 
@@ -136,6 +152,24 @@ typedef struct {
   uint8_t  wt_enabled;                 // 0/1 — WebTransport (draft-15)
 } YAWT_H3_Settings_t;
 
+
+// Public view of a header field — points into slab memory, do not free or mutate.
+// i_static and i_name are QPACK static table indexes pre-resolved at add time.
+typedef struct {
+  const char *name;
+  const char *value;
+  size_t      name_len;
+  size_t      value_len;
+  size_t      i_static;  // full name-value match in QPACK static table (0 = none)
+  size_t      i_name;    // name-only match in QPACK static table (0 = none)
+} YAWT_H3_Header_Field_t;
+
+// Header fields — backed by ANB_Slab internally
+typedef struct ANB_Slab ANB_Slab_t;
+
+typedef struct {
+  ANB_Slab_t *slab;
+} YAWT_H3_HeaderFields_t;
 
 // ---------------------------------------------------------------------------
 // H3 connection object — hung off the QUIC connection's user_data. Allocated on

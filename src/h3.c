@@ -1,4 +1,5 @@
 #include "h3.h"
+#include "h3_header.h"
 #include "quic.h"   // YAWT_q_varint_* + YAWT_Q_ReadCursor_t — H3 reuses the QUIC varint codec
 #include "quic_connection.h"  // YAWT_Q_Connection_t, user_data, event types
 #include "security.h"
@@ -7,6 +8,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+
+
+static const YAWT_H3_Settings_t _default_h3_settings = {
+  .qpack_max_table_capacity = 0,
+  .qpack_blocked_streams = 0,
+  .max_field_section_size = 0,
+  .enable_connect_protocol = 0,
+  .h3_datagram = 0,
+  .wt_enabled = 0,
+};
 
 
 YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
@@ -55,11 +66,14 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
 static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   if (!h3) return;
   for (uint64_t i = 0; i < h3->nstreams; i++) {
-    // CAREFUL - the payload ptr may be pointed at
-    // stream chunk data we don't own.
-    // We have to NULL immediately after delivering to app.
     if (h3->streams[i].frame.payload != NULL) {
       free(h3->streams[i].frame.payload);
+    }
+    if (h3->streams[i].request.headers.slab) {
+      YAWT_h3_header_section_destroy(&h3->streams[i].request.headers);
+    }
+    if (h3->streams[i].response.headers.slab) {
+      YAWT_h3_header_section_destroy(&h3->streams[i].response.headers);
     }
   }
   free(h3->streams);
@@ -372,16 +386,12 @@ void YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
   switch (event) {
     case YAWT_Q_EVT_CONNECTED: {
       YAWT_H3_Connection_t *h3 = _h3_conn_create(con);
-      h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
+      h3->local_settings = malloc(sizeof(YAWT_H3_Settings_t));
       if (!h3->local_settings) {
         YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM allocating local_settings");
         abort();
       }
-      h3->local_settings->qpack_max_table_capacity = 0;
-      h3->local_settings->qpack_blocked_streams = 0;
-      h3->local_settings->enable_connect_protocol = 1;
-      h3->local_settings->h3_datagram = 1;
-      h3->local_settings->wt_enabled = 1;
+      *h3->local_settings = _default_h3_settings;
       YAWT_q_con_set_user_data(con, h3);
       YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)",
                h3 ? h3->nstreams : 0);
