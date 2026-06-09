@@ -317,6 +317,7 @@ void _handle_rx_stream_frame(
       if (!YAWT_h3_headers_is_set(&stream->request.headers)) {
         stream->request.headers = *YAWT_h3_header_section_create();
       }
+#if 0
       YAWT_QPACK_Error_t qerr = YAWT_qpack_decode(
           f->payload, (size_t)f->payload_len, &stream->request.headers);
       if (qerr != YAWT_QPACK_OK) {
@@ -325,6 +326,7 @@ void _handle_rx_stream_frame(
       } else {
         YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
       }
+#endif
     }
 
     free(f->payload);             // NULL or owned — safe

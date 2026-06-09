@@ -346,9 +346,13 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
         return YAWT_QPACK_OK;
     }
 
+    // Prefix all 1s → at least one continuation byte is required.
+    if (buffer_size < 2) return YAWT_QPACK_ERR_SHORT_BUFFER;
+
     // Prefix all 1s → continuation bytes follow (full octets).
     uint64_t value     = max_val;
     uint64_t multiplier = 1;
+    int got_last        = 0;
 
     for (size_t byte_idx = 1; byte_idx < buffer_size; byte_idx++) {
         uint8_t b = buffer[byte_idx];
@@ -371,10 +375,13 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
         *bits_parsed += 8;
 
         // RFC 7541 §5.1: MSB=0 means last octet in the list.
-        if (!(b & 0x80))
+        if (!(b & 0x80)) {
+            got_last = 1;
             break;
+        }
     }
 
+    if (!got_last) return YAWT_QPACK_ERR_SHORT_BUFFER;
     *out_value = value;
     return YAWT_QPACK_OK;
 }
