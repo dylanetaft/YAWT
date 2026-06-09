@@ -311,9 +311,12 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
 // QPACK prefixed integer — RFC 7541 §5.1 / RFC 9204 §4.1.1
 // ---------------------------------------------------------------------------
 
-// Decode a prefixed integer starting at `buffer` + `offset_bits`.
-// The prefix size N is always 8 - offset_bits; the prefix fills the
-// remainder of the starting byte. Continuation octets are full bytes.
+// Decode a prefixed integer starting at `buffer`, using `offset_bits` MSB
+// positions reserved for the caller's already-dispatched instruction prefix.
+// The prefix size N = 8 - offset_bits; the N value bits occupy the lower
+// N bit positions of the byte (C bit positions 0..N-1).  The caller sets
+// `offset_bits` based on which QPACK instruction format was dispatched.
+// Continuation octets are always byte-aligned (full bytes).
 //
 // RFC 7541 §5.1:
 //   "If the integer value is small enough, i.e. strictly less than
@@ -324,8 +327,6 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
 //    more octets. The most significant bit of each octet is used as
 //    a continuation flag: its value is set to 1 except for the last
 //    octet in the list."
-//
-// Continuation octets are always byte-aligned (full bytes).
 YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     const uint8_t *buffer, size_t buffer_size,
     uint8_t offset_bits,
@@ -386,7 +387,11 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     return YAWT_QPACK_OK;
 }
 
-// Encode value into `buffer` at `offset_bits`, returning bits consumed.
+// Encode `value` into `buffer` at the lower N bits (where N = 8 - offset_bits).
+// The `offset_bits` MSB positions are reserved for the caller's instruction
+// prefix and are preserved unchanged.  The caller sets `offset_bits` based
+// on which QPACK instruction format was dispatched.  Returns the total bits
+// consumed (N for the prefix plus 8 per continuation byte).
 //
 // RFC 7541 §5.1 pseudocode:
 //   if I < 2^N - 1: encode I on N bits
