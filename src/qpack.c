@@ -334,10 +334,10 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     if (offset_bits >= 8) return YAWT_QPACK_ERR_INVALID_PARAM;
 
     uint8_t N          = 8 - offset_bits;
-    uint64_t max_val   = (1ULL << N) - 1;       // 2^N - 1
+    uint8_t max_val    = (1U << N) - 1;
 
-    // Extract N-bit prefix: shift out high (8-N) bits, mask to N.
-    uint64_t prefix    = (buffer[0] >> offset_bits) & max_val;
+    // Extract N-bit prefix: lower N bits hold the value.
+    uint64_t prefix    = buffer[0] & max_val;
     *bits_parsed       = N;
 
     // RFC 7541 §5.1: value < 2^N - 1 → prefix holds the value.
@@ -404,18 +404,18 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     if (offset_bits >= 8) return YAWT_QPACK_ERR_INVALID_PARAM;
 
     uint8_t N          = 8 - offset_bits;
-    uint64_t max_val   = (1ULL << N) - 1;       // 2^N - 1
+    uint8_t max_val    = (1U << N) - 1;
 
     // RFC 7541 §5.1: value fits in the N-bit prefix.
     if (value < max_val) {
-        buffer[0] &= ~((1ULL << N) - 1) << offset_bits;
-        buffer[0] |= (value << offset_bits);
+        buffer[0] &= ~max_val;
+        buffer[0] |= (uint8_t)value;
         *bits_consumed = N;
         return YAWT_QPACK_OK;
     }
 
     // Prefix all 1s, then continuation bytes.
-    buffer[0] |= ((1ULL << N) - 1) << offset_bits;
+    buffer[0] |= max_val;
     *bits_consumed = N;
 
     uint64_t remaining = value - max_val;
