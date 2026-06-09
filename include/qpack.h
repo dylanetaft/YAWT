@@ -67,14 +67,14 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
 YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     const uint8_t *buffer, size_t buffer_size,
     uint8_t offset_bits,
-    uint64_t *out_value, uint64_t *bits_parsed);
+    uint64_t *out_value, uint64_t *bytes_consumed);
 
 // Encode an unsigned integer with prefix encoding. RFC 7541 §5.1.
 YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     uint8_t *buffer, size_t buffer_size,
     uint8_t offset_bits,
     uint64_t value,
-    uint64_t *bits_consumed);
+    uint64_t *bytes_consumed);
 
 
 

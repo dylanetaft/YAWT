@@ -13,51 +13,51 @@ void tearDown(void) {}
 
 void test_decode_prefix_8_value_zero(void) {
     uint8_t buf[] = { 0x00 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0, val);
-    TEST_EQUAL(8, bits);
+    TEST_EQUAL(1, bytes);
 }
 
 void test_decode_prefix_8_value_small(void) {
     uint8_t buf[] = { 0x42 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0x42, val);
-    TEST_EQUAL(8, bits);
+    TEST_EQUAL(1, bytes);
 }
 
 void test_decode_prefix_8_max_in_prefix(void) {
     /* 2^8 - 2 = 254 = 0xFE — still fits in prefix (max = 2^8-2 = 254) */
     uint8_t buf[] = { 0xFE };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(254, val);
-    TEST_EQUAL(8, bits);
+    TEST_EQUAL(1, bytes);
 }
 
 void test_decode_prefix_8_continuation(void) {
     /* prefix = 0xFF = 2^8-1, continuation byte 0x00 → value = 255 + 0 = 255 */
     uint8_t buf[] = { 0xFF, 0x00 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(255, val);
-    TEST_EQUAL(16, bits);
+    TEST_EQUAL(2, bytes);
 }
 
 void test_decode_prefix_8_multi_continuation(void) {
     /* prefix = 0xFF, cont1 = 0x80 (val=0, more), cont2 = 0x01 (val=1, last)
        value = 255 + 0*1 + 1*128 = 383 */
     uint8_t buf[] = { 0xFF, 0x80, 0x01 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(383, val);
-    TEST_EQUAL(24, bits);
+    TEST_EQUAL(3, bytes);
 }
 
 /* ------------------------------------------------------------------ */
@@ -67,22 +67,22 @@ void test_decode_prefix_8_multi_continuation(void) {
 void test_decode_prefix_6_fits(void) {
     /* MSB bits 7-6 = 0x00, lower 6 bits = 0x3E = 62, which is < max_val(63) */
     uint8_t buf[] = { 0x3E };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(62, val);
-    TEST_EQUAL(6, bits);
+    TEST_EQUAL(1, bytes);
 }
 
 void test_decode_prefix_6_continuation(void) {
     /* MSB = 0x00, lower 6 bits = 0x3F (=max), continuation 0x00
        value = 63 + 0 = 63 */
     uint8_t buf[] = { 0x3F, 0x00 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(63, val);
-    TEST_EQUAL(14, bits);
+    TEST_EQUAL(2, bytes);
 }
 
 /* ------------------------------------------------------------------ */
@@ -92,22 +92,22 @@ void test_decode_prefix_6_continuation(void) {
 void test_decode_prefix_3_fits(void) {
     /* MSB bits 7-5 = 0xE0, lower 3 bits = 0x06 = 6, which is < max_val(7) */
     uint8_t buf[] = { 0xE6 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(6, val);
-    TEST_EQUAL(3, bits);
+    TEST_EQUAL(1, bytes);
 }
 
 void test_decode_prefix_3_continuation(void) {
     /* MSB = 0x60, lower 3 bits = 0x07 (=max), continuation 0x00
        value = 7 + 0 = 7 */
     uint8_t buf[] = { 0x67, 0x00 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(7, val);
-    TEST_EQUAL(11, bits);
+    TEST_EQUAL(2, bytes);
 }
 
 /* ------------------------------------------------------------------ */
@@ -116,27 +116,27 @@ void test_decode_prefix_3_continuation(void) {
 
 void test_decode_invalid_offset(void) {
     uint8_t buf[] = { 0x00 };
-    uint64_t val, bits;
+    uint64_t val, bytes;
     TEST_EQUAL(YAWT_QPACK_ERR_INVALID_PARAM,
-               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 8, &val, &bits));
+               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 8, &val, &bytes));
     TEST_EQUAL(YAWT_QPACK_ERR_INVALID_PARAM,
-               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 9, &val, &bits));
+               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 9, &val, &bytes));
 }
 
 void test_decode_short_buffer_no_cont(void) {
     uint8_t buf[] = { 0xFF };
-    uint64_t val, bits;
+    uint64_t val, bytes;
     /* prefix = 0xFF needs continuation but no bytes remain */
     TEST_EQUAL(YAWT_QPACK_ERR_SHORT_BUFFER,
-               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits));
+               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes));
 }
 
 void test_decode_short_buffer_mid_cont(void) {
     uint8_t buf[] = { 0xFF, 0x80 };
-    uint64_t val, bits;
+    uint64_t val, bytes;
     /* continuation byte 0x80 has MSB=1 (more to come) but no more bytes */
     TEST_EQUAL(YAWT_QPACK_ERR_SHORT_BUFFER,
-               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits));
+               YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes));
 }
 
 /* ------------------------------------------------------------------ */
@@ -149,8 +149,8 @@ void test_decode_overflow(void) {
        This triggers the overflow clamp, so value = UINT64_MAX. */
     uint8_t buf[16] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01 };
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     /* Should clamp to UINT64_MAX without crashing */
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(UINT64_MAX, val);
@@ -166,7 +166,7 @@ void test_encode_small(void) {
     YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, 42, &consumed);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(42, buf[0]);
-    TEST_EQUAL(8, consumed);
+    TEST_EQUAL(1, consumed);
 }
 
 void test_encode_prefix_6(void) {
@@ -176,7 +176,7 @@ void test_encode_prefix_6(void) {
     YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 2, 10, &consumed);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0x0A, buf[0]);
-    TEST_EQUAL(6, consumed);
+    TEST_EQUAL(1, consumed);
 }
 
 void test_encode_prefix_3(void) {
@@ -186,7 +186,7 @@ void test_encode_prefix_3(void) {
     YAWT_QPACK_Error_t rc = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 5, 5, &consumed);
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0x05, buf[0]);
-    TEST_EQUAL(3, consumed);
+    TEST_EQUAL(1, consumed);
 }
 
 void test_encode_large(void) {
@@ -197,7 +197,7 @@ void test_encode_large(void) {
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0xFF, buf[0]);
     TEST_EQUAL(0x00, buf[1]);
-    TEST_EQUAL(16, consumed);
+    TEST_EQUAL(2, consumed);
 }
 
 void test_encode_multi_byte(void) {
@@ -209,7 +209,7 @@ void test_encode_multi_byte(void) {
     TEST_EQUAL(0xFF, buf[0]);
     TEST_EQUAL(0x80, buf[1]);
     TEST_EQUAL(0x01, buf[2]);
-    TEST_EQUAL(24, consumed);
+    TEST_EQUAL(3, consumed);
 }
 
 void test_encode_short_buffer(void) {
@@ -230,11 +230,11 @@ void test_roundtrip_small(void) {
         uint64_t consumed;
         YAWT_QPACK_Error_t e = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, v, &consumed);
         TEST_EQUAL(YAWT_QPACK_OK, e);
-        uint64_t val, bits;
-        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+        uint64_t val, bytes;
+        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
         TEST_EQUAL(YAWT_QPACK_OK, d);
         TEST_EQUAL(v, val);
-        TEST_EQUAL(consumed, bits);
+        TEST_EQUAL(consumed, bytes);
     }
 }
 
@@ -245,11 +245,11 @@ void test_roundtrip_large(void) {
         uint64_t consumed;
         YAWT_QPACK_Error_t e = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, vals[i], &consumed);
         TEST_EQUAL(YAWT_QPACK_OK, e);
-        uint64_t val, bits;
-        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, consumed / 8 + 1, 0, &val, &bits);
+        uint64_t val, bytes;
+        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, consumed + 1, 0, &val, &bytes);
         TEST_EQUAL(YAWT_QPACK_OK, d);
         TEST_EQUAL(vals[i], val);
-        TEST_EQUAL(consumed, bits);
+        TEST_EQUAL(consumed, bytes);
     }
 }
 
@@ -259,11 +259,11 @@ void test_roundtrip_prefix_6(void) {
         uint64_t consumed;
         YAWT_QPACK_Error_t e = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 2, v, &consumed);
         TEST_EQUAL(YAWT_QPACK_OK, e);
-        uint64_t val, bits;
-        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bits);
+        uint64_t val, bytes;
+        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bytes);
         TEST_EQUAL(YAWT_QPACK_OK, d);
         TEST_EQUAL(v, val);
-        TEST_EQUAL(consumed, bits);
+        TEST_EQUAL(consumed, bytes);
     }
 }
 
@@ -273,11 +273,11 @@ void test_roundtrip_prefix_3(void) {
         uint64_t consumed;
         YAWT_QPACK_Error_t e = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 5, v, &consumed);
         TEST_EQUAL(YAWT_QPACK_OK, e);
-        uint64_t val, bits;
-        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bits);
+        uint64_t val, bytes;
+        YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 5, &val, &bytes);
         TEST_EQUAL(YAWT_QPACK_OK, d);
         TEST_EQUAL(v, val);
-        TEST_EQUAL(consumed, bits);
+        TEST_EQUAL(consumed, bytes);
     }
 }
 
@@ -286,11 +286,11 @@ void test_roundtrip_uint64_max(void) {
     uint64_t consumed;
     YAWT_QPACK_Error_t e = YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, UINT64_MAX, &consumed);
     TEST_EQUAL(YAWT_QPACK_OK, e);
-    uint64_t val, bits;
-    YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, consumed / 8 + 1, 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_QPACK_Error_t d = YAWT_H3_QPACK_decode_prefix_int(buf, consumed + 1, 0, &val, &bytes);
     TEST_EQUAL(YAWT_QPACK_OK, d);
     TEST_EQUAL(UINT64_MAX, val);
-    TEST_EQUAL(consumed, bits);
+    TEST_EQUAL(consumed, bytes);
 }
 
 /* ------------------------------------------------------------------ */
@@ -301,8 +301,8 @@ void test_encode_decode_zero(void) {
     uint8_t buf[16] = { 0xFF };
     uint64_t consumed;
     YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, 0, &consumed);
-    uint64_t val, bits;
-    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(0, val);
 }
 
@@ -311,8 +311,8 @@ void test_encode_decode_max_prefix(void) {
     uint8_t buf[16] = { 0xFF };
     uint64_t consumed;
     YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 0, 254, &consumed);
-    uint64_t val, bits;
-    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 0, &val, &bytes);
     TEST_EQUAL(254, val);
 }
 
@@ -321,8 +321,8 @@ void test_encode_decode_boundary_minus_one(void) {
     uint8_t buf[16] = { 0xFF };
     uint64_t consumed;
     YAWT_H3_QPACK_encode_prefix_int(buf, sizeof(buf), 2, 62, &consumed);
-    uint64_t val, bits;
-    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bits);
+    uint64_t val, bytes;
+    YAWT_H3_QPACK_decode_prefix_int(buf, sizeof(buf), 2, &val, &bytes);
     TEST_EQUAL(62, val);
 }
 
@@ -370,7 +370,7 @@ void test_encode_continuation_preserves_high_bits_n3(void) {
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0xE7, buf[0]);
     TEST_EQUAL(0x01, buf[1]);
-    TEST_EQUAL(11, consumed);
+    TEST_EQUAL(2, consumed);
 }
 
 void test_encode_continuation_preserves_high_bits_n6(void) {
@@ -382,7 +382,7 @@ void test_encode_continuation_preserves_high_bits_n6(void) {
     TEST_EQUAL(YAWT_QPACK_OK, rc);
     TEST_EQUAL(0xFF, buf[0]);
     TEST_EQUAL(0x01, buf[1]);
-    TEST_EQUAL(14, consumed);
+    TEST_EQUAL(2, consumed);
 }
 
 /* ------------------------------------------------------------------ */

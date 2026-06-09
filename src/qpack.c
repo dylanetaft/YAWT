@@ -330,7 +330,7 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
 YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     const uint8_t *buffer, size_t buffer_size,
     uint8_t offset_bits,
-    uint64_t *out_value, uint64_t *bits_parsed)
+    uint64_t *out_value, uint64_t *bytes_consumed)
 {
     if (offset_bits >= 8) return YAWT_QPACK_ERR_INVALID_PARAM;
 
@@ -339,7 +339,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
 
     // Extract N-bit prefix: lower N bits hold the value.
     uint64_t prefix    = buffer[0] & max_val;
-    *bits_parsed       = N;
+    *bytes_consumed    = 1;
 
     // RFC 7541 §5.1: value < 2^N - 1 → prefix holds the value.
     if (prefix < max_val) {
@@ -373,7 +373,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
             value += contribution;
         }
         multiplier *= 128;
-        *bits_parsed += 8;
+        *bytes_consumed += 1;
 
         // RFC 7541 §5.1: MSB=0 means last octet in the list.
         if (!(b & 0x80)) {
@@ -390,8 +390,8 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
 // Encode `value` into `buffer` at the lower N bits (where N = 8 - offset_bits).
 // The `offset_bits` MSB positions are reserved for the caller's instruction
 // prefix and are preserved unchanged.  The caller sets `offset_bits` based
-// on which QPACK instruction format was dispatched.  Returns the total bits
-// consumed (N for the prefix plus 8 per continuation byte).
+// on which QPACK instruction format was dispatched.  Returns the total bytes
+// consumed (1 for the prefix byte plus 1 per continuation byte).
 //
 // RFC 7541 §5.1 pseudocode:
 //   if I < 2^N - 1: encode I on N bits
@@ -404,7 +404,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     uint8_t *buffer, size_t buffer_size,
     uint8_t offset_bits,
     uint64_t value,
-    uint64_t *bits_consumed)
+    uint64_t *bytes_consumed)
 {
     if (offset_bits >= 8) return YAWT_QPACK_ERR_INVALID_PARAM;
 
@@ -415,13 +415,13 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     if (value < max_val) {
         buffer[0] &= ~max_val;
         buffer[0] |= (uint8_t)value;
-        *bits_consumed = N;
+        *bytes_consumed = 1;
         return YAWT_QPACK_OK;
     }
 
     // Prefix all 1s, then continuation bytes.
     buffer[0] |= max_val;
-    *bits_consumed = N;
+    *bytes_consumed = 1;
 
     uint64_t remaining = value - max_val;
     size_t byte_idx = 1;
@@ -431,13 +431,13 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
         if (byte_idx >= buffer_size) return YAWT_QPACK_ERR_SHORT_BUFFER;
         buffer[byte_idx++] = (uint8_t)((remaining % 128) + 128);
         remaining /= 128;
-        *bits_consumed += 8;
+        *bytes_consumed += 1;
     }
 
     // Last byte: MSB = 0 (no continuation flag).
     if (byte_idx >= buffer_size) return YAWT_QPACK_ERR_SHORT_BUFFER;
     buffer[byte_idx] = (uint8_t)(remaining & 0x7F);
-    *bits_consumed += 8;
+    *bytes_consumed += 1;
 
     return YAWT_QPACK_OK;
 }
