@@ -167,10 +167,6 @@ typedef struct {
 // Header fields — backed by ANB_Slab internally
 typedef struct ANB_Slab ANB_Slab_t;
 
-typedef struct {
-  ANB_Slab_t *slab;
-} YAWT_H3_HeaderFields_t;
-
 // ---------------------------------------------------------------------------
 // H3 connection object — hung off the QUIC connection's user_data. Allocated on
 // EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once).
@@ -181,4 +177,16 @@ typedef struct {
   uint64_t nstreams;                  // slot pool size (concurrent stream cap)
   YAWT_H3_Stream_t *streams;          // preallocated slot pool, linear-scan by id
 } YAWT_H3_Connection_t;
+
+
+//section 4.3 rfc 9204
+//not used yet
+//dynamic encoder instructions
+typedef enum {
+    INSERT_WITH_NAME_REF,
+    INSERT_WITH_LITERAL_NAME,
+    SET_CAPACITY,
+    DUPLICATE,
+    UNKNOWN
+} YAWT_H3_QPACK_EncoderInstructionType_t;
 

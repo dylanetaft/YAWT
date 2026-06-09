@@ -1,5 +1,6 @@
 #include "h3.h"
 #include "h3_header.h"
+#include "qpack.h"
 #include "quic.h"   // YAWT_q_varint_* + YAWT_Q_ReadCursor_t — H3 reuses the QUIC varint codec
 #include "quic_connection.h"  // YAWT_Q_Connection_t, user_data, event types
 #include "security.h"
@@ -308,6 +309,21 @@ void _handle_rx_stream_frame(
         YAWT_LOG(YAWT_LOG_ERROR, "h3: non-SETTINGS frame (type=0x%lx) before SETTINGS on control stream, stream_id=%lu",
                  f->type, stream->id);
         // TODO: close connection with H3_MISSING_SETTINGS
+      }
+    }
+
+    // Dispatch HEADERS frame through QPACK decoder.
+    if (f->type == YAWT_H3_FRAME_HEADERS) {
+      if (!YAWT_h3_headers_is_set(&stream->request.headers)) {
+        stream->request.headers = *YAWT_h3_header_section_create();
+      }
+      YAWT_QPACK_Error_t qerr = YAWT_qpack_decode(
+          f->payload, (size_t)f->payload_len, &stream->request.headers);
+      if (qerr != YAWT_QPACK_OK) {
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: QPACK decode failed on stream %lu: %d",
+                 stream->id, qerr);
+      } else {
+        YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
       }
     }
 
