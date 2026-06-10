@@ -269,23 +269,24 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
         return YAWT_QPACK_ERR_SHORT_BUFFER;
     }
 
-    size_t idx = 0;
+    size_t byte_idx = start >> 3;
+    size_t bit_in_byte = start & 7;
     size_t remaining = bits;
 
-    if (start > 0) {
-        size_t take = (8 - start) < remaining ? (8 - start) : remaining;
-        out[0] |= (uint8_t)((code >> (remaining - take)) << (8 - start - take));
+    if (bit_in_byte > 0) {
+        size_t take = (8 - bit_in_byte) < remaining ? (8 - bit_in_byte) : remaining;
+        out[byte_idx] |= (uint8_t)((code >> (remaining - take)) << (8 - bit_in_byte - take));
         remaining -= take;
-        idx = 1;
+        byte_idx++;
     }
 
     while (remaining >= 8) {
-        out[idx++] = (uint8_t)((code >> (remaining - 8)) & 0xFF);
+        out[byte_idx++] = (uint8_t)((code >> (remaining - 8)) & 0xFF);
         remaining -= 8;
     }
 
     if (remaining > 0) {
-        out[idx] = (uint8_t)(code << (8 - remaining));
+        out[byte_idx] = (uint8_t)(code << (8 - remaining));
     }
 
     *bit_offset = total;
