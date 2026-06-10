@@ -166,7 +166,9 @@ static void huff_decoder_build(void) {
             uint16_t *next = bit ? &_g_huff_decoder.nodes[current].r : &_g_huff_decoder.nodes[current].l;
             
             if (*next == 0) {
-                // Child does not exist, create new node
+                if (_g_huff_decoder.count >= YAWT_QPACK_HUFF_DEC_TREE_MAX - 1) {
+                    abort();
+                }
                 *next = _g_huff_decoder.count + 1;
                 _g_huff_decoder.count++;
                 current = *next;
@@ -185,40 +187,39 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     if (_g_huff_decoder.count == 0) {
         huff_decoder_build();
     }
+    if (!data || !bit_offset || !out_byte || data_len == 0) {
+        return YAWT_QPACK_ERR_INVALID_PARAM;
+    }
     uint16_t current = 0;
     uint16_t next = 0;
-    // Bit offset only applies if starting in the middle of a byte
-    // Do not use it to read later bytes
     if (*bit_offset >= 8) {
         return YAWT_QPACK_ERR_MALFORMED;
     }
     uint8_t bit_pos = *bit_offset;
     size_t pos = 0;
-    uint8_t mask = 0x80; //mask for msb
 
-    while (1) {
-      uint8_t bit = (data[pos] << bit_pos) & mask;
-      bit_pos++;
-      if (bit_pos == 8) { //advance to next byte
-        bit_pos = 0; 
-        pos++;
-        if (pos >= data_len) {
-          return YAWT_QPACK_ERR_MALFORMED;
+    while (pos < data_len) {
+        uint8_t bit = (data[pos] >> (7 - bit_pos)) & 1;
+        bit_pos++;
+        if (bit_pos == 8) {
+            bit_pos = 0;
+            pos++;
         }
-      }
-      next = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
-      if (next == 0) { //likely a leaf
-        if (_g_huff_decoder.nodes[current].l == 0 && 
-            _g_huff_decoder.nodes[current].r == 0) {
-          *out_byte = _g_huff_decoder.nodes[current].value;
-          *bit_offset = (size_t)bit_pos + (pos * 8); 
-          return YAWT_QPACK_OK;
+        next = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
+        if (next == 0) {
+            if (_g_huff_decoder.nodes[current].l == 0 &&
+                _g_huff_decoder.nodes[current].r == 0) {
+                *out_byte = _g_huff_decoder.nodes[current].value;
+                *bit_offset = (size_t)bit_pos + (pos * 8);
+                return YAWT_QPACK_OK;
+            }
+            else {
+                return YAWT_QPACK_ERR_MALFORMED;
+            }
         }
-        else {
-          return YAWT_QPACK_ERR_MALFORMED;
-        }
-      }
+        current = next;
     }
+    return YAWT_QPACK_ERR_MALFORMED;
 }
 
 
