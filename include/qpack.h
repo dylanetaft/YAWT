@@ -94,7 +94,6 @@ typedef struct {
 typedef struct {
     YAWT_QPACK_HuffNode_t nodes[YAWT_QPACK_HUFF_DEC_TREE_MAX];
     uint16_t              count;
-    uint16_t              root;
 } YAWT_QPACK_HuffDecoder_t;
 
 // Decode a single Huffman byte from a bitstream. Lazy-inits the tree.

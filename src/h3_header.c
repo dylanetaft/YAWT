@@ -3,6 +3,8 @@
 #include "logger.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 
 // ---------------------------------------------------------------------------
 // Private: buffered field stored in the slab. VLA holds name\0 + value\0.
