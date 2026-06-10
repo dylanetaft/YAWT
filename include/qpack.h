@@ -111,7 +111,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 
 // Encode a single byte into a Huffman bitstream. Lazy-inits the table.
 // Updates *bit_offset on success.
-// Returns YAWT_QPACK_ERR_SHORT_BUFFER if `out` runs out of space.
+// out_size is in bytes. Returns YAWT_QPACK_ERR_SHORT_BUFFER if out runs out of space.
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
     uint8_t in_byte, uint8_t *out, size_t out_size, size_t *bit_offset);
 

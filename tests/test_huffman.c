@@ -10,17 +10,15 @@ void test_huff_encode_fixed_byte(void) {
   char data[] = "p(";
   size_t bit_offset = 0;
   uint8_t encoded[2];
-  size_t sz = sizeof(encoded) * 8;
+  memset(encoded, 0, sizeof(encoded));
   YAWT_QPACK_Error_t err = YAWT_QPACK_huff_encode_byte(
-      (uint8_t)data[0], encoded, sz, &bit_offset);
+      (uint8_t)data[0], encoded, sizeof(encoded), &bit_offset);
   TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
-  sz -= bit_offset;
   err = YAWT_QPACK_huff_encode_byte(
-      (uint8_t)data[1], encoded, sz, &bit_offset);
+      (uint8_t)data[1], encoded, sizeof(encoded), &bit_offset);
   TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
-  uint16_t res;
-  memcpy(&res, encoded, sizeof(res));
-  TEST_ASSERT_EQUAL_UINT16(0xAFFA, res);
+  uint8_t expected[] = { 0xAF, 0xFA };
+  TEST_ASSERT_EQUAL_MEMORY(expected, encoded, sizeof(expected));
 }
 
 void test_huffman_register(void) {
