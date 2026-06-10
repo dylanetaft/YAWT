@@ -185,38 +185,42 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     if (_g_huff_decoder.count == 0) {
         huff_decoder_build();
     }
-
     uint16_t current = 0;
-    uint32_t accumulated = 0;
-    uint8_t acc_bits = 0;
+    uint16_t next = 0;
+    // Bit offset only applies if starting in the middle of a byte
+    // Do not use it to read later bytes
+    if (*bit_offset >= 8) {
+        return YAWT_QPACK_ERR_MALFORMED;
+    }
+    uint8_t bit_pos = *bit_offset;
+    size_t pos = 0;
+    uint8_t mask = 0x80; //mask for msb
 
     while (1) {
-        if (*bit_offset >= data_len * 8) {
-            if (acc_bits > 7) {
-                return YAWT_QPACK_ERR_MALFORMED;
-            }
-            uint32_t expected = (uint32_t)((1U << acc_bits) - 1);
-            if (accumulated == expected) {
-                return YAWT_QPACK_DONE;
-            }
-            return YAWT_QPACK_ERR_MALFORMED;
+      uint8_t bit = (data[pos] << bit_pos) & mask;
+      bit_pos++;
+      if (bit_pos == 8) { //advance to next byte
+        bit_pos = 0; 
+        pos++;
+        if (pos >= data_len) {
+          return YAWT_QPACK_ERR_MALFORMED;
         }
-
-        uint8_t bit = (data[*bit_offset / 8] >> (7 - (*bit_offset % 8))) & 1;
-        (*bit_offset)++;
-
-        accumulated = (accumulated << 1) | bit;
-        acc_bits++;
-        if (_g_huff_decoder.nodes[current].l == 0 &&
+      }
+      next = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
+      if (next == 0) { //likely a leaf
+        if (_g_huff_decoder.nodes[current].l == 0 && 
             _g_huff_decoder.nodes[current].r == 0) {
-            *out_byte = _g_huff_decoder.nodes[current].value;
-            return YAWT_QPACK_OK;
+          *out_byte = _g_huff_decoder.nodes[current].value;
+          *bit_offset = (size_t)bit_pos + (pos * 8); 
+          return YAWT_QPACK_OK;
         }
-
-        current = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
-
+        else {
+          return YAWT_QPACK_ERR_MALFORMED;
+        }
+      }
     }
 }
+
 
 YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
     const uint8_t *data, size_t data_len,

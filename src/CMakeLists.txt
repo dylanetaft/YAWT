@@ -36,24 +36,8 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 
 if(BUILD_TESTS)
     enable_testing()
-
     include(FetchContent)
-    FetchContent_Declare(
-        unity
-        GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-        GIT_TAG        v2.6.1
-    )
-    FetchContent_MakeAvailable(unity)
-
-    add_executable(qpack_tests tests/test_qpack_prefix_int.c qpack.c)
-    target_link_libraries(qpack_tests unity)
-    target_include_directories(qpack_tests PRIVATE
-        ${PROJECT_SOURCE_DIR}/../include
-        ${unity_SOURCE_DIR}/src
-        ${unity_BINARY_DIR}
-    )
-
-    add_test(NAME qpack_test COMMAND qpack_tests)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/../tests ${CMAKE_BINARY_DIR}/tests)
 endif()
 
 
