@@ -40,6 +40,7 @@ typedef enum {
   YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT,
   YAWT_QPACK_ERR_SHORT_BUFFER,
   YAWT_QPACK_ERR_INVALID_PARAM,
+  YAWT_QPACK_DONE,
 } YAWT_QPACK_Error_t;
 
 
@@ -75,6 +76,46 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     uint8_t offset_bits,
     uint64_t value,
     uint64_t *bytes_consumed);
+
+// ---------------------------------------------------------------------------
+// Huffman decode — RFC 7541 Appendix B / RFC 9204 §5.1
+// Array-indexed binary tree, lazy-initialized on first decode call.
+// ---------------------------------------------------------------------------
+
+#define YAWT_QPACK_HUFF_DEC_TREE_MAX 600
+
+typedef struct {
+    uint16_t l;       // left child index (0 means no child → leaf when both 0)
+    uint16_t r;       // right child index
+    uint8_t  value;   // decoded byte (valid at leaf)
+    uint8_t  bits;    // bit depth to this leaf (valid at leaf)
+} YAWT_QPACK_HuffNode_t;
+
+typedef struct {
+    YAWT_QPACK_HuffNode_t nodes[YAWT_QPACK_HUFF_DEC_TREE_MAX];
+    uint16_t              count;
+    uint16_t              root;
+} YAWT_QPACK_HuffDecoder_t;
+
+// Decode a single Huffman byte from a bitstream. Lazy-inits the tree.
+YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
+    const uint8_t *data, size_t data_len,
+    size_t *bit_offset, uint8_t *out_byte);
+
+// Decode an entire Huffman-encoded string into `out` buffer.
+// Lazy-inits the tree on first call.
+// Returns YAWT_QPACK_ERR_SHORT_BUFFER if `out_size` is too small.
+// Sets *out_len to the number of decoded bytes.
+YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
+    const uint8_t *data, size_t data_len,
+    uint8_t *out, size_t out_size, size_t *out_len);
+
+// Encode a raw byte string into Huffman-encoded form.
+// Returns YAWT_QPACK_ERR_SHORT_BUFFER if `out_size` is too small.
+// Sets *out_len to the number of encoded bytes written.
+YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
+    const uint8_t *input, size_t input_len,
+    uint8_t *out, size_t out_size, size_t *out_len);
 
 
 
