@@ -252,6 +252,46 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
     return YAWT_QPACK_OK;
 }
 
+YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
+    uint8_t in_byte, uint8_t *out, size_t out_size, size_t *bit_offset)
+{
+    if (!out || !bit_offset || out_size == 0) {
+        return YAWT_QPACK_ERR_INVALID_PARAM;
+    }
+
+    uint32_t code = HUFFMAN_TABLE[in_byte].code;
+    uint8_t bits = HUFFMAN_TABLE[in_byte].bits;
+    size_t start = *bit_offset;
+    size_t total = start + bits;
+    size_t needed = (total + 7) / 8;
+
+    if (needed > out_size) {
+        return YAWT_QPACK_ERR_SHORT_BUFFER;
+    }
+
+    size_t idx = 0;
+    size_t remaining = bits;
+
+    if (start > 0) {
+        size_t take = (8 - start) < remaining ? (8 - start) : remaining;
+        out[0] |= (uint8_t)((code >> (remaining - take)) << (8 - start - take));
+        remaining -= take;
+        idx = 1;
+    }
+
+    while (remaining >= 8) {
+        out[idx++] = (uint8_t)((code >> (remaining - 8)) & 0xFF);
+        remaining -= 8;
+    }
+
+    if (remaining > 0) {
+        out[idx] = (uint8_t)(code << (8 - remaining));
+    }
+
+    *bit_offset = total;
+    return YAWT_QPACK_OK;
+}
+
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
     const uint8_t *input, size_t input_len,
     uint8_t *out, size_t out_size, size_t *out_len)
