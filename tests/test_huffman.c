@@ -21,6 +21,50 @@ void test_huff_encode_fixed_byte(void) {
   TEST_ASSERT_EQUAL_MEMORY(expected, encoded, sizeof(expected));
 }
 
+void test_huff_decode_fixed_byte(void) {
+  uint8_t encoded[] = { 0xAF, 0xFA };
+  size_t bit_offset = 0;
+  uint8_t out_byte;
+
+  YAWT_QPACK_Error_t err = YAWT_QPACK_huff_decode_byte(
+      encoded, sizeof(encoded), &bit_offset, &out_byte);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  TEST_ASSERT_EQUAL_UINT8(112, out_byte);
+
+  err = YAWT_QPACK_huff_decode_byte(
+      encoded, sizeof(encoded), &bit_offset, &out_byte);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  TEST_ASSERT_EQUAL_UINT8(40, out_byte);
+}
+
+void test_huff_roundtrip_fixed_byte(void) {
+  uint8_t encoded[2];
+  memset(encoded, 0, sizeof(encoded));
+  size_t bit_offset = 0;
+
+  YAWT_QPACK_Error_t err = YAWT_QPACK_huff_encode_byte(
+      112, encoded, sizeof(encoded), &bit_offset);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  err = YAWT_QPACK_huff_encode_byte(
+      40, encoded, sizeof(encoded), &bit_offset);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+
+  bit_offset = 0;
+  uint8_t out_byte;
+
+  err = YAWT_QPACK_huff_decode_byte(
+      encoded, sizeof(encoded), &bit_offset, &out_byte);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  TEST_ASSERT_EQUAL_UINT8(112, out_byte);
+
+  err = YAWT_QPACK_huff_decode_byte(
+      encoded, sizeof(encoded), &bit_offset, &out_byte);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  TEST_ASSERT_EQUAL_UINT8(40, out_byte);
+}
+
 void test_huffman_register(void) {
   RUN_TEST(test_huff_encode_fixed_byte);
+  RUN_TEST(test_huff_decode_fixed_byte);
+  RUN_TEST(test_huff_roundtrip_fixed_byte);
 }
