@@ -130,6 +130,7 @@ int YAWT_qpack_static_find_entry(const char *name, const char *value) {
   return -1;
 }
 
+
 // ---------------------------------------------------------------------------
 // Huffman decode — RFC 7541 Appendix B / RFC 9204 §5.1
 // Minimal state-machine decoder; no large tables.
@@ -137,9 +138,74 @@ int YAWT_qpack_static_find_entry(const char *name, const char *value) {
 
 // Canonical Huffman codes for bytes 0–255 (from RFC 7541 Appendix B).
 // Each entry: { code, bit_length }
-static const struct { uint32_t code; uint8_t bits; } HUFFMAN_TABLE[] = {
- {0x1ff8,13},{0x7fffd8,23},{0xfffffe2,28},{0xfffffe3,28},{0xfffffe4,28},{0xfffffe5,28},{0xfffffe6,28},{0xfffffe7,28},{0xfffffe8,28},{0xffffea,24},{0x3ffffffc,30},{0xfffffe9,28},{0xfffffea,28},{0x3ffffffd,30},{0xfffffeb,28},{0xfffffec,28},{0xfffffed,28},{0xfffffee,28},{0xfffffef,28},{0xffffff0,28},{0xffffff1,28},{0xffffff2,28},{0x3ffffffe,30},{0xffffff3,28},{0xffffff4,28},{0xffffff5,28},{0xffffff6,28},{0xffffff7,28},{0xffffff8,28},{0xffffff9,28},{0xffffffa,28},{0xffffffb,28},{0x14,6},{0x3f8,10},{0x3f9,10},{0xffa,12},{0x1ff9,13},{0x15,6},{0xf8,8},{0x7fa,11},{0x3fa,10},{0x3fb,10},{0xf9,8},{0x7fb,11},{0xfa,8},{0x16,6},{0x17,6},{0x18,6},{0x0,5},{0x1,5},{0x2,5},{0x19,6},{0x1a,6},{0x1b,6},{0x1c,6},{0x1d,6},{0x1e,6},{0x1f,6},{0x5c,7},{0xfb,8},{0x7ffc,15},{0x20,6},{0xffb,12},{0x3fc,10},{0x1ffa,13},{0x21,6},{0x5d,7},{0x5e,7},{0x5f,7},{0x60,7},{0x61,7},{0x62,7},{0x63,7},{0x64,7},{0x65,7},{0x66,7},{0x67,7},{0x68,7},{0x69,7},{0x6a,7},{0x6b,7},{0x6c,7},{0x6d,7},{0x6e,7},{0x6f,7},{0x70,7},{0x71,7},{0x72,7},{0xfc,8},{0x73,7},{0xfd,8},{0x1ffb,13},{0x7fff0,19},{0x1ffc,13},{0x3ffc,14},{0x22,6},{0x7ffd,15},{0x3,5},{0x23,6},{0x4,5},{0x24,6},{0x5,5},{0x25,6},{0x26,6},{0x27,6},{0x6,5},{0x74,7},{0x75,7},{0x28,6},{0x29,6},{0x2a,6},{0x7,5},{0x2b,6},{0x76,7},{0x2c,6},{0x8,5},{0x9,5},{0x2d,6},{0x77,7},{0x78,7},{0x79,7},{0x7a,7},{0x7b,7},{0x7ffe,15},{0x7fc,11},{0x3ffd,14},{0x1ffd,13},{0xffffffc,28},{0xfffe6,20},{0x3fffd2,22},{0xfffe7,20},{0xfffe8,20},{0x3fffd3,22},{0x3fffd4,22},{0x3fffd5,22},{0x7fffd9,23},{0x3fffd6,22},{0x7fffda,23},{0x7fffdb,23},{0x7fffdc,23},{0x7fffdd,23},{0x7fffde,23},{0xffffeb,24},{0x7fffdf,23},{0xffffec,24},{0xffffed,24},{0x3fffd7,22},{0x7fffe0,23},{0xffffee,24},{0x7fffe1,23},{0x7fffe2,23},{0x7fffe3,23},{0x7fffe4,23},{0x1fffdc,21},{0x3fffd8,22},{0x7fffe5,23},{0x3fffd9,22},{0x7fffe6,23},{0x7fffe7,23},{0xffffef,24},{0x3fffda,22},{0x1fffdd,21},{0xfffe9,20},{0x3fffdb,22},{0x3fffdc,22},{0x7fffe8,23},{0x7fffe9,23},{0x1fffde,21},{0x7fffea,23},{0x3fffdd,22},{0x3fffde,22},{0xfffff0,24},{0x1fffdf,21},{0x3fffdf,22},{0x7fffeb,23},{0x7fffec,23},{0x1fffe0,21},{0x1fffe1,21},{0x3fffe0,22},{0x1fffe2,21},{0x7fffed,23},{0x3fffe1,22},{0x7fffee,23},{0x7fffef,23},{0xfffea,20},{0x3fffe2,22},{0x3fffe3,22},{0x3fffe4,22},{0x7ffff0,23},{0x3fffe5,22},{0x3fffe6,22},{0x7ffff1,23},{0x3ffffe0,26},{0x3ffffe1,26},{0xfffeb,20},{0x7fff1,19},{0x3fffe7,22},{0x7ffff2,23},{0x3fffe8,22},{0x1ffffec,25},{0x3ffffe2,26},{0x3ffffe3,26},{0x3ffffe4,26},{0x7ffffde,27},{0x7ffffdf,27},{0x3ffffe5,26},{0xfffff1,24},{0x1ffffed,25},{0x7fff2,19},{0x1fffe3,21},{0x3ffffe6,26},{0x7ffffe0,27},{0x7ffffe1,27},{0x3ffffe7,26},{0x7ffffe2,27},{0xfffff2,24},{0x1fffe4,21},{0x1fffe5,21},{0x3ffffe8,26},{0x3ffffe9,26},{0xffffffd,28},{0x7ffffe3,27},{0x7ffffe4,27},{0x7ffffe5,27},{0xfffec,20},{0xfffff3,24},{0xfffed,20},{0x1fffe6,21},{0x3fffe9,22},{0x1fffe7,21},{0x1fffe8,21},{0x7ffff3,23},{0x3fffea,22},{0x3fffeb,22},{0x1ffffee,25},{0x1ffffef,25},{0xfffff4,24},{0xfffff5,24},{0x3ffffea,26},{0x7ffff4,23},{0x3ffffeb,26},{0x7ffffe6,27},{0x3ffffec,26},{0x3ffffed,26},{0x7ffffe7,27},{0x7ffffe8,27},{0x7ffffe9,27},{0x7ffffea,27},{0x7ffffeb,27},{0xffffffe,28},{0x7ffffec,27},{0x7ffffed,27},{0x7ffffee,27},{0x7ffffef,27},{0x7fffff0,27},{0x3ffffee,26}
+// I converted this to wire format, MSB first
+static const struct { uint8_t code[4]; uint8_t bits; } HUFFMAN_TABLE[] = {
+{"\xFF\xC0\x00\x00",13},{"\xFF\xFF\xB0\x00",23},{"\xFF\xFF\xFE\x20",28},{"\xFF\xFF\xFE\x30",28},
+{"\xFF\xFF\xFE\x40",28},{"\xFF\xFF\xFE\x50",28},{"\xFF\xFF\xFE\x60",28},{"\xFF\xFF\xFE\x70",28},
+{"\xFF\xFF\xFE\x80",28},{"\xFF\xFF\xEA\x00",24},{"\xFF\xFF\xFF\xF0",30},{"\xFF\xFF\xFE\x90",28},
+{"\xFF\xFF\xFE\xA0",28},{"\xFF\xFF\xFF\xF4",30},{"\xFF\xFF\xFE\xB0",28},{"\xFF\xFF\xFE\xC0",28},
+{"\xFF\xFF\xFE\xD0",28},{"\xFF\xFF\xFE\xE0",28},{"\xFF\xFF\xFE\xF0",28},{"\xFF\xFF\xFF\x00",28},
+{"\xFF\xFF\xFF\x10",28},{"\xFF\xFF\xFF\x20",28},{"\xFF\xFF\xFF\xF8",30},{"\xFF\xFF\xFF\x30",28},
+{"\xFF\xFF\xFF\x40",28},{"\xFF\xFF\xFF\x50",28},{"\xFF\xFF\xFF\x60",28},{"\xFF\xFF\xFF\x70",28},
+{"\xFF\xFF\xFF\x80",28},{"\xFF\xFF\xFF\x90",28},{"\xFF\xFF\xFF\xA0",28},{"\xFF\xFF\xFF\xB0",28},
+{"\x50\x00\x00\x00",6},{"\xFE\x00\x00\x00",10},{"\xFE\x40\x00\x00",10},{"\xFF\xA0\x00\x00",12},
+{"\xFF\xC8\x00\x00",13},{"\x54\x00\x00\x00",6},{"\xF8\x00\x00\x00",8},{"\xFF\x40\x00\x00",11},
+{"\xFE\x80\x00\x00",10},{"\xFE\xC0\x00\x00",10},{"\xF9\x00\x00\x00",8},{"\xFF\x60\x00\x00",11},
+{"\xFA\x00\x00\x00",8},{"\x58\x00\x00\x00",6},{"\x5C\x00\x00\x00",6},{"\x60\x00\x00\x00",6},
+{"\x00\x00\x00\x00",5},{"\x08\x00\x00\x00",5},{"\x10\x00\x00\x00",5},{"\x64\x00\x00\x00",6},
+{"\x68\x00\x00\x00",6},{"\x6C\x00\x00\x00",6},{"\x70\x00\x00\x00",6},{"\x74\x00\x00\x00",6},
+{"\x78\x00\x00\x00",6},{"\x7C\x00\x00\x00",6},{"\xB8\x00\x00\x00",7},{"\xFB\x00\x00\x00",8},
+{"\xFF\xF8\x00\x00",15},{"\x80\x00\x00\x00",6},{"\xFF\xB0\x00\x00",12},{"\xFF\x00\x00\x00",10},
+{"\xFF\xD0\x00\x00",13},{"\x84\x00\x00\x00",6},{"\xBA\x00\x00\x00",7},{"\xBC\x00\x00\x00",7},
+{"\xBE\x00\x00\x00",7},{"\xC0\x00\x00\x00",7},{"\xC2\x00\x00\x00",7},{"\xC4\x00\x00\x00",7},
+{"\xC6\x00\x00\x00",7},{"\xC8\x00\x00\x00",7},{"\xCA\x00\x00\x00",7},{"\xCC\x00\x00\x00",7},
+{"\xCE\x00\x00\x00",7},{"\xD0\x00\x00\x00",7},{"\xD2\x00\x00\x00",7},{"\xD4\x00\x00\x00",7},
+{"\xD6\x00\x00\x00",7},{"\xD8\x00\x00\x00",7},{"\xDA\x00\x00\x00",7},{"\xDC\x00\x00\x00",7},
+{"\xDE\x00\x00\x00",7},{"\xE0\x00\x00\x00",7},{"\xE2\x00\x00\x00",7},{"\xE4\x00\x00\x00",7},
+{"\xFC\x00\x00\x00",8},{"\xE6\x00\x00\x00",7},{"\xFD\x00\x00\x00",8},{"\xFF\xD8\x00\x00",13},
+{"\xFF\xFE\x00\x00",19},{"\xFF\xE0\x00\x00",13},{"\xFF\xF0\x00\x00",14},{"\x88\x00\x00\x00",6},
+{"\xFF\xFA\x00\x00",15},{"\x18\x00\x00\x00",5},{"\x8C\x00\x00\x00",6},{"\x20\x00\x00\x00",5},
+{"\x90\x00\x00\x00",6},{"\x28\x00\x00\x00",5},{"\x94\x00\x00\x00",6},{"\x98\x00\x00\x00",6},
+{"\x9C\x00\x00\x00",6},{"\x30\x00\x00\x00",5},{"\xE8\x00\x00\x00",7},{"\xEA\x00\x00\x00",7},
+{"\xA0\x00\x00\x00",6},{"\xA4\x00\x00\x00",6},{"\xA8\x00\x00\x00",6},{"\x38\x00\x00\x00",5},
+{"\xAC\x00\x00\x00",6},{"\xEC\x00\x00\x00",7},{"\xB0\x00\x00\x00",6},{"\x40\x00\x00\x00",5},
+{"\x48\x00\x00\x00",5},{"\xB4\x00\x00\x00",6},{"\xEE\x00\x00\x00",7},{"\xF0\x00\x00\x00",7},
+{"\xF2\x00\x00\x00",7},{"\xF4\x00\x00\x00",7},{"\xF6\x00\x00\x00",7},{"\xFF\xFC\x00\x00",15},
+{"\xFF\x80\x00\x00",11},{"\xFF\xF4\x00\x00",14},{"\xFF\xE8\x00\x00",13},{"\xFF\xFF\xFF\xC0",28},
+{"\xFF\xFE\x60\x00",20},{"\xFF\xFF\x48\x00",22},{"\xFF\xFE\x70\x00",20},{"\xFF\xFE\x80\x00",20},
+{"\xFF\xFF\x4C\x00",22},{"\xFF\xFF\x50\x00",22},{"\xFF\xFF\x54\x00",22},{"\xFF\xFF\xB2\x00",23},
+{"\xFF\xFF\x58\x00",22},{"\xFF\xFF\xB4\x00",23},{"\xFF\xFF\xB6\x00",23},{"\xFF\xFF\xB8\x00",23},
+{"\xFF\xFF\xBA\x00",23},{"\xFF\xFF\xBC\x00",23},{"\xFF\xFF\xEB\x00",24},{"\xFF\xFF\xBE\x00",23},
+{"\xFF\xFF\xEC\x00",24},{"\xFF\xFF\xED\x00",24},{"\xFF\xFF\x5C\x00",22},{"\xFF\xFF\xC0\x00",23},
+{"\xFF\xFF\xEE\x00",24},{"\xFF\xFF\xC2\x00",23},{"\xFF\xFF\xC4\x00",23},{"\xFF\xFF\xC6\x00",23},
+{"\xFF\xFF\xC8\x00",23},{"\xFF\xFE\xE0\x00",21},{"\xFF\xFF\x60\x00",22},{"\xFF\xFF\xCA\x00",23},
+{"\xFF\xFF\x64\x00",22},{"\xFF\xFF\xCC\x00",23},{"\xFF\xFF\xCE\x00",23},{"\xFF\xFF\xEF\x00",24},
+{"\xFF\xFF\x68\x00",22},{"\xFF\xFE\xE8\x00",21},{"\xFF\xFE\x90\x00",20},{"\xFF\xFF\x6C\x00",22},
+{"\xFF\xFF\x70\x00",22},{"\xFF\xFF\xD0\x00",23},{"\xFF\xFF\xD2\x00",23},{"\xFF\xFE\xF0\x00",21},
+{"\xFF\xFF\xD4\x00",23},{"\xFF\xFF\x74\x00",22},{"\xFF\xFF\x78\x00",22},{"\xFF\xFF\xF0\x00",24},
+{"\xFF\xFE\xF8\x00",21},{"\xFF\xFF\x7C\x00",22},{"\xFF\xFF\xD6\x00",23},{"\xFF\xFF\xD8\x00",23},
+{"\xFF\xFF\x00\x00",21},{"\xFF\xFF\x08\x00",21},{"\xFF\xFF\x80\x00",22},{"\xFF\xFF\x10\x00",21},
+{"\xFF\xFF\xDA\x00",23},{"\xFF\xFF\x84\x00",22},{"\xFF\xFF\xDC\x00",23},{"\xFF\xFF\xDE\x00",23},
+{"\xFF\xFE\xA0\x00",20},{"\xFF\xFF\x88\x00",22},{"\xFF\xFF\x8C\x00",22},{"\xFF\xFF\x90\x00",22},
+{"\xFF\xFF\xE0\x00",23},{"\xFF\xFF\x94\x00",22},{"\xFF\xFF\x98\x00",22},{"\xFF\xFF\xE2\x00",23},
+{"\xFF\xFF\xF8\x00",26},{"\xFF\xFF\xF8\x40",26},{"\xFF\xFE\xB0\x00",20},{"\xFF\xFE\x20\x00",19},
+{"\xFF\xFF\x9C\x00",22},{"\xFF\xFF\xE4\x00",23},{"\xFF\xFF\xA0\x00",22},{"\xFF\xFF\xF6\x00",25},
+{"\xFF\xFF\xF8\x80",26},{"\xFF\xFF\xF8\xC0",26},{"\xFF\xFF\xF9\x00",26},{"\xFF\xFF\xFB\xC0",27},
+{"\xFF\xFF\xFB\xE0",27},{"\xFF\xFF\xF9\x40",26},{"\xFF\xFF\xF1\x00",24},{"\xFF\xFF\xF6\x80",25},
+{"\xFF\xFE\x40\x00",19},{"\xFF\xFF\x18\x00",21},{"\xFF\xFF\xF9\x80",26},{"\xFF\xFF\xFC\x00",27},
+{"\xFF\xFF\xFC\x20",27},{"\xFF\xFF\xF9\xC0",26},{"\xFF\xFF\xFC\x40",27},{"\xFF\xFF\xF2\x00",24},
+{"\xFF\xFF\x20\x00",21},{"\xFF\xFF\x28\x00",21},{"\xFF\xFF\xFA\x00",26},{"\xFF\xFF\xFA\x40",26},
+{"\xFF\xFF\xFF\xD0",28},{"\xFF\xFF\xFC\x60",27},{"\xFF\xFF\xFC\x80",27},{"\xFF\xFF\xFC\xA0",27},
+{"\xFF\xFE\xC0\x00",20},{"\xFF\xFF\xF3\x00",24},{"\xFF\xFE\xD0\x00",20},{"\xFF\xFF\x30\x00",21},
+{"\xFF\xFF\xA4\x00",22},{"\xFF\xFF\x38\x00",21},{"\xFF\xFF\x40\x00",21},{"\xFF\xFF\xE6\x00",23},
+{"\xFF\xFF\xA8\x00",22},{"\xFF\xFF\xAC\x00",22},{"\xFF\xFF\xF7\x00",25},{"\xFF\xFF\xF7\x80",25},
+{"\xFF\xFF\xF4\x00",24},{"\xFF\xFF\xF5\x00",24},{"\xFF\xFF\xFA\x80",26},{"\xFF\xFF\xE8\x00",23},
+{"\xFF\xFF\xFA\xC0",26},{"\xFF\xFF\xFC\xC0",27},{"\xFF\xFF\xFB\x00",26},{"\xFF\xFF\xFB\x40",26},
+{"\xFF\xFF\xFC\xE0",27},{"\xFF\xFF\xFD\x00",27},{"\xFF\xFF\xFD\x20",27},{"\xFF\xFF\xFD\x40",27},
+{"\xFF\xFF\xFD\x60",27},{"\xFF\xFF\xFF\xE0",28},{"\xFF\xFF\xFD\x80",27},{"\xFF\xFF\xFD\xA0",27},
+{"\xFF\xFF\xFD\xC0",27},{"\xFF\xFF\xFD\xE0",27},{"\xFF\xFF\xFE\x00",27},{"\xFF\xFF\xFB\x80",26}
 };
+
 
 // EOS symbol code (used for padding at end of Huffman-encoded string)
 #define HUFFMAN_EOS_CODE 0x3fffffc
@@ -159,13 +225,16 @@ static void huff_decoder_build(void) {
     
     for (uint16_t i = 0; i < hufftbl_sz; i++) {
       uint16_t current = 0; // start at root
-        for (uint8_t b = 0; b < HUFFMAN_TABLE[i].bits; b++) {
-            uint8_t blen = HUFFMAN_TABLE[i].bits - b;
-            uint32_t data = mask & (HUFFMAN_TABLE[i].code << (sizeof(uint32_t) * 8 - blen));
-            uint8_t bit = data >> 31;
-            uint16_t *next = bit ? &_g_huff_decoder.nodes[current].r : &_g_huff_decoder.nodes[current].l;
-            
-            if (*next == 0) {
+      const uint8_t *code = HUFFMAN_TABLE[i].code; //working on this
+      size_t bits = HUFFMAN_TABLE[i].bits; //how many bits in this code
+      for (int b = 0; b < 4; b++) {
+        for (int p = 7; p >= 0; p--) {          // 7..0 = 8 bits
+          size_t bit_pos = (size_t)b * 8 + (7 - p);
+          if (bit_pos >= bits) break; //end of codeword
+          uint8_t bit = (code[b] >> p) & 1u;
+            uint16_t *next = bit ? &_g_huff_decoder.nodes[current].r : 
+              &_g_huff_decoder.nodes[current].l;
+            if (*next == 0) {   //we will create child
                 if (_g_huff_decoder.count >= YAWT_QPACK_HUFF_DEC_TREE_MAX - 1) {
                     abort();
                 }
@@ -173,16 +242,17 @@ static void huff_decoder_build(void) {
                 _g_huff_decoder.count++;
                 current = *next;
             }
-            else current = *next; //we already have a node, move to it
         }
-        _g_huff_decoder.nodes[current].value = (uint8_t)i;
-        _g_huff_decoder.nodes[current].bits = HUFFMAN_TABLE[i].bits;
+      }
+            
+      _g_huff_decoder.nodes[current].value = (uint8_t)i;
+      _g_huff_decoder.nodes[current].bits = HUFFMAN_TABLE[i].bits;
     }
 }
 
 YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     const uint8_t *data, size_t data_len,
-    size_t *bit_offset, uint8_t *out_byte)
+    uint8_t *bit_offset, uint8_t *out_byte)
 {
     if (_g_huff_decoder.count == 0) {
         huff_decoder_build();
@@ -253,43 +323,33 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 }
 
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
-    uint8_t in_byte, uint8_t *out, size_t out_size, size_t *bit_offset)
+    uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset)
 {
-    if (!out || !bit_offset || out_size == 0) {
+    if (!out || !bit_offset || out_size < 4) {
         return YAWT_QPACK_ERR_INVALID_PARAM;
     }
-
-    uint32_t code = HUFFMAN_TABLE[in_byte].code;
+    if (*bit_offset >= 8) {
+      //this param is only for offsetting in the first byte
+      return YAWT_QPACK_ERR_INVALID_PARAM;
+    }
     uint8_t bits = HUFFMAN_TABLE[in_byte].bits;
-    size_t start = *bit_offset;
-    size_t total = start + bits;
-    size_t needed = (total + 7) / 8;
+    const uint8_t *code = HUFFMAN_TABLE[in_byte].code;
 
-    if (needed > out_size) {
-        return YAWT_QPACK_ERR_SHORT_BUFFER;
+    if (bit_offset == 0) {
+        memcpy(out, code, 4);
+        //bit offset is where caller will start writing next data
+        //since we write the whole code at once, the next data will start at the next byte
+        *bit_offset = 0;
+        return YAWT_QPACK_OK;
     }
+    uint8_t off = *bit_offset;
+    uint8_t rem = 8 - off;
 
-    size_t byte_idx = start >> 3;
-    size_t bit_in_byte = start & 7;
-    size_t remaining = bits;
-
-    if (bit_in_byte > 0) {
-        size_t take = (8 - bit_in_byte) < remaining ? (8 - bit_in_byte) : remaining;
-        out[byte_idx] |= (uint8_t)((code >> (remaining - take)) << (8 - bit_in_byte - take));
-        remaining -= take;
-        byte_idx++;
-    }
-
-    while (remaining >= 8) {
-        out[byte_idx++] = (uint8_t)((code >> (remaining - 8)) & 0xFF);
-        remaining -= 8;
-    }
-
-    if (remaining > 0) {
-        out[byte_idx] = (uint8_t)(code << (8 - remaining));
-    }
-
-    *bit_offset = total;
+    out[0] |= code[0] >> off;
+    out[1]  = (code[0] << rem) | (code[1] >> off);
+    out[2]  = (code[1] << rem) | (code[2] >> off);
+    out[3]  = (code[2] << rem) | (code[3] >> off);
+    *bit_offset = (off + bits) % 8;
     return YAWT_QPACK_OK;
 }
 
@@ -297,6 +357,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
     const uint8_t *input, size_t input_len,
     uint8_t *out, size_t out_size, size_t *out_len)
 {
+  /*
     size_t bit_offset = 0;
     uint64_t total_bits = 0;
 
@@ -336,6 +397,8 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
 
     *out_len = needed_bytes;
     return YAWT_QPACK_OK;
+    */
+  return YAWT_QPACK_OK;
 }
 
 

@@ -18,6 +18,105 @@ static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
 
+
+/*
+
+void test(uint8_t *buf, size_t len, uint8_t val, uint8_t offset) {
+    
+    uint8_t bits = HUFFMAN_TABLE2[val].bits;
+    const uint8_t *ptr2 = HUFFMAN_TABLE2[val].code;
+    uint64_t code = 0;
+    memcpy(&code, HUFFMAN_TABLE2[val].code, 4);
+    
+    for (int i = 0;i< 64;i++) {
+        uint8_t bit = code >> i & 1;
+        printf("%u\n",bit);
+    
+    }
+    //for (int b = 0; b < 4;b++) {
+    //    for (int i = 0; i < 8;i++) {
+    //        uint8_t bit = *(uint32_t *)ptr2 >> (b*8) + 7 - i & 1;
+    //        printf("%u\n",bit);
+    //    }
+    //
+    
+}
+
+void conv() {
+    int sz = sizeof(HUFFMAN_TABLE) / sizeof(HUFFMAN_TABLE[0]);
+    for (int i = 0;i < sz;i++) {
+    
+        uint32_t code = HUFFMAN_TABLE[i].code;
+        uint8_t bits = HUFFMAN_TABLE[i].bits;
+        uint8_t buf[4] = {0};
+        uint8_t bc = 0;
+        //printf("{");
+        int writepos = 0;
+        for (int i = bits - 1; i >= 0;i--) {
+            uint32_t bit = (code >> i) & 1;
+            int byte = writepos >> 3;
+            int off  = writepos & 7;
+            
+            if (bit) {
+                buf[byte] |= (1u << (7 - off));
+            }
+            
+            writepos++;
+        }
+         printf("{\"\\x%X\\x%X\\x%X\\x%X\",%u},",buf[0],buf[1],buf[2],buf[3],bits);
+    
+        
+    }
+    printf("\n");
+ 
+}
+void printbuf(uint8_t *buf)
+{
+    for (int b = 0; b < 4; b++) {
+        for (int p = 7; p >= 0; p--) {          // 7..0 = 8 bits
+            uint8_t bit = (buf[b] >> p) & 1;
+            printf("%u", bit);
+        }
+        printf("\n");
+    }
+}
+void conv(void)
+{
+    size_t sz = sizeof(HUFFMAN_TABLE) / sizeof(HUFFMAN_TABLE[0]);
+
+    for (size_t i = 0; i < sz; i++) {
+        uint32_t code = HUFFMAN_TABLE[i].code;
+        uint8_t bits = HUFFMAN_TABLE[i].bits;
+
+        uint8_t buf[4] = {0};
+        int writepos = 0;
+
+        // Build the code in wire order (MSB first) 
+        for (int bitpos = bits - 1; bitpos >= 0; bitpos--) {
+            uint32_t bit = (code >> bitpos) & 1;
+
+            int byte_idx = writepos >> 3;      // which byte
+            int bit_idx  = writepos & 7;       // position within byte (0 = MSB)
+
+            if (bit) {
+                buf[byte_idx] |= (1u << (7 - bit_idx));
+            }
+
+            writepos++;
+        }
+
+        printf("{\"\\x%02X\\x%02X\\x%02X\\x%02X\",%u},",
+               buf[0], buf[1], buf[2], buf[3], bits);
+
+        // Optional: nice formatting every 5 entries
+        if ((i + 1) % 5 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+*/
+
 // Convert sockaddr_in to YAWT_Q_PeerAddr_t (IPv4-mapped IPv6)
 static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
   YAWT_Q_PeerAddr_t pa;

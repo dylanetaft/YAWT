@@ -99,7 +99,7 @@ typedef struct {
 // Decode a single Huffman byte from a bitstream. Lazy-inits the tree.
 YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     const uint8_t *data, size_t data_len,
-    size_t *bit_offset, uint8_t *out_byte);
+    uint8_t *bit_offset, uint8_t *out_byte);
 
 // Decode an entire Huffman-encoded string into `out` buffer.
 // Lazy-inits the tree on first call.
@@ -113,7 +113,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 // Updates *bit_offset on success.
 // out_size is in bytes. Returns YAWT_QPACK_ERR_SHORT_BUFFER if out runs out of space.
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
-    uint8_t in_byte, uint8_t *out, size_t out_size, size_t *bit_offset);
+    uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset);
 
 // Encode a raw byte string into Huffman-encoded form.
 // Returns YAWT_QPACK_ERR_SHORT_BUFFER if `out_size` is too small.

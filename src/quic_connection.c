@@ -2,7 +2,7 @@
 #include "quic.h"
 #include <stdio.h>
 #include <uthash/uthash.h>
-#include <allocnbuffer/fifoslab.h>
+#include <allocnbuffer/slab.h>
 #include "logger.h"
 #include "security.h"
 #include <arpa/inet.h>
