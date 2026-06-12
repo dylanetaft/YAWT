@@ -350,9 +350,10 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 }
 
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
-    uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset)
+    uint8_t in_byte, uint8_t *out, size_t out_size,
+    uint8_t *bit_offset, size_t *advance_bytes)
 {
-    if (!out || !bit_offset) {
+    if (!out || !bit_offset && !advance_bytes) {
         return YAWT_QPACK_ERR_INVALID_PARAM;
     }
     if (*bit_offset >= 8) {
@@ -360,28 +361,36 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
       return YAWT_QPACK_ERR_INVALID_PARAM;
     }
     // A single code is up to 4 bytes wide and, when written at a non-zero bit
-    // offset, can spill into a 4th byte, so we always need room for 4 bytes.
-    if (out_size < 4) {
+    // offset, can spill into a 5th byte, so we always need room for 5 bytes.
+    if (out_size < 5) {
         return YAWT_QPACK_ERR_SHORT_BUFFER;
     }
     uint8_t bits = HUFFMAN_TABLE[in_byte].bits;
     const uint8_t *code = HUFFMAN_TABLE[in_byte].code;
-
-    if (*bit_offset == 0) {
-        memcpy(out, code, 4);
-        //bit offset is where caller will start writing next data
-        //since we write the whole code at once, the next data will start at the next byte
-        *bit_offset = 0;
-        return YAWT_QPACK_OK;
-    }
     uint8_t off = *bit_offset;
-    uint8_t rem = 8 - off;
 
-    out[0] |= code[0] >> off;
-    out[1]  = (code[0] << rem) | (code[1] >> off);
-    out[2]  = (code[1] << rem) | (code[2] >> off);
-    out[3]  = (code[2] << rem) | (code[3] >> off);
+    if (off == 0) {
+        // Byte-aligned: write the whole 4-byte code. Bytes beyond the code are
+        // zero padding; clobbering them is fine since output is built strictly
+        // left-to-right and they'll be OR'd into on the next call.
+        memcpy(out, code, 4);
+    } else {
+        // We don't care that we're clobbering the bits after the code
+        // because the caller is expected to only call this function once per byte of
+        // input, and to advance the output pointer by the number of whole bytes
+        // Mid-byte: preserve the partial first byte, clobber the rest.
+        uint8_t rem = 8 - off;
+        out[0] |= code[0] >> off;
+        out[1]  = (code[0] << rem) | (code[1] >> off);
+        out[2]  = (code[1] << rem) | (code[2] >> off);
+        out[3]  = (code[2] << rem) | (code[3] >> off);
+        out[4]  = (code[3] << rem); // spill into 5th byte if needed; caller must ensure room
+    }
+
+    // New residual bit position within the last byte touched, and the number of
+    // whole bytes fully completed (which the caller should advance `out` by).
     *bit_offset = (off + bits) % 8;
+    *advance_bytes = (off + bits) / 8;
     return YAWT_QPACK_OK;
 }
 

@@ -115,11 +115,18 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
     const uint8_t *data, size_t data_len,
     uint8_t *out, size_t out_size, size_t *out_len);
 
-// Encode a single byte into a Huffman bitstream. Lazy-inits the table.
-// Updates *bit_offset on success.
-// out_size is in bytes. Returns YAWT_QPACK_ERR_SHORT_BUFFER if out runs out of space.
+// Encode a single byte into a Huffman bitstream.
+// On input, *bit_offset is the bit position (0-7) within out[0] at which to
+// start writing.
+// On success, *bit_offset is set to the residual bit position (0-7) within the
+// last byte written, and *advance_bytes (if non-NULL) is set to the number of
+// whole bytes fully completed; callers building a stream should advance their
+// `out` pointer by *advance_bytes and carry *bit_offset into the next call.
+// out_size is in bytes; a single code may occupy up to 4 bytes, so out_size
+// must be >= 4 or YAWT_QPACK_ERR_SHORT_BUFFER is returned.
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
-    uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset);
+    uint8_t in_byte, uint8_t *out, size_t out_size,
+    uint8_t *bit_offset, size_t *advance_bytes);
 
 // Encode a raw byte string into Huffman-encoded form.
 // Returns YAWT_QPACK_ERR_SHORT_BUFFER if `out_size` is too small.
