@@ -97,9 +97,15 @@ typedef struct {
 } YAWT_QPACK_HuffDecoder_t;
 
 // Decode a single Huffman byte from a bitstream. Lazy-inits the tree.
+// On input, *bit_offset is the bit position (0-7) within data[0] at which to
+// start (non-zero only when resuming mid-byte).
+// On success, *bit_offset is set to the residual bit position (0-7) within the
+// last byte touched, and *advance_bytes (if non-NULL) is set to the number of
+// whole bytes fully consumed. Callers decoding a stream should advance their
+// data pointer by *advance_bytes and carry *bit_offset into the next call.
 YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     const uint8_t *data, size_t data_len,
-    uint8_t *bit_offset, uint8_t *out_byte);
+    uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes);
 
 // Decode an entire Huffman-encoded string into `out` buffer.
 // Lazy-inits the tree on first call.

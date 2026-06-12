@@ -2,6 +2,8 @@
 #include "h3_types.h"
 #include <string.h>
 #include <stdlib.h>
+#include "logger.h"
+#include <stdio.h>
 
 // QPACK static table — RFC 9204 Appendix A, entries 0 through 98.
 static const YAWT_QPACK_StaticEntry_t STATIC_TABLE[YAWT_QPACK_STATIC_TABLE_SIZE] = {
@@ -240,8 +242,10 @@ static void huff_decoder_build(void) {
                 }
                 *next = _g_huff_decoder.count + 1;
                 _g_huff_decoder.count++;
-                current = *next;
             }
+            // Always follow the edge, whether the child was just created or
+            // already existed (shared prefix with a previously inserted code).
+            current = *next;
         }
       }
             
@@ -252,8 +256,9 @@ static void huff_decoder_build(void) {
 
 YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     const uint8_t *data, size_t data_len,
-    uint8_t *bit_offset, uint8_t *out_byte)
+    uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes)
 {
+    YAWT_LOG(YAWT_LOG_DEBUG,"decode byte");
     if (_g_huff_decoder.count == 0) {
         huff_decoder_build();
     }
@@ -275,19 +280,30 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
             bit_pos = 0;
             pos++;
         }
+        YAWT_LOG(YAWT_LOG_DEBUG,"Huffman decode: bit=%u, pos=%zu, bit_pos=%u", bit, pos, bit_pos);
         next = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
         if (next == 0) {
-            if (_g_huff_decoder.nodes[current].l == 0 &&
-                _g_huff_decoder.nodes[current].r == 0) {
-                *out_byte = _g_huff_decoder.nodes[current].value;
-                *bit_offset = (size_t)bit_pos + (pos * 8);
-                return YAWT_QPACK_OK;
-            }
-            else {
-                return YAWT_QPACK_ERR_MALFORMED;
-            }
+            // We are on an internal node that has no edge for this bit:
+            // the input does not correspond to a valid Huffman code.
+            YAWT_LOG(YAWT_LOG_ERROR,"Malformed Huffman code at pos %zu, bit_pos %u", pos, bit_pos);
+            return YAWT_QPACK_ERR_MALFORMED;
         }
         current = next;
+        if (_g_huff_decoder.nodes[current].l == 0 &&
+            _g_huff_decoder.nodes[current].r == 0) {
+            // Reached a leaf: emit immediately, having consumed exactly the
+            // code's bits (no over-read of the following symbol).
+            *out_byte = _g_huff_decoder.nodes[current].value;
+            // bit_offset = residual bit position within the current byte;
+            // advance_bytes = number of whole bytes fully consumed.
+            *bit_offset = bit_pos;
+            if (advance_bytes) {
+                *advance_bytes = pos;
+            }
+            YAWT_LOG(YAWT_LOG_DEBUG,"Decoded byte: %u, bit_offset: %u, advance_bytes: %zu",
+                     *out_byte, *bit_offset, pos);
+            return YAWT_QPACK_OK;
+        }
     }
     return YAWT_QPACK_ERR_MALFORMED;
 }
@@ -297,17 +313,19 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
     const uint8_t *data, size_t data_len,
     uint8_t *out, size_t out_size, size_t *out_len)
 {
-    size_t bit_offset = 0;
+    uint8_t bit_offset = 0;
     size_t decoded = 0;
-    size_t total_bits = data_len * 8;
+    const uint8_t *cur = data;
+    size_t remaining = data_len;
 
-    while (bit_offset < total_bits) {
+    while (remaining > 0) {
         if (decoded >= out_size) {
             return YAWT_QPACK_ERR_SHORT_BUFFER;
         }
 
+        size_t advance = 0;
         YAWT_QPACK_Error_t err = YAWT_QPACK_huff_decode_byte(
-            data, data_len, &bit_offset, &out[decoded]);
+            cur, remaining, &bit_offset, &out[decoded], &advance);
         if (err == YAWT_QPACK_DONE) {
             *out_len = decoded;
             return YAWT_QPACK_OK;
@@ -316,6 +334,15 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
             return err;
         }
         decoded++;
+
+        cur += advance;
+        remaining -= advance;
+
+        // Stop once all input bytes are consumed on a byte boundary. Trailing
+        // partial-byte EOS padding is handled separately (out of scope here).
+        if (remaining == 0 && bit_offset == 0) {
+            break;
+        }
     }
 
     *out_len = decoded;
@@ -325,17 +352,22 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
     uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset)
 {
-    if (!out || !bit_offset || out_size < 4) {
+    if (!out || !bit_offset) {
         return YAWT_QPACK_ERR_INVALID_PARAM;
     }
     if (*bit_offset >= 8) {
       //this param is only for offsetting in the first byte
       return YAWT_QPACK_ERR_INVALID_PARAM;
     }
+    // A single code is up to 4 bytes wide and, when written at a non-zero bit
+    // offset, can spill into a 4th byte, so we always need room for 4 bytes.
+    if (out_size < 4) {
+        return YAWT_QPACK_ERR_SHORT_BUFFER;
+    }
     uint8_t bits = HUFFMAN_TABLE[in_byte].bits;
     const uint8_t *code = HUFFMAN_TABLE[in_byte].code;
 
-    if (bit_offset == 0) {
+    if (*bit_offset == 0) {
         memcpy(out, code, 4);
         //bit offset is where caller will start writing next data
         //since we write the whole code at once, the next data will start at the next byte

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
+option(YAWT_ENABLE_LOGGING "Enable debug logging" ON)
+set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
+
 FetchContent_Declare(
     unity
     GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
@@ -21,5 +24,12 @@ target_include_directories(yawt_tests PRIVATE
     ${unity_SOURCE_DIR}/src
     ${unity_BINARY_DIR}
 )
+
+if(YAWT_ENABLE_LOGGING)
+  target_compile_definitions(yawt_tests PRIVATE
+    YAWT_ENABLE_LOGGING
+    YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
+  )
+endif()
 
 add_test(NAME yawt_tests COMMAND yawt_tests)
