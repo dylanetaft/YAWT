@@ -140,7 +140,8 @@ int YAWT_qpack_static_find_entry(const char *name, const char *value) {
 
 // Canonical Huffman codes for bytes 0–255 (from RFC 7541 Appendix B).
 // Each entry: { code, bit_length }
-// I converted this to wire format, MSB first
+// I converted this to wire format, MSB first, as it is easier to reason about
+
 static const struct { uint8_t code[4]; uint8_t bits; } HUFFMAN_TABLE[] = {
 {"\xFF\xC0\x00\x00",13},{"\xFF\xFF\xB0\x00",23},{"\xFF\xFF\xFE\x20",28},{"\xFF\xFF\xFE\x30",28},
 {"\xFF\xFF\xFE\x40",28},{"\xFF\xFF\xFE\x50",28},{"\xFF\xFF\xFE\x60",28},{"\xFF\xFF\xFE\x70",28},
@@ -208,10 +209,6 @@ static const struct { uint8_t code[4]; uint8_t bits; } HUFFMAN_TABLE[] = {
 {"\xFF\xFF\xFD\xC0",27},{"\xFF\xFF\xFD\xE0",27},{"\xFF\xFF\xFE\x00",27},{"\xFF\xFF\xFB\x80",26}
 };
 
-
-// EOS symbol code (used for padding at end of Huffman-encoded string)
-#define HUFFMAN_EOS_CODE 0x3fffffc
-#define HUFFMAN_EOS_BITS 26
 
 // ---------------------------------------------------------------------------
 // Huffman decoder tree — lazy-initialized on first decode call.
@@ -326,20 +323,22 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
         size_t advance = 0;
         YAWT_QPACK_Error_t err = YAWT_QPACK_huff_decode_byte(
             cur, remaining, &bit_offset, &out[decoded], &advance);
-        if (err == YAWT_QPACK_DONE) {
-            *out_len = decoded;
-            return YAWT_QPACK_OK;
-        }
+        
         if (err != YAWT_QPACK_OK) {
+            if (err == YAWT_QPACK_ERR_MALFORMED && remaining == 1) {
+                uint8_t mask = (bit_offset == 0) ? 0xFF : (uint8_t)((1U << (8 - bit_offset)) - 1);
+                if ((cur[0] & mask) == mask) {
+                    *out_len = decoded;
+                    return YAWT_QPACK_OK;
+                }
+            }
             return err;
         }
-        decoded++;
 
+        decoded++;
         cur += advance;
         remaining -= advance;
 
-        // Stop once all input bytes are consumed on a byte boundary. Trailing
-        // partial-byte EOS padding is handled separately (out of scope here).
         if (remaining == 0 && bit_offset == 0) {
             break;
         }
@@ -398,14 +397,11 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
     const uint8_t *input, size_t input_len,
     uint8_t *out, size_t out_size, size_t *out_len)
 {
-  /*
-    size_t bit_offset = 0;
-    uint64_t total_bits = 0;
+    size_t total_bits = 0;
 
     for (size_t i = 0; i < input_len; i++) {
         total_bits += HUFFMAN_TABLE[input[i]].bits;
     }
-    total_bits += HUFFMAN_EOS_BITS;
 
     size_t needed_bytes = (total_bits + 7) / 8;
     if (needed_bytes > out_size) {
@@ -414,32 +410,24 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
 
     memset(out, 0, needed_bytes);
 
+    size_t out_pos = 0;
+    uint8_t bit_offset = 0;
     for (size_t i = 0; i < input_len; i++) {
-        uint32_t code = HUFFMAN_TABLE[input[i]].code;
-        uint8_t bits = HUFFMAN_TABLE[input[i]].bits;
-
-        for (uint8_t b = 0; b < bits; b++) {
-            uint8_t bit = (code >> (bits - 1 - b)) & 1;
-            size_t byte_idx = bit_offset / 8;
-            uint8_t bit_pos = 7 - (bit_offset % 8);
-            out[byte_idx] |= (bit << bit_pos);
-            bit_offset++;
+        size_t advance_bytes = 0;
+        YAWT_QPACK_Error_t err = YAWT_QPACK_huff_encode_byte(
+            input[i], out + out_pos, out_size - out_pos, &bit_offset, &advance_bytes);
+        if (err != YAWT_QPACK_OK) {
+            return err;
         }
+        out_pos += advance_bytes;
     }
 
-    uint32_t eos_code = HUFFMAN_EOS_CODE;
-    for (uint8_t b = 0; b < HUFFMAN_EOS_BITS; b++) {
-        uint8_t bit = (eos_code >> (HUFFMAN_EOS_BITS - 1 - b)) & 1;
-        size_t byte_idx = bit_offset / 8;
-        uint8_t bit_pos = 7 - (bit_offset % 8);
-        out[byte_idx] |= (bit << bit_pos);
-        bit_offset++;
+    if (bit_offset % 8 != 0) {
+        out[out_pos] |= (uint8_t)((1 << (8 - (bit_offset % 8))) - 1);
     }
 
     *out_len = needed_bytes;
     return YAWT_QPACK_OK;
-    */
-  return YAWT_QPACK_OK;
 }
 
 
