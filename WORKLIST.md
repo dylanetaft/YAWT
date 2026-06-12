@@ -134,7 +134,33 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [ ] **Stream-through + multi-frame-per-chunk** — consume non-buffered frames (DATA/unknown) by tracking remaining payload across chunks (no malloc), and loop the handler over a chunk that carries several sequential frames (current handler buffers a single must-buffer frame; non-buffered frames with payload_len>0 stall)
 - [ ] TX: open server control stream + advertise our SETTINGS (encoder still parked)
 - [ ] H3→app frame delivery callback (HEADERS/DATA); WebTransport passthrough
-- [ ] QPACK field-section decode
+- [ ] QPACK field-section decode (HEADERS frame payload → `YAWT_h3_header_section_create` — currently `#if 0` in `_handle_rx_stream_frame`)
+- [ ] QPACK/WEBTRANSPORT uni stream dispatch (currently falls through to error in `_handle_rx_stream_chunk` default case)
+
+## 13. QPACK (RFC 9204) — Decoder
+- [x] Static table (99 entries, RFC 9204 Appendix A) — `YAWT_qpack_static_get`, `YAWT_qpack_static_find_name`, `YAWT_qpack_static_find_entry`
+- [x] Huffman encode/decode (RFC 7541 Appendix B / RFC 9204 §5.1) — `huff_encode_byte`, `huff_encode_string`, `huff_decode_byte`, `huff_decode_string`, tree-based decoder with EOS padding validation
+- [x] Prefix integer encode/decode (RFC 7541 §5.1 / RFC 9204 §4.1.1) — `YAWT_H3_QPACK_decode_prefix_int`, `YAWT_H3_QPACK_encode_prefix_int`
+- [x] Field line representation dispatcher (RFC 9204 §4.5) — `YAWT_H3_QPACK_decode_field_line_msb`: Indexed, Indexed Post-Base, Literal Name Ref, Literal Post-Base Name Ref, Literal Literal Name
+- [x] Encoder instruction prefix decoder — `YAWT_H3_QPACK_decode_encoder_instruction_prefix`: Insert w/ Name Ref, Insert w/ Literal Name, Set Capacity, Duplicate
+- [ ] Header block prefix decode (RFC 9204 §4.4) — Required Insert Count, Base index
+- [ ] Field section decode (RFC 9204 §4.5) — full decode loop over field line representations, resolve static table refs, handle literals with Huffman string decode, populate `YAWT_H3_HeaderFields_t`
+- [ ] Dynamic table support (RFC 9204 §3) — insert, evict, lookup by post-base index
+
+## 14. QPACK (RFC 9204) — Encoder
+- [ ] Header block prefix encode (RFC 9204 §4.4) — Required Insert Count, Base index
+- [ ] Field line encode — Indexed (static table ref), Literal w/ Name Ref, Literal w/ Literal Name, with Huffman string encoding
+- [ ] Field section encode — loop over `YAWT_H3_HeaderFields_t`, choose optimal representation (static table lookup via `YAWT_h3_header_resolve`), emit encoded block
+- [ ] Encoder stream protocol (RFC 9204 §4.2) — encoder instructions on encoder uni stream (Insert w/ Name Ref, Insert w/ Literal Name, Set Capacity, Duplicate)
+- [ ] Decoder stream protocol (RFC 9204 §4.3) — decoder acknowledgments on decoder uni stream (Section Ack, Stream Cancel, Insert Count Increment)
+
+## 15. HTTP/3 (RFC 9114) — TX path
+- [ ] Open server control stream (uni, type=0x00) on EVT_CONNECTED
+- [ ] Encode + send SETTINGS frame on control stream from `local_settings`
+- [ ] Encode response: build HEADERS frame — resolve header fields via QPACK encoder, wrap in H3 frame, send on bidi stream
+- [ ] Encode DATA frames from body, send on bidi stream
+- [ ] GOAWAY frame encode/decode (RFC 9114 §7.2.6)
+- [ ] MAX_PUSH_ID frame encode (RFC 9114 §7.2.5)
 
 ## Done (foundational)
 - [x] Packet parse/encode (all 5 types)
