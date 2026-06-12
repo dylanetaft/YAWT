@@ -119,7 +119,38 @@ void test_huff_eos_padding(void) {
   TEST_ASSERT_EQUAL_UINT8('a', decoded_out[0]);
   TEST_ASSERT_EQUAL_UINT8(1, decoded_out_len);
 }
-
+void test_huff_decode_known_string(void) {
+  //lifted from C.6.1 RFC 7541 wireshark trace
+  uint8_t example[] = {
+    0xD0, 0x7A, 0xBE, 0x94, 0x10, 0x54, 0xD4, 0x44,
+    0xA8, 0x20, 0x05, 0x95, 0x04, 0x0B, 0x81, 0x66,
+    0xE0, 0x82, 0xA6, 0x2D, 0x1B, 0xFF
+  };
+  YAWT_QPACK_Error_t err;
+  uint8_t decoded_out[128];
+  size_t decoded_out_len;
+  err = YAWT_QPACK_huff_decode_string(example, sizeof(example), decoded_out,
+        sizeof(decoded_out), &decoded_out_len);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  char *known = "Mon, 21 Oct 2013 20:13:21 GMT";
+  TEST_ASSERT_EQUAL_MEMORY(known, decoded_out, strlen(known));
+}
+void test_huff_encode_known_string(void) {
+  //lifted from C.6.1 RFC 7541 wireshark trace
+  char *known = "Mon, 21 Oct 2013 20:13:21 GMT";
+  uint8_t expected[] = {
+    0xD0, 0x7A, 0xBE, 0x94, 0x10, 0x54, 0xD4, 0x44,
+    0xA8, 0x20, 0x05, 0x95, 0x04, 0x0B, 0x81, 0x66,
+    0xE0, 0x82, 0xA6, 0x2D, 0x1B, 0xFF
+  };
+  YAWT_QPACK_Error_t err;
+  uint8_t encoded[128];
+  size_t encoded_len;
+  err = YAWT_QPACK_huff_encode_string((uint8_t *)known, strlen(known), encoded,
+        sizeof(encoded), &encoded_len);
+  TEST_ASSERT_EQUAL(YAWT_QPACK_OK, err);
+  TEST_ASSERT_EQUAL_MEMORY(expected, encoded, sizeof(expected));
+}
 void test_huff_malformed_padding(void) {
   // Encode "a", then change the padding to 0.
   uint8_t input[] = "a";
@@ -159,5 +190,7 @@ void test_huffman_register(void) {
   RUN_TEST(test_huff_roundtrip_rfc_example);
   RUN_TEST(test_huff_eos_padding);
   RUN_TEST(test_huff_malformed_padding);
+  RUN_TEST(test_huff_decode_known_string);
+  RUN_TEST(test_huff_encode_known_string);
 }
 

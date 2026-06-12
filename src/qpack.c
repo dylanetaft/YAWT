@@ -255,7 +255,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     const uint8_t *data, size_t data_len,
     uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes)
 {
-    YAWT_LOG(YAWT_LOG_DEBUG,"decode byte");
+    //YAWT_LOG(YAWT_LOG_DEBUG,"decode byte");
     if (_g_huff_decoder.count == 0) {
         huff_decoder_build();
     }
@@ -277,7 +277,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
             bit_pos = 0;
             pos++;
         }
-        YAWT_LOG(YAWT_LOG_DEBUG,"Huffman decode: bit=%u, pos=%zu, bit_pos=%u", bit, pos, bit_pos);
+        //YAWT_LOG(YAWT_LOG_DEBUG,"Huffman decode: bit=%u, pos=%zu, bit_pos=%u", bit, pos, bit_pos);
         next = bit ? _g_huff_decoder.nodes[current].r : _g_huff_decoder.nodes[current].l;
         if (next == 0) {
             // We are on an internal node that has no edge for this bit:
@@ -297,8 +297,8 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
             if (advance_bytes) {
                 *advance_bytes = pos;
             }
-            YAWT_LOG(YAWT_LOG_DEBUG,"Decoded byte: %u, bit_offset: %u, advance_bytes: %zu",
-                     *out_byte, *bit_offset, pos);
+            //YAWT_LOG(YAWT_LOG_DEBUG,"Decoded byte: %u, bit_offset: %u, advance_bytes: %zu",
+            //         *out_byte, *bit_offset, pos);
             return YAWT_QPACK_OK;
         }
     }
