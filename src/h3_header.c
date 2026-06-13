@@ -60,9 +60,14 @@ YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating slab");
     abort();
   }
-  // huff_scratch left NULL; lazily created/grown on first use during
-  // QPACK decode of Huffman strings (see YAWT_qpack_decode).
-  section->huff_scratch = NULL;
+  const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
+  size_t init = (sec && sec->max_frame_buffer_bytes)
+                ? sec->max_frame_buffer_bytes : 4096;
+  section->huff_scratch = ANB_blob_create(init);
+  if (!section->huff_scratch) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating huff_scratch");
+    abort();
+  }
   return section;
 }
 
@@ -244,15 +249,6 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
 
     const uint8_t *str_data = *cur + cons;
 
-    // Lazily create/grow scratch in the header object.
-    if (!section->huff_scratch) {
-        const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-        size_t init = (sec && sec->max_frame_buffer_bytes)
-                      ? sec->max_frame_buffer_bytes : 4096;
-        if ((size_t)str_len > init) init = (size_t)str_len;
-        section->huff_scratch = ANB_blob_create(init);
-    }
-
     size_t needed = (size_t)str_len;
     if (huff) needed = needed * 2 + 128;
     size_t cap = ANB_blob_capacity(section->huff_scratch);
@@ -299,18 +295,6 @@ YAWT_QPACK_Error_t YAWT_qpack_decode(
     YAWT_H3_HeaderFields_t *out)
 {
     if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
-
-    if (!out->slab) {
-        // Caller should have allocated the section via create() and passed its
-        // pointer.  This defensive path inits the innards of an already-
-        // allocated (but empty) section struct in-place.
-        out->slab = ANB_slab_create(256);
-        if (!out->slab) {
-            YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating slab in decode");
-            abort();
-        }
-        out->huff_scratch = NULL;
-    }
 
     size_t pcons = 0;
     uint64_t ric = 0, base = 0;
