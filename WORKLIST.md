@@ -123,6 +123,21 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Min idle timeout floor: clamp effective idle timeout via `YAWT_Q_SecurityPolicy_t.min_idle_timeout_ms`
 - [ ] PN duplicate rejection (RFC 9000 §21.4): discard packets with already-seen PNs
 
+## 9a. Error Handling / Cleanup
+- [ ] H3: `_h3_stream_close(stream, error_code)` helper — reset frame state, free payload, null headers
+- [ ] H3: `_h3_conn_close(h3con, error_code)` helper — send CONNECTION_CLOSE, tear down
+- [ ] H3: close stream on frame header exceeds max len (`h3.c:219`)
+- [ ] H3: close stream on frame Length exceeds buffer cap (`h3.c:251`)
+- [ ] H3: close connection with H3_SETTINGS_ERROR on duplicate SETTINGS (`h3.c:284`)
+- [ ] H3: close connection with H3_SETTINGS_ERROR on SETTINGS decode failure (`h3.c:300`)
+- [ ] H3: close connection with H3_MISSING_SETTINGS on control stream violation (`h3.c:313`)
+- [ ] H3: close connection when no stream slots available (`h3.c:350`)
+- [ ] H3: close stream/session on stream type resolve error (`h3.c:374`)
+- [ ] H3: close stream on unknown stream type (`h3.c:383`)
+- [ ] H3: close stream on unhandled stream type (`h3.c:397`)
+- [ ] QUIC: close connection on reassembly failure (`quic_connection.c:882`)
+- [ ] CRYPTO: propagate TLS alert to connection layer (`crypt.c:194`)
+
 ## 12. HTTP/3 (RFC 9114) — RX path
 - [x] H3 connection object (alloc on EVT_CONNECTED, free on EVT_CLOSE)
 - [x] Per-stream meta slot pool + frame state (`YAWT_H3_StreamMeta_t.cur`)
@@ -131,11 +146,14 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] **Uni stream-type prefix** — `_gather_h3_stream_type` reads the 1-varint role prefix on client uni streams once before framing (accumulates across chunks in `YAWT_H3_Stream_t.hdr`/`accumulated`), strips it into a forwarded body view, and resolves `type`. `type == UNASSIGNED` is the "prefix not yet read" signal (distinct from wire CONTROL==0). Maps CONTROL→STREAM_FRAME path, QPACK/WT to their types; rejects a server-side push stream (MALFORMED). Bidi resolves straight to STREAM_FRAME. TODO: silently drain unknown uni stream types instead of erroring.
 - [x] **SETTINGS dispatch** — un-park `YAWT_h3_settings_decode` (adapt to `YAWT_Q_ReadCursor_t`/`YAWT_q_varint_decode`), call it on a complete control-stream SETTINGS frame, store into `peer_settings`; enforce SETTINGS-first + no-duplicate rules (RFC 9114 §7.2.4). `local_settings`/`peer_settings` are pointers (NULL = not set).
 - [x] **Cursor-based frame handler** — `_handle_rx_stream_frame` takes `YAWT_Q_ReadCursor_t *` instead of copying `YAWT_Q_Frame_Stream_t`; `_gather_h3_frame_head` advances cursor directly.
-- [ ] **Stream-through + multi-frame-per-chunk** — consume non-buffered frames (DATA/unknown) by tracking remaining payload across chunks (no malloc), and loop the handler over a chunk that carries several sequential frames (current handler buffers a single must-buffer frame; non-buffered frames with payload_len>0 stall)
+- [x] **Stream-through + multi-frame-per-chunk** — consume non-buffered frames (DATA/unknown) by tracking remaining payload across chunks (no malloc), and loop the handler over a chunk that carries several sequential frames
+- [x] **H3→app frame delivery callback** — `YAWT_H3_EventHandler_t` with HEADERS/DATA/SETTINGS/CLOSE events; `YAWT_h3_set_event_handler()` to install
+- [x] **H3 event system** — `YAWT_H3_EventType_t`/`YAWT_H3_EventParam_t` in `h3_types.h`, handler API in `h3.h`
+- [x] **QUIC event fold** — `YAWT_Q_EventType_t`/`YAWT_Q_EventParam_t` moved from `events.h` into `quic_types.h`; `YAWT_Q_EventHandler_t` in `quic.h`; `events.h` deleted
+- [x] **Stream-type frame validation** — `_dispatch_buffered_frame()` switches on `stream->type`, rejects wrong-frame-on-wrong-stream (connection error)
 - [ ] TX: open server control stream + advertise our SETTINGS (encoder still parked)
-- [ ] H3→app frame delivery callback (HEADERS/DATA); WebTransport passthrough
-- [ ] QPACK field-section decode (HEADERS frame payload → `YAWT_h3_header_section_create` — currently `#if 0` in `_handle_rx_stream_frame`)
-- [ ] QPACK/WEBTRANSPORT uni stream dispatch (currently falls through to error in `_handle_rx_stream_chunk` default case)
+- [ ] QPACK/WEBTRANSPORT uni stream dispatch (silently drain)
+- [x] H3: expose `YAWT_h3_get_qcon()` so app can reach QUIC layer from H3 callback
 
 ## 13. QPACK (RFC 9204) — Decoder
 - [x] Static table (99 entries, RFC 9204 Appendix A) — `YAWT_qpack_static_get`, `YAWT_qpack_static_find_name`, `YAWT_qpack_static_find_entry`

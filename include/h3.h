@@ -2,8 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "h3_types.h"
-#include "quic.h"   // YAWT_q_varint_*, YAWT_Q_ReadCursor_t
-#include "events.h"   // YAWT_Q_Connection_t (fwd), YAWT_Q_EventType_t, YAWT_Q_EventParam_t
+#include "quic.h"   // YAWT_q_varint_*, YAWT_Q_ReadCursor_t, YAWT_Q_EventType_t, YAWT_Q_EventParam_t
 
 // ---------------------------------------------------------------------------
 // HTTP/3 (RFC 9114) function API — minimal subset for WebTransport. Data types
@@ -36,4 +35,13 @@ void YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
 // Enforces: SETTINGS must appear first on the control stream and only once per
 // connection (RFC 9114 §7.2.4).
 YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
-                                         YAWT_H3_Settings_t *out);
+                                          YAWT_H3_Settings_t *out);
+
+// Install an app-level event handler on an H3 connection. The handler receives
+// H3-level events (HEADERS decoded, DATA chunks, SETTINGS, errors). Passing NULL
+// clears any previously installed handler.
+void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
+                                YAWT_H3_EventHandler_t handler);
+
+// Get the underlying QUIC connection from an H3 connection.
+YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con);

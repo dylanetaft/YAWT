@@ -5,6 +5,10 @@
 #include <string.h>
 #include "logger.h"
 
+// Forward declarations for event types
+struct YAWT_Q_PeerAddr;
+typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
+
 #define YAWT_Q_MAX_PKT_SIZE 1350
 #define YAWT_Q_CID_LEN 20
 
@@ -327,3 +331,49 @@ typedef struct {
     YAWT_Q_Frame_Datagram_t datagram;
   };
 } YAWT_Q_Frame_t;
+
+// ---------------------------------------------------------------------------
+// QUIC event taxonomy. New events extend this enum AND add a matching
+// `P_<eventtype>` substruct to YAWT_Q_EventParam_t below. The 1:1 mapping
+// between enum suffix and union member name is part of the contract.
+// ---------------------------------------------------------------------------
+
+typedef enum {
+  YAWT_Q_EVT_CONNECTED,   // handshake confirmed; no extra payload
+  YAWT_Q_EVT_STREAM,      // reassembled, in-order stream bytes available
+  YAWT_Q_EVT_DATAGRAM,    // unreliable datagram received (RFC 9221)
+  YAWT_Q_EVT_CLOSE,       // connection ended (peer CC, idle, closing expired)
+  YAWT_Q_EVT_TX,          // encrypted UDP packet ready to send
+} YAWT_Q_EventType_t;
+
+// Per-event parameters. Pure union: handler switches on event and reads the
+// matching `P_EVT_<NAME>` member.
+//
+// Transience (applies to EVERY pointer in this union): all pointers are valid
+// ONLY for the duration of the handler call. They reference internal/transient
+// storage (the input datagram buffer, a slab item, or an encode scratch buffer)
+// that the QUIC layer reuses immediately after the handler returns. Copy
+// anything you need to retain. This is the single most important contract here.
+typedef union YAWT_Q_EventParam {
+  struct { } P_EVT_CONNECTED;
+
+  struct {
+    const YAWT_Q_Frame_Stream_t *frame;
+  } P_EVT_STREAM;
+
+  struct {
+    const uint8_t *data;
+    size_t len;
+  } P_EVT_DATAGRAM;
+
+  struct {
+    uint64_t error_code;
+    const char *reason;           // null-terminated, bounded
+  } P_EVT_CLOSE;
+
+  struct {
+    const uint8_t *buf;
+    size_t len;
+    const YAWT_Q_PeerAddr_t *peer;
+  } P_EVT_TX;
+} YAWT_Q_EventParam_t;

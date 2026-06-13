@@ -3,6 +3,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+// Forward declaration — full type in quic.h
+typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
+
 #define H3_FRAME_MAX_HEADER_BYTES 16 // max varint size for Type + Length
 #define H3_STREAM_TYPE_MAX_BYTES   8 // uni stream-type prefix is one varint (<=8 bytes)
 // ---------------------------------------------------------------------------
@@ -175,7 +178,48 @@ typedef struct {
 // H3 connection object — hung off the QUIC connection's user_data. Allocated on
 // EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once).
 // ---------------------------------------------------------------------------
-typedef struct {
+typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
+
+// ---------------------------------------------------------------------------
+// H3 event taxonomy. Fired by the H3 layer toward the app via
+// YAWT_H3_EventHandler_t (set with YAWT_h3_set_event_handler).
+// ---------------------------------------------------------------------------
+
+typedef enum {
+  YAWT_H3_EVT_HEADERS,    // HEADERS frame fully decoded; param has stream_id + headers
+  YAWT_H3_EVT_DATA,       // DATA frame payload chunk; stream_id + data/len + fin
+  YAWT_H3_EVT_SETTINGS,   // SETTINGS frame decoded; param has stream_id + settings ptr
+  YAWT_H3_EVT_CLOSE,      // H3-level error/close; param has error_code + reason
+} YAWT_H3_EventType_t;
+
+typedef union YAWT_H3_EventParam {
+  struct {
+    uint64_t stream_id;
+    YAWT_H3_HeaderFields_t *headers;
+  } P_EVT_HEADERS;
+  struct {
+    uint64_t stream_id;
+    const uint8_t *data;
+    size_t len;
+    int fin;
+  } P_EVT_DATA;
+  struct {
+    uint64_t stream_id;
+    YAWT_H3_Settings_t *settings;
+  } P_EVT_SETTINGS;
+  struct {
+    uint64_t error_code;
+    const char *reason;
+  } P_EVT_CLOSE;
+} YAWT_H3_EventParam_t;
+
+typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
+                                        YAWT_H3_EventType_t event,
+                                        YAWT_H3_EventParam_t param);
+
+typedef struct YAWT_H3_Connection {
+  YAWT_Q_Connection_t *qcon;            // back-reference to the QUIC layer
+  YAWT_H3_EventHandler_t app_handler;   // app-level event callback
   YAWT_H3_Settings_t *local_settings; // NULL until populated
   YAWT_H3_Settings_t *peer_settings;  // NULL until decoded from peer
   uint64_t nstreams;                  // slot pool size (concurrent stream cap)

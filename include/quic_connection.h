@@ -5,7 +5,6 @@
 #include <uthash/utlist.h>
 #include "quic.h"
 #include "crypt.h"
-#include "events.h"
 
 
 // Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x)
@@ -62,7 +61,7 @@ typedef struct {
 // ---------------------------------------------------------------------------
 // Connection lifecycle. The two engine entry points are con_rx (ingress) and
 // con_maintain (timers/flush); both run synchronously on the libev thread and
-// may invoke the event handler (see events.h).
+// may invoke the event handler (see YAWT_Q_EventHandler_t in quic.h).
 // ---------------------------------------------------------------------------
 
 // Create a server-side connection (typically from a first Initial). Registers it

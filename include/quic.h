@@ -10,6 +10,16 @@ typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
 // Forward declaration — full type in quic_connection.h
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
+// Process-wide event handler.
+//   Lifetime:  a single global, installed via YAWT_q_con_set_event_handler()
+//     (NULL restores a built-in no-op; install replaces any previous handler).
+//   Threading: the QUIC layer is single-threaded (one libev loop). The handler
+//     is invoked synchronously from YAWT_q_con_rx() (CONNECTED/STREAM/DATAGRAM)
+//     and YAWT_q_con_maintain() (TX/CLOSE). Nothing here is thread-safe.
+typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
+                                       YAWT_Q_EventType_t event,
+                                       YAWT_Q_EventParam_t param);
+
 
 // Quic connection initialization goes like this
 // Initial -> Handshake -> 1-RTT
@@ -97,7 +107,7 @@ typedef struct {
 
 // Stream metadata — one per open stream, stored in the con->stream_meta slab.
 // The QUIC layer owns these; they track reassembly + flow-control position so
-// EVT_STREAM can be delivered gap-free (see events.h Ordering).
+// EVT_STREAM can be delivered gap-free (see YAWT_Q_EventParam_t P_EVT_STREAM).
 typedef struct {
   uint64_t stream_id;
   uint64_t rx_next_offset;        // next contiguous RX byte expected (drives ordered delivery)
