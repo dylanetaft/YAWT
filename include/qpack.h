@@ -2,13 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Forward declaration — header fields backed by ANB_Slab.
-typedef struct ANB_Slab ANB_Slab_t;
-
-// h3_types.h is included here because the static-only field section decoder
-// API (YAWT_qpack_decode) operates on YAWT_H3_HeaderFields_t.
-#include "h3_types.h"
-
 // ---------------------------------------------------------------------------
 // QPACK static table (RFC 9204 Appendix A) — 99 entries, index 0..98.
 // Both sides ship with the same table; the encoder emits indexes, the decoder
@@ -141,7 +134,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
 
 
 // ---------------------------------------------------------------------------
-// QPACK header block prefix + field section decode (RFC 9204 §4.4, §4.5)
+// QPACK header block prefix decode (RFC 9204 §4.5.1).
 // For static-only QPACK (we advertise SETTINGS_QPACK_MAX_TABLE_CAPACITY = 0).
 // ---------------------------------------------------------------------------
 //
@@ -171,18 +164,6 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_header_block_prefix(
     uint64_t *out_required_insert_count,
     uint64_t *out_base,
     size_t *bytes_consumed);
-
-// Decode the entire encoded field section (HEADERS frame payload) into `out`.
-// Only static table entries and literal representations are supported.
-// Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t,
-// lazily allocated and grown as needed).  Name/value pairs are copied into
-// out->slab using the existing header field storage.
-//
-// Returns YAWT_QPACK_OK on success.  On error the section may be left
-// partially populated; caller (h3 layer) typically destroys it.
-YAWT_QPACK_Error_t YAWT_qpack_decode(
-    const uint8_t *data, size_t len,
-    YAWT_H3_HeaderFields_t *out);
 
 
 

@@ -104,8 +104,8 @@ typedef struct {
 
 
 // Header fields — backed by ANB_Slab internally.  huff_scratch (ANB_Blob_t)
-// is used only during QPACK decode of Huffman-encoded literals in header
-// field lines; it is lazily allocated/grown and lives with the header object.
+// is used during QPACK decode of Huffman-encoded literals in header field
+// lines; allocated upfront in YAWT_h3_header_fields_create and grown as needed.
 typedef struct ANB_Slab ANB_Slab_t;
 typedef struct ANB_Blob ANB_Blob_t;
 

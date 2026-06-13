@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "h3_types.h"
+#include "qpack.h"
 #include <allocnbuffer/slab.h>
 
 // Create a new header fields backed by an ANB_Slab (and optionally a scratch
@@ -60,3 +61,14 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 static inline bool YAWT_h3_headers_is_set(const YAWT_H3_HeaderFields_t *headers) {
   return headers && headers->slab != NULL;
 }
+
+// Decode the entire encoded field section (HEADERS frame payload) into `out`.
+// Only static table entries and literal representations are supported.
+// Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t).
+// Name/value pairs are copied into out->slab using the existing header field storage.
+//
+// Returns YAWT_QPACK_OK on success.  On error the section may be left
+// partially populated; caller (h3 layer) typically destroys it.
+YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
+    const uint8_t *data, size_t len,
+    YAWT_H3_HeaderFields_t *out);

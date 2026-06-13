@@ -290,7 +290,7 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
 }
 
 // The entry point declared in qpack.h .
-YAWT_QPACK_Error_t YAWT_qpack_decode(
+YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     const uint8_t *data, size_t len,
     YAWT_H3_HeaderFields_t *out)
 {
