@@ -387,3 +387,93 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 
     return YAWT_QPACK_OK;
 }
+
+// ---------------------------------------------------------------------------
+// QPACK field section encode (static table only, no Huffman).
+// ---------------------------------------------------------------------------
+
+static YAWT_QPACK_Error_t _encode_string_literal(
+    uint8_t *buf, size_t len,
+    const char *str, size_t str_len,
+    size_t *written) {
+  if (1 + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+  buf[0] = 0x00;
+  uint64_t cons = 0;
+  YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+      buf, len, 1, (uint64_t)str_len, &cons);
+  if (err != YAWT_QPACK_OK) return err;
+  if (cons + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+  memcpy(buf + cons, str, str_len);
+  *written = (size_t)cons + str_len;
+  return YAWT_QPACK_OK;
+}
+
+YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
+    const YAWT_H3_HeaderFields_t *headers,
+    uint8_t *buf, size_t len, size_t *written) {
+  if (!headers || !buf || !written) return YAWT_QPACK_ERR_INVALID_PARAM;
+
+  size_t off = 0;
+
+  if (len < 2) return YAWT_QPACK_ERR_SHORT_BUFFER;
+  buf[off++] = 0x00;
+  buf[off++] = 0x00;
+
+  ANB_SlabIter_t iter = {0};
+  size_t item_size = 0;
+
+  while (1) {
+    uint8_t *item = ANB_slab_peek_item_iter(headers->slab, &iter, &item_size);
+    if (!item) break;
+
+    _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
+    YAWT_H3_Header_Field_t v = {
+      .name = bf->data,
+      .value = bf->data + bf->name_len + 1,
+      .name_len = bf->name_len,
+      .value_len = bf->value_len,
+      .i_static = bf->i_static,
+      .i_name = bf->i_name,
+    };
+
+    if (v.i_static > 0) {
+      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+      buf[off] = 0xC0;
+      uint64_t cons = 0;
+      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+          buf + off, len - off, 2, (uint64_t)v.i_static, &cons);
+      if (err != YAWT_QPACK_OK) return err;
+      off += (size_t)cons;
+    } else if (v.i_name > 0) {
+      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+      buf[off] = 0x50;
+      uint64_t cons = 0;
+      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+          buf + off, len - off, 4, (uint64_t)v.i_name, &cons);
+      if (err != YAWT_QPACK_OK) return err;
+      off += (size_t)cons;
+
+      size_t slen = 0;
+      err = _encode_string_literal(buf + off, len - off, v.value, v.value_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+    } else {
+      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+      buf[off] = 0x20;
+      off++;
+
+      size_t slen = 0;
+      YAWT_QPACK_Error_t err = _encode_string_literal(
+          buf + off, len - off, v.name, v.name_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+
+      err = _encode_string_literal(buf + off, len - off, v.value, v.value_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+    }
+  }
+
+  *written = off;
+  return YAWT_QPACK_OK;
+}

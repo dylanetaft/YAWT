@@ -231,6 +231,7 @@ static YAWT_Q_StreamMeta_t *_stream_meta_add(ANB_Slab_t *meta_slab, uint64_t str
   if (!m) return NULL;
   memset(m, 0, sizeof(*m));
   m->stream_id = stream_id;
+  m->tx_max_data = 65535;
   return m;
 }
 

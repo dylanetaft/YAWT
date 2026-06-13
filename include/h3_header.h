@@ -72,3 +72,15 @@ static inline bool YAWT_h3_headers_is_set(const YAWT_H3_HeaderFields_t *headers)
 YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     const uint8_t *data, size_t len,
     YAWT_H3_HeaderFields_t *out);
+
+// Encode a header fields section into a QPACK header block (static table only,
+// no Huffman). Writes the 2-byte header block prefix (RIC=0, Base=0) followed
+// by encoded field lines. Uses Indexed representation for full name+value
+// matches, Literal with Name Reference for name-only matches, and Literal with
+// Literal Name for everything else.
+//
+// Returns YAWT_QPACK_OK on success, YAWT_QPACK_ERR_SHORT_BUFFER if buf is too
+// small. Sets *written to the number of bytes written.
+YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
+    const YAWT_H3_HeaderFields_t *headers,
+    uint8_t *buf, size_t len, size_t *written);

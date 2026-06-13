@@ -3,6 +3,9 @@ project(yawt_superbuild)
 include (ExternalProject)
 set(MY_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 
+option(BUILD_TESTS "Build unit tests" OFF)
+option(BUILD_EXAMPLES "Build example programs" OFF)
+
 
 ExternalProject_add(
   libev
@@ -52,6 +55,7 @@ ExternalProject_Add(
       -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_PREFIX}
       -DCMAKE_PREFIX_PATH=${MY_INSTALL_PREFIX}
       -DBUILD_TESTS=${BUILD_TESTS}
+      -DBUILD_EXAMPLES=${BUILD_EXAMPLES}
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 )
 

@@ -74,6 +74,8 @@ typedef enum {
   YAWT_H3_ERR_MALFORMED,      // structurally invalid (e.g. odd SETTINGS pairs)
   YAWT_H3_ERR_TOO_LARGE,      // frame exceeds the H3 buffer cap (security policy)
   YAWT_H3_ERR_INVALID_PARAM,
+  YAWT_H3_ERR_NO_APP_HANDLER, // app handler not set via YAWT_h3_set_event_handler()
+  YAWT_H3_IGNORED,            // event was not handled (e.g. DATAGRAM, unknown QUIC event)
 } YAWT_H3_Error_t;
 
 static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
@@ -84,6 +86,8 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
     case YAWT_H3_ERR_MALFORMED:     return "MALFORMED";
     case YAWT_H3_ERR_TOO_LARGE:     return "TOO_LARGE";
     case YAWT_H3_ERR_INVALID_PARAM: return "INVALID_PARAM";
+    case YAWT_H3_ERR_NO_APP_HANDLER:return "NO_APP_HANDLER";
+    case YAWT_H3_IGNORED:           return "IGNORED";
     default:                        return "UNKNOWN";
   }
 }
@@ -224,6 +228,7 @@ typedef struct YAWT_H3_Connection {
   YAWT_H3_Settings_t *peer_settings;  // NULL until decoded from peer
   uint64_t nstreams;                  // slot pool size (concurrent stream cap)
   YAWT_H3_Stream_t *streams;          // preallocated slot pool, linear-scan by id
+  uint64_t control_stream_id;         // server's control stream (UINT64_MAX = not opened)
 } YAWT_H3_Connection_t;
 
 

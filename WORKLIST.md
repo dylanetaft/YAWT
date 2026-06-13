@@ -173,12 +173,13 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [ ] Decoder stream protocol (RFC 9204 §4.3) — decoder acknowledgments on decoder uni stream (Section Ack, Stream Cancel, Insert Count Increment)
 
 ## 15. HTTP/3 (RFC 9114) — TX path
-- [ ] Open server control stream (uni, type=0x00) on EVT_CONNECTED
-- [ ] Encode + send SETTINGS frame on control stream from `local_settings`
-- [ ] Encode response: build HEADERS frame — resolve header fields via QPACK encoder, wrap in H3 frame, send on bidi stream
-- [ ] Encode DATA frames from body, send on bidi stream
+- [x] Open server control stream (uni, type=0x00) on EVT_CONNECTED
+- [x] Encode + send SETTINGS frame on control stream from `local_settings`
+- [x] Encode response: build HEADERS frame — resolve header fields via QPACK encoder, wrap in H3 frame, send on bidi stream
+- [x] Encode DATA frames from body, send on bidi stream
 - [ ] GOAWAY frame encode/decode (RFC 9114 §7.2.6)
 - [ ] MAX_PUSH_ID frame encode (RFC 9114 §7.2.5)
+- [ ] Consider flushing TX buffer outside of maintenance window — currently `_drain_tx` runs after each `con_rx` packet batch and during `con_maintain`, which works for request/response patterns but may need explicit flush for proactive sends (e.g. server push, keepalive). Decide where/when later.
 
 ## Done (foundational)
 - [x] Packet parse/encode (all 5 types)

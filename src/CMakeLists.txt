@@ -4,11 +4,32 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(YAWT_ENABLE_LOGGING "Enable debug logging" ON)
 set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
+option(BUILD_EXAMPLES "Build example programs" OFF)
 
 
-file(GLOB_RECURSE SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.c)
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+set(YAWT_SOURCES
+    crypt.c
+    h3.c
+    h3_header.c
+    qpack.c
+    quic.c
+    quic_connection.c
+    security.c
+)
 
+add_library(yawt STATIC ${YAWT_SOURCES})
+
+target_include_directories(yawt PUBLIC
+    ${PROJECT_SOURCE_DIR}/../include
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
+if(YAWT_ENABLE_LOGGING)
+  target_compile_definitions(yawt PRIVATE
+    YAWT_ENABLE_LOGGING
+    YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
+  )
+endif()
 
 find_library(LIBEV ev REQUIRED)
 find_library(ALLOCNBUFFER allocnbuffer REQUIRED)
@@ -17,22 +38,16 @@ find_package(PkgConfig REQUIRED)
 set(ENV{PKG_CONFIG_PATH} "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
 pkg_check_modules(GNUTLS REQUIRED IMPORTED_TARGET gnutls)
 
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${PROJECT_SOURCE_DIR}/../include
-    ${CMAKE_INSTALL_PREFIX}/include
-)
-
-if(YAWT_ENABLE_LOGGING)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE
-    YAWT_ENABLE_LOGGING
-    YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
-  )
-endif()
-target_link_libraries(${PROJECT_NAME} ${LIBEV} ${ALLOCNBUFFER}
+target_link_libraries(yawt ${LIBEV} ${ALLOCNBUFFER}
     ${GNUTLS_STATIC_LIBRARIES})
 
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+install(TARGETS yawt ARCHIVE DESTINATION lib64)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/../include/ DESTINATION include/yawt
+        FILES_MATCHING PATTERN "*.h")
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/../examples ${CMAKE_BINARY_DIR}/examples)
+endif()
 
 if(BUILD_TESTS)
     enable_testing()

@@ -6,10 +6,11 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <gnutls/gnutls.h>
-#include "../include/quic_connection.h"
-#include "../include/quic_types.h"
-#include "../include/h3.h"
-#include "logger.h"
+#include <quic_connection.h>
+#include <quic_types.h>
+#include <h3.h>
+#include <h3_types.h>
+#include <h3_header.h>
 
 #define LISTEN_PORT 4433
 #define BUF_SIZE 65535
@@ -17,105 +18,6 @@
 static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
-
-
-/*
-
-void test(uint8_t *buf, size_t len, uint8_t val, uint8_t offset) {
-    
-    uint8_t bits = HUFFMAN_TABLE2[val].bits;
-    const uint8_t *ptr2 = HUFFMAN_TABLE2[val].code;
-    uint64_t code = 0;
-    memcpy(&code, HUFFMAN_TABLE2[val].code, 4);
-    
-    for (int i = 0;i< 64;i++) {
-        uint8_t bit = code >> i & 1;
-        printf("%u\n",bit);
-    
-    }
-    //for (int b = 0; b < 4;b++) {
-    //    for (int i = 0; i < 8;i++) {
-    //        uint8_t bit = *(uint32_t *)ptr2 >> (b*8) + 7 - i & 1;
-    //        printf("%u\n",bit);
-    //    }
-    //
-    
-}
-
-void conv() {
-    int sz = sizeof(HUFFMAN_TABLE) / sizeof(HUFFMAN_TABLE[0]);
-    for (int i = 0;i < sz;i++) {
-    
-        uint32_t code = HUFFMAN_TABLE[i].code;
-        uint8_t bits = HUFFMAN_TABLE[i].bits;
-        uint8_t buf[4] = {0};
-        uint8_t bc = 0;
-        //printf("{");
-        int writepos = 0;
-        for (int i = bits - 1; i >= 0;i--) {
-            uint32_t bit = (code >> i) & 1;
-            int byte = writepos >> 3;
-            int off  = writepos & 7;
-            
-            if (bit) {
-                buf[byte] |= (1u << (7 - off));
-            }
-            
-            writepos++;
-        }
-         printf("{\"\\x%X\\x%X\\x%X\\x%X\",%u},",buf[0],buf[1],buf[2],buf[3],bits);
-    
-        
-    }
-    printf("\n");
- 
-}
-void printbuf(uint8_t *buf)
-{
-    for (int b = 0; b < 4; b++) {
-        for (int p = 7; p >= 0; p--) {          // 7..0 = 8 bits
-            uint8_t bit = (buf[b] >> p) & 1;
-            printf("%u", bit);
-        }
-        printf("\n");
-    }
-}
-void conv(void)
-{
-    size_t sz = sizeof(HUFFMAN_TABLE) / sizeof(HUFFMAN_TABLE[0]);
-
-    for (size_t i = 0; i < sz; i++) {
-        uint32_t code = HUFFMAN_TABLE[i].code;
-        uint8_t bits = HUFFMAN_TABLE[i].bits;
-
-        uint8_t buf[4] = {0};
-        int writepos = 0;
-
-        // Build the code in wire order (MSB first) 
-        for (int bitpos = bits - 1; bitpos >= 0; bitpos--) {
-            uint32_t bit = (code >> bitpos) & 1;
-
-            int byte_idx = writepos >> 3;      // which byte
-            int bit_idx  = writepos & 7;       // position within byte (0 = MSB)
-
-            if (bit) {
-                buf[byte_idx] |= (1u << (7 - bit_idx));
-            }
-
-            writepos++;
-        }
-
-        printf("{\"\\x%02X\\x%02X\\x%02X\\x%02X\",%u},",
-               buf[0], buf[1], buf[2], buf[3], bits);
-
-        // Optional: nice formatting every 5 entries
-        if ((i + 1) % 5 == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
-}
-*/
 
 // Convert sockaddr_in to YAWT_Q_PeerAddr_t (IPv4-mapped IPv6)
 static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
@@ -140,7 +42,7 @@ static struct sockaddr_in _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa) {
 }
 
 static void udp_send(const uint8_t *buf, size_t len,
-                      const YAWT_Q_PeerAddr_t *peer_addr) {
+                       const YAWT_Q_PeerAddr_t *peer_addr) {
   struct sockaddr_in sa = _peer_to_sockaddr(peer_addr);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
                          (struct sockaddr *)&sa, sizeof(sa));
@@ -148,20 +50,71 @@ static void udp_send(const uint8_t *buf, size_t len,
            nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
-// App's single event handler: owns transport glue (TX → UDP write) and forwards
+static void h3_app_handler(YAWT_H3_Connection_t *h3con,
+                             YAWT_H3_EventType_t event,
+                             YAWT_H3_EventParam_t param) {
+  switch (event) {
+    case YAWT_H3_EVT_SETTINGS:
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: SETTINGS on stream %lu",
+               param.P_EVT_SETTINGS.stream_id);
+      break;
+    case YAWT_H3_EVT_HEADERS: {
+      uint64_t sid = param.P_EVT_HEADERS.stream_id;
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: HEADERS on stream %lu", sid);
+
+      const char *body = "Hello, HTTP/3!";
+      size_t body_len = strlen(body);
+      char cl_buf[16];
+      snprintf(cl_buf, sizeof(cl_buf), "%zu", body_len);
+
+      YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
+      YAWT_h3_header_add_str_static(resp, ":status", "200", 25, 0);
+      YAWT_h3_header_add_str_static(resp, "content-type", "text/html", 0, 44);
+      YAWT_h3_header_add_str_static(resp, "content-length", cl_buf, 0, 4);
+
+      YAWT_h3_send_headers(h3con, sid, resp, 0);
+      YAWT_h3_send_data(h3con, sid, (const uint8_t *)body, body_len, 1);
+
+      YAWT_h3_header_fields_destroy(resp);
+      break;
+    }
+    case YAWT_H3_EVT_DATA:
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: DATA on stream %lu (%zu bytes, fin=%d)",
+               param.P_EVT_DATA.stream_id, param.P_EVT_DATA.len,
+               param.P_EVT_DATA.fin);
+      break;
+    case YAWT_H3_EVT_CLOSE:
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: CLOSE (code=%lu, reason=%s)",
+               param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
+      break;
+  }
+}
+
+// App's single event handler: owns transport glue (TX -> UDP write) and forwards
 // the application-facing events to the H3 layer.
 static void on_event(YAWT_Q_Connection_t *con,
-                      YAWT_Q_EventType_t event,
-                      YAWT_Q_EventParam_t param) {
+                       YAWT_Q_EventType_t event,
+                       YAWT_Q_EventParam_t param) {
   switch (event) {
     case YAWT_Q_EVT_TX:
       udp_send(param.P_EVT_TX.buf, param.P_EVT_TX.len, param.P_EVT_TX.peer);
       break;
 
-    default:
-      // CONNECTED / STREAM / DATAGRAM / CLOSE → H3 layer
-      YAWT_h3_on_event(con, event, param);
+    default: {
+      YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
+      if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
+        YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
+        if (h3) {
+          YAWT_h3_set_event_handler(h3, h3_app_handler);
+        }
+      }
+      if (rc == YAWT_H3_ERR_NO_APP_HANDLER) {
+        YAWT_LOG(YAWT_LOG_WARN, "h3: event %d processed but no app handler set", event);
+      } else if (rc == YAWT_H3_IGNORED) {
+        YAWT_LOG(YAWT_LOG_DEBUG, "h3: event %d ignored", event);
+      }
       break;
+    }
   }
 }
 
