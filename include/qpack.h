@@ -5,6 +5,10 @@
 // Forward declaration — header fields backed by ANB_Slab.
 typedef struct ANB_Slab ANB_Slab_t;
 
+// h3_types.h is included here because the static-only field section decoder
+// API (YAWT_qpack_decode) operates on YAWT_H3_HeaderFields_t.
+#include "h3_types.h"
+
 // ---------------------------------------------------------------------------
 // QPACK static table (RFC 9204 Appendix A) — 99 entries, index 0..98.
 // Both sides ship with the same table; the encoder emits indexes, the decoder
@@ -134,6 +138,51 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
 YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
     const uint8_t *input, size_t input_len,
     uint8_t *out, size_t out_size, size_t *out_len);
+
+
+// ---------------------------------------------------------------------------
+// QPACK header block prefix + field section decode (RFC 9204 §4.4, §4.5)
+// For static-only QPACK (we advertise SETTINGS_QPACK_MAX_TABLE_CAPACITY = 0).
+// ---------------------------------------------------------------------------
+//
+// Encoded Field Section Prefix (RFC 9204 Figure 12, §4.5.1):
+//
+//   0   1   2   3   4   5   6   7
+// +---+---+---+---+---+---+---+---+
+// |   Required Insert Count (8+)  |
+// +---+---------------------------+
+// | S |      Delta Base (7+)      |
+// +---+---------------------------+
+// |      Encoded Field Lines    ...
+// +-------------------------------+
+//
+// Required Insert Count: prefixed integer, 8-bit prefix (offset_bits=0).
+// Delta Base: sign bit S + 7-bit prefix integer (offset_bits=1 on the byte).
+// Base is then computed as:
+//   if S == 0: Base = RIC + Delta
+//   else:      Base = RIC - Delta - 1
+//
+// For our static-only policy, RIC must decode to 0 (and Base to 0).
+// Non-zero RIC or any dynamic/post-base reference is rejected with
+// YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT or ERR_DYNAMIC_TABLE_UNSUPPORTED.
+
+YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_header_block_prefix(
+    const uint8_t *data, size_t data_len,
+    uint64_t *out_required_insert_count,
+    uint64_t *out_base,
+    size_t *bytes_consumed);
+
+// Decode the entire encoded field section (HEADERS frame payload) into `out`.
+// Only static table entries and literal representations are supported.
+// Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t,
+// lazily allocated and grown as needed).  Name/value pairs are copied into
+// out->slab using the existing header field storage.
+//
+// Returns YAWT_QPACK_OK on success.  On error the section may be left
+// partially populated; caller (h3 layer) typically destroys it.
+YAWT_QPACK_Error_t YAWT_qpack_decode(
+    const uint8_t *data, size_t len,
+    YAWT_H3_HeaderFields_t *out);
 
 
 

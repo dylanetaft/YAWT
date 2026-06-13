@@ -1,6 +1,8 @@
 #include "h3_header.h"
 #include "qpack.h"
 #include "logger.h"
+#include "security.h"
+#include <allocnbuffer/blob.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -47,7 +49,7 @@ static YAWT_H3_Error_t _store_field(YAWT_H3_HeaderFields_t *section,
 // Create / destroy
 // ---------------------------------------------------------------------------
 
-YAWT_H3_HeaderFields_t *YAWT_h3_header_section_create(void) {
+YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void) {
   YAWT_H3_HeaderFields_t *section = calloc(1, sizeof(*section));
   if (!section) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating header fields");
@@ -58,12 +60,22 @@ YAWT_H3_HeaderFields_t *YAWT_h3_header_section_create(void) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating slab");
     abort();
   }
+  // huff_scratch left NULL; lazily created/grown on first use during
+  // QPACK decode of Huffman strings (see YAWT_qpack_decode).
+  section->huff_scratch = NULL;
   return section;
 }
 
-void YAWT_h3_header_section_destroy(YAWT_H3_HeaderFields_t *section) {
+void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section) {
   if (!section) return;
-  ANB_slab_destroy(section->slab);
+  if (section->slab) {
+    ANB_slab_destroy(section->slab);
+    section->slab = NULL;
+  }
+  if (section->huff_scratch) {
+    ANB_blob_destroy(section->huff_scratch);
+    section->huff_scratch = NULL;
+  }
   free(section);
 }
 
@@ -199,4 +211,195 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 
   _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
   return _make_view(bf);
+}
+
+
+// ---------------------------------------------------------------------------
+// QPACK field section decode (static table + literals only).
+// Implementation lives here (rather than qpack.c) to keep qpack.c free of
+// H3 header/blob includes for cleaner test builds, while the API is declared
+// in qpack.h for the existing call-site name.
+// ---------------------------------------------------------------------------
+
+// Decode one string literal from the block (H bit + 7+ length + payload).
+// On Huffman, decodes into the section's huff_scratch blob (grows on demand).
+// Returns pointer/len into the (possibly reallocated) blob data.
+// Advances the caller's cur/remaining.
+static YAWT_QPACK_Error_t _h3_decode_string_literal(
+    const uint8_t **cur, size_t *remaining,
+    YAWT_H3_HeaderFields_t *section,
+    const uint8_t **out, size_t *out_len)
+{
+    if (*remaining == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
+
+    uint8_t first = **cur;
+    int huff = (first & 0x80) != 0;
+    uint64_t str_len = 0;
+    uint64_t cons = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_prefix_int(
+        *cur, *remaining, 1 /* offset after H */, &str_len, &cons);
+    if (err != YAWT_QPACK_OK) return err;
+
+    if (*remaining < cons + (size_t)str_len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+
+    const uint8_t *str_data = *cur + cons;
+
+    // Lazily create/grow scratch in the header object.
+    if (!section->huff_scratch) {
+        const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
+        size_t init = (sec && sec->max_frame_buffer_bytes)
+                      ? sec->max_frame_buffer_bytes : 4096;
+        if ((size_t)str_len > init) init = (size_t)str_len;
+        section->huff_scratch = ANB_blob_create(init);
+    }
+
+    size_t needed = (size_t)str_len;
+    if (huff) needed = needed * 2 + 128;
+    size_t cap = ANB_blob_capacity(section->huff_scratch);
+    if (cap < needed) {
+        ANB_blob_realloc(section->huff_scratch, needed);
+    }
+
+    uint8_t *buf = ANB_blob_data(section->huff_scratch);
+    cap = ANB_blob_capacity(section->huff_scratch);
+
+    if (huff) {
+        size_t decoded = 0;
+        err = YAWT_QPACK_huff_decode_string(str_data, (size_t)str_len,
+                                            buf, cap, &decoded);
+        while (err == YAWT_QPACK_ERR_SHORT_BUFFER && cap < (size_t)str_len * 8) {
+            ANB_blob_realloc(section->huff_scratch, cap * 2);
+            buf = ANB_blob_data(section->huff_scratch);
+            cap = ANB_blob_capacity(section->huff_scratch);
+            err = YAWT_QPACK_huff_decode_string(str_data, (size_t)str_len,
+                                                buf, cap, &decoded);
+        }
+        if (err != YAWT_QPACK_OK) return err;
+        *out = buf;
+        *out_len = decoded;
+    } else {
+        if ((size_t)str_len > cap) {
+            ANB_blob_realloc(section->huff_scratch, (size_t)str_len);
+            buf = ANB_blob_data(section->huff_scratch);
+            cap = ANB_blob_capacity(section->huff_scratch);
+        }
+        memcpy(buf, str_data, (size_t)str_len);
+        *out = buf;
+        *out_len = (size_t)str_len;
+    }
+
+    *cur += cons + (size_t)str_len;
+    *remaining -= cons + (size_t)str_len;
+    return YAWT_QPACK_OK;
+}
+
+// The entry point declared in qpack.h .
+YAWT_QPACK_Error_t YAWT_qpack_decode(
+    const uint8_t *data, size_t len,
+    YAWT_H3_HeaderFields_t *out)
+{
+    if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
+
+    if (!out->slab) {
+        // Caller should have allocated the section via create() and passed its
+        // pointer.  This defensive path inits the innards of an already-
+        // allocated (but empty) section struct in-place.
+        out->slab = ANB_slab_create(256);
+        if (!out->slab) {
+            YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating slab in decode");
+            abort();
+        }
+        out->huff_scratch = NULL;
+    }
+
+    size_t pcons = 0;
+    uint64_t ric = 0, base = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_header_block_prefix(
+        data, len, &ric, &base, &pcons);
+    if (err != YAWT_QPACK_OK) return err;
+
+    // Static-only: reject anything that would require the dynamic table.
+    if (ric != 0) {
+        return YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT;
+    }
+
+    const uint8_t *cur = data + pcons;
+    size_t rem = len - pcons;
+
+    while (rem > 0) {
+        uint8_t b = *cur;
+        uint8_t pbits = 0;
+        YAWT_QPACK_FieldLineRepType_t rep =
+            YAWT_H3_QPACK_decode_field_line_msb(b, &pbits);
+
+        switch (rep) {
+        case YAWT_QPACK_FIELD_LINE_INDEXED: {
+            // 1 T Index(6+)
+            int T = (b >> 6) & 1;
+            uint64_t idx = 0, cons = 0;
+            err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 1, &idx, &cons);
+            if (err != YAWT_QPACK_OK) return err;
+            cur += cons; rem -= cons;
+
+            if (T == 0) return YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED;
+            const YAWT_QPACK_StaticEntry_t *e = YAWT_qpack_static_get(idx);
+            if (!e) return YAWT_QPACK_ERR_MALFORMED;
+
+            if (YAWT_h3_header_add_static(out,
+                    e->name, strlen(e->name),
+                    e->value, strlen(e->value),
+                    (size_t)idx, 0) != YAWT_H3_OK)
+                return YAWT_QPACK_ERR_MALFORMED;
+            break;
+        }
+
+        case YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF: {
+            // 0 1 N T Index(4+)
+            int T = (b >> 4) & 1;
+            uint64_t idx = 0, cons = 0;
+            err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &idx, &cons);
+            if (err != YAWT_QPACK_OK) return err;
+            cur += cons; rem -= cons;
+
+            if (T == 0) return YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED;
+            const YAWT_QPACK_StaticEntry_t *e = YAWT_qpack_static_get(idx);
+            if (!e) return YAWT_QPACK_ERR_MALFORMED;
+
+            const uint8_t *val = NULL; size_t vlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, out, &val, &vlen);
+            if (err != YAWT_QPACK_OK) return err;
+
+            if (YAWT_h3_header_add_static(out,
+                    e->name, strlen(e->name),
+                    (const char *)val, vlen, 0, (size_t)idx) != YAWT_H3_OK)
+                return YAWT_QPACK_ERR_MALFORMED;
+            break;
+        }
+
+        case YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME: {
+            // 0 0 1 N H ...
+            const uint8_t *np = NULL; size_t nlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, out, &np, &nlen);
+            if (err != YAWT_QPACK_OK) return err;
+
+            const uint8_t *vp = NULL; size_t vlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, out, &vp, &vlen);
+            if (err != YAWT_QPACK_OK) return err;
+
+            if (YAWT_h3_header_add(out, (const char *)np, nlen,
+                                   (const char *)vp, vlen) != YAWT_H3_OK)
+                return YAWT_QPACK_ERR_MALFORMED;
+            break;
+        }
+
+        case YAWT_QPACK_FIELD_LINE_INDEXED_POST_BASE:
+        case YAWT_QPACK_FIELD_LINE_LITERAL_POST_BASE_NAME_REF:
+            return YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED;
+
+        default:
+            return YAWT_QPACK_ERR_MALFORMED;
+        }
+    }
+
+    return YAWT_QPACK_OK;
 }

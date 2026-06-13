@@ -4,11 +4,15 @@
 #include "h3_types.h"
 #include <allocnbuffer/slab.h>
 
-// Create a new header fields backed by an ANB_Slab.
-YAWT_H3_HeaderFields_t *YAWT_h3_header_section_create(void);
+// Create a new header fields backed by an ANB_Slab (and optionally a scratch
+// blob for decode). Returns a heap-allocated YAWT_H3_HeaderFields_t*.
+// The pointer itself may be null-checked (non-NULL means resources were
+// allocated and destroy should be called later).
+YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void);
 
-// Destroy a header fields and free all slab memory.
-void YAWT_h3_header_section_destroy(YAWT_H3_HeaderFields_t *section);
+// Destroy a header fields: destroys its slab (and any huff_scratch blob) and
+// frees the YAWT_H3_HeaderFields_t struct itself.
+void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section);
 
 // Add a field — copies name and value into slab storage.
 // Does not resolve QPACK indexes (i_static=0, i_name=0).

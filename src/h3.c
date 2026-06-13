@@ -70,11 +70,13 @@ static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
     if (h3->streams[i].frame.payload != NULL) {
       free(h3->streams[i].frame.payload);
     }
-    if (h3->streams[i].request.headers.slab) {
-      YAWT_h3_header_section_destroy(&h3->streams[i].request.headers);
+    if (h3->streams[i].request.headers) {
+      YAWT_h3_header_fields_destroy(h3->streams[i].request.headers);
+      h3->streams[i].request.headers = NULL;
     }
-    if (h3->streams[i].response.headers.slab) {
-      YAWT_h3_header_section_destroy(&h3->streams[i].response.headers);
+    if (h3->streams[i].response.headers) {
+      YAWT_h3_header_fields_destroy(h3->streams[i].response.headers);
+      h3->streams[i].response.headers = NULL;
     }
   }
   free(h3->streams);
@@ -314,19 +316,21 @@ void _handle_rx_stream_frame(
 
     // Dispatch HEADERS frame through QPACK decoder.
     if (f->type == YAWT_H3_FRAME_HEADERS) {
-      if (!YAWT_h3_headers_is_set(&stream->request.headers)) {
-        stream->request.headers = *YAWT_h3_header_section_create();
+      if (!YAWT_h3_headers_is_set(stream->request.headers)) {
+        stream->request.headers = YAWT_h3_header_fields_create();
       }
-#if 0
       YAWT_QPACK_Error_t qerr = YAWT_qpack_decode(
-          f->payload, (size_t)f->payload_len, &stream->request.headers);
+          f->payload, (size_t)f->payload_len, stream->request.headers);
       if (qerr != YAWT_QPACK_OK) {
         YAWT_LOG(YAWT_LOG_ERROR, "h3: QPACK decode failed on stream %lu: %d",
                  stream->id, qerr);
+        // Destroy partial section.  Null the pointer so is_set() and
+        // null-checks see it as unallocated.
+        YAWT_h3_header_fields_destroy(stream->request.headers);
+        stream->request.headers = NULL;
       } else {
         YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
       }
-#endif
     }
 
     free(f->payload);             // NULL or owned — safe

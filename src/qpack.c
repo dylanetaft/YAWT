@@ -668,3 +668,68 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     return YAWT_QPACK_OK;
 }
 
+
+// ---------------------------------------------------------------------------
+// Header block prefix decode (RFC 9204 §4.5.1).
+// The higher-level field section decode (YAWT_qpack_decode) lives in
+// h3_header.c so that it can depend on the H3 header storage + blob without
+// forcing qpack.c (and its test builds) to pull H3 includes.
+// ---------------------------------------------------------------------------
+
+YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_header_block_prefix(
+    const uint8_t *data, size_t data_len,
+    uint64_t *out_required_insert_count,
+    uint64_t *out_base,
+    size_t *bytes_consumed)
+{
+    if (!data || !out_required_insert_count || !out_base || !bytes_consumed)
+        return YAWT_QPACK_ERR_INVALID_PARAM;
+    if (data_len == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
+
+    size_t total_consumed = 0;
+
+    // Required Insert Count: 8-bit prefix integer (offset_bits = 0)
+    // RFC 9204 §4.5.1.1 + Figure 12:
+    //   0   1   2   3   4   5   6   7
+    // +---+---+---+---+---+---+---+---+
+    // |   Required Insert Count (8+)  |
+    // +---+---------------------------+
+    uint64_t ric = 0;
+    uint64_t cons = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_prefix_int(
+        data + total_consumed, data_len - total_consumed, 0, &ric, &cons);
+    if (err != YAWT_QPACK_OK) return err;
+    total_consumed += cons;
+
+    if (total_consumed >= data_len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+
+    // Base: S + Delta Base (7-bit prefix)
+    // RFC 9204 §4.5.1.2:
+    // +---+---+---+---+---+---+---+---+
+    // | S |      Delta Base (7+)      |
+    // +---+---------------------------+
+    uint8_t base_byte = data[total_consumed];
+    int S = (base_byte >> 7) & 1;
+    uint64_t delta = 0;
+    err = YAWT_H3_QPACK_decode_prefix_int(
+        data + total_consumed, data_len - total_consumed, 1, &delta, &cons);
+    if (err != YAWT_QPACK_OK) return err;
+    total_consumed += cons;
+
+    uint64_t base;
+    if (S == 0) {
+        base = ric + delta;
+    } else {
+        if (ric < delta + 1) {
+            // Negative Base forbidden.
+            return YAWT_QPACK_ERR_MALFORMED;
+        }
+        base = ric - delta - 1;
+    }
+
+    *out_required_insert_count = ric;
+    *out_base = base;
+    *bytes_consumed = total_consumed;
+    return YAWT_QPACK_OK;
+}
+
