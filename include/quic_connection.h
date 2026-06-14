@@ -1,3 +1,13 @@
+/**
+ * @file quic_connection.h
+ * @brief QUIC connection lifecycle, I/O, and state management (High-Level API).
+ */
+
+/**
+ * @defgroup YAWT_Q_Core YAWT_Q_Core
+ * @brief Primary user-facing QUIC API for connection management and I/O.
+ */
+
 #pragma once
 #include <stdint.h>
 #include <allocnbuffer/slab.h>
@@ -6,19 +16,24 @@
 #include "quic.h"
 #include "crypt.h"
 
-
-// Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x)
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).
+ */
 typedef struct YAWT_Q_PeerAddr {
-  uint8_t  addr[16];  // 128-bit IPv6 address (or IPv4-mapped)
-  uint16_t port;      // network byte order
+  uint8_t  addr[16];
+  uint16_t port;
 } YAWT_Q_PeerAddr_t;
 
-
-// A QUIC connection. Owned by the QUIC layer (created in con_create, destroyed
-// in con_free). Indexed in global CID hash tables; found via con_find_by_cid.
-//   Threading: NOT thread-safe — one libev loop drives all connections. All
-//     fields are mutated only on that thread, synchronously with con_rx /
-//     con_maintain. Most fields are QUIC-internal; `user_data` is the app's.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief A QUIC connection.
+ * @note Owned by the QUIC layer (created in con_create, destroyed in con_free).
+ *       Indexed in global CID hash tables; found via con_find_by_cid.
+ *       Threading: NOT thread-safe — one libev loop drives all connections. All
+ *       fields are mutated only on that thread, synchronously with con_rx / con_maintain.
+ *       Most fields are QUIC-internal; `user_data` is the app's.
+ */
 typedef struct YAWT_Q_Connection {
   YAWT_Q_Cid_t cid;
   YAWT_Q_Cid_t peer_cid;
@@ -39,6 +54,11 @@ typedef struct YAWT_Q_Connection {
   uint64_t close_code;              // recorded by close triggers, emitted once by con_free
   char close_reason[256];           // bounded, null-terminated; "" if none
 } YAWT_Q_Connection_t;
+
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Connection creation parameters.
+ */
 typedef struct YAWT_Q_Con_Create_Info {
   int is_server;
   YAWT_Q_Crypto_Cred_t *cred;
@@ -48,9 +68,12 @@ typedef struct YAWT_Q_Con_Create_Info {
   YAWT_Q_FlowControl_t *local_fc;  // NULL = use global defaults
 } YAWT_Q_Con_Create_Info_t;
 
-// Global maintenance configuration — controls retransmit timing, idle timeout,
-// and keepalive behavior across all connections. (Frame-level retransmit DOES
-// use exponential backoff; this is distinct from the fixed ACK timer.)
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Global maintenance configuration.
+ * @note Controls retransmit timing, idle timeout, and keepalive behavior across all connections.
+ *       (Frame-level retransmit DOES use exponential backoff; this is distinct from the fixed ACK timer.)
+ */
 typedef struct {
   double retransmit_initial;   // initial retransmit timeout (default 0.5s)
   double retransmit_backoff;   // per-attempt multiplier of the timeout (default 1.5)
@@ -64,59 +87,127 @@ typedef struct {
 // may invoke the event handler (see YAWT_Q_EventHandler_t in quic.h).
 // ---------------------------------------------------------------------------
 
-// Create a server-side connection (typically from a first Initial). Registers it
-// in the CID hash. Lifetime: until con_free.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Create a QUIC connection.
+ * @param info Connection creation parameters.
+ * @return Pointer to the new connection, or NULL on failure.
+ * @note Registers it in the CID hash. Lifetime: until YAWT_q_con_free.
+ */
 YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
+
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Find a connection by Connection ID.
+ * @param cid The Connection ID to search for.
+ * @return Pointer to the connection, or NULL if not found.
+ */
 YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 
-// Destroy a connection. SINGLE close chokepoint: emits EVT_CLOSE exactly once
-// (before teardown, so user_data is still valid), unregisters, frees all slabs
-// and crypto, then sets *con = NULL. Idempotent against NULL (double-free safe).
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Destroy a connection.
+ * @param con Pointer to the connection pointer. Sets *con = NULL.
+ * @note SINGLE close chokepoint: emits EVT_CLOSE exactly once before teardown.
+ *       Idempotent against NULL (double-free safe).
+ */
 void YAWT_q_con_free(YAWT_Q_Connection_t **con);
+
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Clear the original DCID from a connection (used after handshake).
+ * @param con The connection.
+ */
 void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con);
 
-// Single ingress for received UDP datagrams. Looks up/creates the connection,
-// parses, decrypts in-place, and handles frames — may synchronously emit
-// EVT_CONNECTED / EVT_STREAM / EVT_DATAGRAM. `data` is borrowed for the call.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Single ingress for received UDP datagrams.
+ * @param data The datagram payload (borrowed for the call).
+ * @param len The datagram length.
+ * @param cred The crypto credentials.
+ * @param peer_addr The peer's address.
+ * @param now Current time (e.g., from ev_now()).
+ * @note Looks up/creates the connection, parses, decrypts in-place, and handles frames.
+ *       May synchronously emit EVT_CONNECTED / EVT_STREAM / EVT_DATAGRAM.
+ */
 void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                               const YAWT_Q_PeerAddr_t *peer_addr, double now);
 
-
-
-// Enqueue STREAM frames for the given scatter/gather buffers on stream_id.
-// Fragments across iovec entries as needed, spanning buffer boundaries.
-// Ownership: copies all iov[] data (caller keeps its buffers). If fin is set,
-// marks the stream finished after the last chunk.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Enqueue STREAM frames for the given scatter/gather buffers.
+ * @param con The QUIC connection.
+ * @param stream_id The target stream ID.
+ * @param iov Scatter/gather buffer array.
+ * @param iov_count Number of elements in iov.
+ * @param fin If true, marks the stream finished after the last chunk.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Ownership: copies all iov[] data (caller keeps its buffers).
+ */
 YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Update the peer's Connection ID.
+ * @param con The QUIC connection.
+ * @param new_cid The new peer Connection ID.
+ */
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 
-// Install the process-wide event handler. Passing NULL restores the
-// built-in no-op default. Replaces any previously installed handler.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Install the process-wide event handler.
+ * @param handler The event handler function. Passing NULL restores the built-in no-op default.
+ */
 void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
 
-// Opaque per-connection app state (e.g. the H3 connection object). The QUIC
-// layer stores it and hands it back, never dereferencing it. Lifetime is the
-// app's responsibility: typically allocated on YAWT_Q_EVT_CONNECTED and freed
-// in the YAWT_Q_EVT_CLOSE handler (which con_free guarantees fires exactly once).
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Set opaque per-connection app state.
+ * @param con The QUIC connection.
+ * @param p Opaque pointer (e.g., the H3 connection object).
+ * @note Lifetime is the app's responsibility. QUIC never dereferences it.
+ */
 static inline void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
   if (con) con->user_data = p;
 }
+
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Get opaque per-connection app state.
+ * @param con The QUIC connection.
+ * @return The opaque pointer, or NULL if con is NULL.
+ */
 static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
   return con ? con->user_data : NULL;
 }
 
-// Initiate graceful close. Idempotent: a no-op if already closing. Enqueues
-// CONNECTION_CLOSE and enters the closing state; con_maintain flushes the frame
-// and the actual free (→ EVT_CLOSE) happens later, after ~3x PTO.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Initiate graceful close.
+ * @param con The QUIC connection.
+ * @param error_code The error code to send.
+ * @note Idempotent: a no-op if already closing. Enqueues CONNECTION_CLOSE.
+ *       The actual free (→ EVT_CLOSE) happens later, after ~3x PTO.
+ */
 void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code);
 
-// Get a pointer to the current global maintenance config.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Get a pointer to the current global maintenance config.
+ * @return Pointer to the global YAWT_Q_MaintenanceConfig_t.
+ */
 const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void);
 
-// Unified maintenance pass over all connections: retransmit lost frames (with
-// backoff), enforce idle timeouts, send keepalive PINGs, and flush queued
-// packets (emits EVT_TX). May free connections whose close/idle has expired,
-// each emitting EVT_CLOSE via con_free. Call periodically from the event loop.
+/**
+ * @ingroup YAWT_Q_Core
+ * @brief Unified maintenance pass over all connections.
+ * @param now Current time (e.g., from ev_now()).
+ * @note Retransmits lost frames, enforces idle timeouts, sends keepalive PINGs,
+ *       and flushes queued packets (emits EVT_TX). May free connections whose
+ *       close/idle has expired, each emitting EVT_CLOSE via YAWT_q_con_free.
+ *       Call periodically from the event loop.
+ */
 void YAWT_q_con_maintain(double now);

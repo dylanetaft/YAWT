@@ -1,3 +1,13 @@
+/**
+ * @file quic_types.h
+ * @brief Core QUIC data structures, constants, and enums.
+ */
+
+/**
+ * @defgroup YAWT_Q_Types YAWT_Q_Types
+ * @brief Core QUIC data structures, constants, and enums.
+ */
+
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
@@ -5,28 +15,44 @@
 #include <string.h>
 #include "logger.h"
 
-// Forward declarations for event types
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Forward declaration for peer address.
+ */
 struct YAWT_Q_PeerAddr;
 typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
 
+/** @ingroup YAWT_Q_Types Maximum QUIC packet size */
 #define YAWT_Q_MAX_PKT_SIZE 1350
+/** @ingroup YAWT_Q_Types Maximum Connection ID length */
 #define YAWT_Q_CID_LEN 20
 
-// Worst-case packet overhead per header type (header + PN + AEAD tag)
-// Long header: 1 byte0 + 4 version + 1+20 DCID + 1+20 SCID + 2 length + 4 PN + 16 AEAD = 69
-// Short header: 1 byte0 + 20 DCID + 4 PN + 16 AEAD = 41
+/** @ingroup YAWT_Q_Types Worst-case long header overhead (header + PN + AEAD tag) */
 #define YAWT_Q_LONG_HDR_OVERHEAD  69
+/** @ingroup YAWT_Q_Types Worst-case short header overhead (header + PN + AEAD tag) */
 #define YAWT_Q_SHORT_HDR_OVERHEAD 41
 
-// Max frame data that can safely fit in one packet
-#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG  (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_LONG_HDR_OVERHEAD)   // 1281
-#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)  // 1309
+/** @ingroup YAWT_Q_Types Max frame data that can safely fit in a long header packet */
+#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG  (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_LONG_HDR_OVERHEAD)
+/** @ingroup YAWT_Q_Types Max frame data that can safely fit in a short header packet */
+#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC Connection ID.
+ */
 typedef struct YAWT_Q_Cid {
   uint8_t id[20];
   uint8_t len;
 } YAWT_Q_Cid_t;
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Set a Connection ID.
+ * @param dst Destination CID struct.
+ * @param id Source byte array.
+ * @param len Length of the source byte array. Truncated to 20 if > 20.
+ */
 static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t len) {
   if (len > 20) {
     len = 20;
@@ -36,7 +62,12 @@ static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t 
   memcpy(dst->id, id, len);
 }
 
-// Format a CID as hex string. Returns pointer to static buffer (not thread-safe).
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Format a CID as a hex string.
+ * @param cid The Connection ID to format.
+ * @return Pointer to a static buffer containing the hex string (not thread-safe).
+ */
 static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
   static char buf[41];
   memset(buf, 0, sizeof(buf));
@@ -46,10 +77,12 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
   return buf;
 }
 
-// QUIC packet type (all 5 forms).
-// Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
-// 1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel,
-// chosen outside any plausible wire-encoded type field for future-proofing.
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC packet types (all 5 forms).
+ * @note Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
+ *       1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel.
+ */
 typedef enum {
   YAWT_Q_PKT_TYPE_INITIAL   = 0x00,
   YAWT_Q_PKT_TYPE_0RTT      = 0x01,
@@ -58,7 +91,10 @@ typedef enum {
   YAWT_Q_PKT_TYPE_1RTT      = 0xFF
 } YAWT_Q_Packet_Type_t;
 
-// QUIC stream types RFC9000
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC stream types (RFC 9000).
+ */
 typedef enum {
   YAWT_Q_C_BIDI = 0x00,
   YAWT_Q_S_BIDI = 0x01,
@@ -66,6 +102,10 @@ typedef enum {
   YAWT_Q_S_UNI = 0x03
 } YAWT_Q_Stream_Type_t;
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC frame types.
+ */
 typedef enum {
   YAWT_Q_FRAME_PADDING = 0x00,
   YAWT_Q_FRAME_PING = 0x01,
@@ -96,6 +136,10 @@ typedef enum {
   YAWT_Q_FRAME_DATAGRAM_LEN  = 0x31   // has length field
 } YAWT_Q_Frame_Type_t;
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC long packet types.
+ */
 typedef enum {
   YAWT_Q_PKT_INITIAL = 0x00,
   YAWT_Q_PKT_0RTT = 0x01,
@@ -103,21 +147,25 @@ typedef enum {
   YAWT_Q_PKT_RETRY = 0x03
 } YAWT_Q_Long_Packet_Type_t;
 
-// Flat packet struct — all packet types collapsed into one.
-// Transience: when produced by YAWT_q_parse_packet, the pointer fields below
-// (payload, raw, and extra.*.token) borrow INTO the input datagram buffer —
-// valid only while that buffer is. Decrypt happens in-place on those bytes.
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Flat packet struct — all packet types collapsed into one.
+ * @warning Transience: when produced by YAWT_q_parse_packet, the pointer fields below
+ * (payload, raw, and extra.*.token) borrow INTO the input datagram buffer.
+ * They are valid only while that buffer is. Decrypt happens in-place on those bytes.
+ * Do not retain these pointers beyond the current parse scope.
+ */
 typedef struct YAWT_Q_Packet {
   YAWT_Q_Packet_Type_t type;
 
-  // Header fields (all packet types)
-  uint32_t version;            // 0 for 1-RTT
+  /** Header fields (all packet types) */
+  uint32_t version;
   YAWT_Q_Cid_t dest_cid;
-  YAWT_Q_Cid_t src_cid;         // zeroed for 1-RTT
+  YAWT_Q_Cid_t src_cid;
 
-  // Encrypted packet fields (not Retry)
-  uint8_t reserved;            // 2 bits
-  uint8_t packet_number_length; // 1-4
+  /** Encrypted packet fields (not Retry) */
+  uint8_t reserved;
+  uint8_t packet_number_length;
   uint32_t packet_num;
   uint8_t *payload;
   size_t payload_len;
@@ -126,7 +174,7 @@ typedef struct YAWT_Q_Packet {
   uint8_t *raw;                // pointer to byte 0 in datagram buffer
   size_t pn_offset;            // byte offset of PN from raw
 
-  // Type-specific extras
+  /** Type-specific extras */
   union {
     struct {
       uint64_t token_len;
@@ -144,184 +192,249 @@ typedef struct YAWT_Q_Packet {
   } extra;
 } YAWT_Q_Packet_t;
 
-// Frame type 0x00 - PADDING
-// No fields, just the type byte. No struct needed.
-
-// Frame type 0x01 - PING
-// No fields, just the type byte. No struct needed.
-
-// Frame type 0x02 - ACK
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief ACK frame (0x02).
+ */
 typedef struct {
-  uint64_t largest_ack; //varint
-  uint64_t ack_delay; //varint
-  uint64_t ack_range_count; //varint
-  uint64_t first_ack_range; //varint
-  // Pointer into raw packet data where gap/range varint pairs begin (NULL if ack_range_count == 0)
+  uint64_t largest_ack;
+  uint64_t ack_delay;
+  uint64_t ack_range_count;
+  uint64_t first_ack_range;
+  /** @warning Transience: Pointer into raw packet data. Do not retain. */
   uint8_t *ranges;
 } YAWT_Q_Frame_ACK_t;
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief ACK Range field.
+ */
 typedef struct {
-  uint64_t gap; //varint
-  uint64_t ack_range_len; //varint
+  uint64_t gap;
+  uint64_t ack_range_len;
 } YAWT_Q_ACK_Range_t;
 
-// Frame type 0x03 - ACK with ECN Counts
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief ACK with ECN Counts frame (0x03).
+ */
 typedef struct {
-  uint64_t largest_ack; //varint
-  uint64_t ack_delay; //varint
-  uint64_t ack_range_count; //varint
-  uint64_t first_ack_range; //varint
-  // followed by ack_range_count ACK Range fields, then ECN counts:
-  uint64_t ect0_count; //varint
-  uint64_t ect1_count; //varint
-  uint64_t ecn_ce_count; //varint
+  uint64_t largest_ack;
+  uint64_t ack_delay;
+  uint64_t ack_range_count;
+  uint64_t first_ack_range;
+  uint64_t ect0_count;
+  uint64_t ect1_count;
+  uint64_t ecn_ce_count;
 } YAWT_Q_Frame_ACK_ECN_t;
 
-// Frame type 0x04 - RESET_STREAM
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief RESET_STREAM frame (0x04).
+ */
 typedef struct {
-  uint64_t stream_id; //varint
-  uint64_t app_error_code; //varint
-  uint64_t final_size; //varint
+  uint64_t stream_id;
+  uint64_t app_error_code;
+  uint64_t final_size;
 } YAWT_Q_Frame_Reset_Stream_t;
 
-// Frame type 0x05 - STOP_SENDING
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief STOP_SENDING frame (0x05).
+ */
 typedef struct {
-  uint64_t stream_id; //varint
-  uint64_t app_error_code; //varint
+  uint64_t stream_id;
+  uint64_t app_error_code;
 } YAWT_Q_Frame_Stop_Sending_t;
 
-// Frame type 0x06 - CRYPTO
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief CRYPTO frame (0x06).
+ */
 typedef struct {
-  uint64_t offset; //varint
-  uint64_t len; //varint
-  uint8_t *data;  // Transience: borrowed, into the input datagram buffer
+  uint64_t offset;
+  uint64_t len;
+  /** @warning Transience: Borrowed pointer into the input datagram buffer. Do not retain. */
+  uint8_t *data;
 } YAWT_Q_Frame_Crypto_t;
 
-// Frame type 0x07 - NEW_TOKEN
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief NEW_TOKEN frame (0x07).
+ */
 typedef struct {
-  uint64_t token_len; //varint
-  uint8_t *token;  // Transience: borrowed, into the input datagram buffer
+  uint64_t token_len;
+  /** @warning Transience: Borrowed pointer into the input datagram buffer. Do not retain. */
+  uint8_t *token;
 } YAWT_Q_Frame_New_Token_t;
 
-// Frame type 0x08-0x0f - STREAM
-// Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01)
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief STREAM frame (0x08-0x0f).
+ * @note Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01).
+ */
 typedef struct YAWT_Q_Frame_Stream {
-  uint8_t off; //1 bit, from frame type
-  uint8_t len_present; //1 bit, from frame type
-  uint8_t fin; //1 bit, from frame type
-  uint64_t stream_id; //varint
-  YAWT_Q_Stream_Type_t stream_type; // low 2 bits of stream_id
-  uint64_t offset; //varint, present if off bit set
-  uint64_t data_len; // payload byte count; from the LEN varint, else computed as
-                     // "to end of packet" when the LEN bit is absent
-  // Transience: ALWAYS a borrowed pointer — into the UDP datagram buffer during
-  // parse, or into the owning BufferedStream's data[] during delivery. Never
-  // owned, never retain past the current call/event. To keep bytes, copy them.
+  uint8_t off;
+  uint8_t len_present;
+  uint8_t fin;
+  uint64_t stream_id;
+  YAWT_Q_Stream_Type_t stream_type;
+  uint64_t offset;
+  uint64_t data_len;
+  /** @warning Transience: ALWAYS a borrowed pointer. Into the UDP datagram buffer during parse, 
+   * or into the owning BufferedStream's data[] during delivery. Never owned, never retain 
+   * past the current call/event. To keep bytes, copy them. */
   uint8_t *data;
 } YAWT_Q_Frame_Stream_t;
 
-// A STREAM frame plus the storage its .frame.data points at. Used when a frame
-// must outlive the input datagram (out-of-order RX buffering in con->stream_rx,
-// and TX queuing). NOTE the two same-named members one deref apart:
-//   bf->data        — the OWNED inline copy (this struct's storage)
-//   bf->frame.data  — the borrowed pointer, set to point at bf->data when buffered
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief A STREAM frame plus the storage its .frame.data points at.
+ * @note Used when a frame must outlive the input datagram (out-of-order RX buffering 
+ * and TX queuing). bf->data is the OWNED inline copy. bf->frame.data is the borrowed 
+ * pointer, set to point at bf->data when buffered.
+ */
 typedef struct YAWT_Q_Frame_BufferedStream {
   YAWT_Q_Frame_Stream_t frame;
   uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.data points here when buffered
 } YAWT_Q_Frame_BufferedStream_t;
 
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Scatter/gather buffer element for sending.
+ */
 typedef struct YAWT_Q_IoVec {
   const uint8_t *buf;
   size_t len;
 } YAWT_Q_IoVec_t;
 
-// Frame type 0x10 - MAX_DATA
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief MAX_DATA frame (0x10).
+ */
 typedef struct {
-  uint64_t max_data; //varint
+  uint64_t max_data;
 } YAWT_Q_Frame_Max_Data_t;
 
-// Frame type 0x11 - MAX_STREAM_DATA
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief MAX_STREAM_DATA frame (0x11).
+ */
 typedef struct {
-  uint64_t stream_id; //varint
-  uint64_t max_stream_data; //varint
+  uint64_t stream_id;
+  uint64_t max_stream_data;
 } YAWT_Q_Frame_Max_Stream_Data_t;
 
-// Frame type 0x12 - MAX_STREAMS (bidi)
-// Frame type 0x13 - MAX_STREAMS (uni)
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief MAX_STREAMS frame (0x12 bidi, 0x13 uni).
+ */
 typedef struct {
-  uint64_t max_streams; //varint
+  uint64_t max_streams;
 } YAWT_Q_Frame_Max_Streams_t;
 
-// Frame type 0x14 - DATA_BLOCKED
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief DATA_BLOCKED frame (0x14).
+ */
 typedef struct {
-  uint64_t max_data; //varint, limit at which blocking occurred
+  uint64_t max_data;
 } YAWT_Q_Frame_Data_Blocked_t;
 
-// Frame type 0x15 - STREAM_DATA_BLOCKED
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief STREAM_DATA_BLOCKED frame (0x15).
+ */
 typedef struct {
-  uint64_t stream_id; //varint
-  uint64_t max_stream_data; //varint, limit at which blocking occurred
+  uint64_t stream_id;
+  uint64_t max_stream_data;
 } YAWT_Q_Frame_Stream_Data_Blocked_t;
 
-// Frame type 0x16 - STREAMS_BLOCKED (bidi)
-// Frame type 0x17 - STREAMS_BLOCKED (uni)
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief STREAMS_BLOCKED frame (0x16 bidi, 0x17 uni).
+ */
 typedef struct {
-  uint64_t max_streams; //varint, limit at which blocking occurred
+  uint64_t max_streams;
 } YAWT_Q_Frame_Streams_Blocked_t;
 
-// Frame type 0x18 - NEW_CONNECTION_ID
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief NEW_CONNECTION_ID frame (0x18).
+ */
 typedef struct {
-  uint64_t seq_num; //varint
-  uint64_t retire_prior_to; //varint
+  uint64_t seq_num;
+  uint64_t retire_prior_to;
   YAWT_Q_Cid_t cid;
   uint8_t stateless_reset_token[16];
 } YAWT_Q_Frame_New_Connection_ID_t;
 
-// Frame type 0x19 - RETIRE_CONNECTION_ID
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief RETIRE_CONNECTION_ID frame (0x19).
+ */
 typedef struct {
-  uint64_t seq_num; //varint
+  uint64_t seq_num;
 } YAWT_Q_Frame_Retire_Connection_ID_t;
 
-// Frame type 0x1a - PATH_CHALLENGE
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief PATH_CHALLENGE frame (0x1a).
+ */
 typedef struct {
   uint8_t data[8];
 } YAWT_Q_Frame_Path_Challenge_t;
 
-// Frame type 0x1b - PATH_RESPONSE
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief PATH_RESPONSE frame (0x1b).
+ */
 typedef struct {
   uint8_t data[8];
 } YAWT_Q_Frame_Path_Response_t;
 
-// Frame type 0x1c - CONNECTION_CLOSE (QUIC layer)
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief CONNECTION_CLOSE frame (0x1c, QUIC layer).
+ */
 typedef struct {
-  uint64_t error_code; //varint
-  uint64_t frame_type; //varint, frame type that triggered the error
-  uint64_t reason_phrase_len; //varint
-  uint8_t *reason_phrase;  // Transience: borrowed, into the input datagram buffer
+  uint64_t error_code;
+  uint64_t frame_type;
+  uint64_t reason_phrase_len;
+  /** @warning Transience: Borrowed pointer into the input datagram buffer. Do not retain. */
+  uint8_t *reason_phrase;
 } YAWT_Q_Frame_Connection_Close_t;
 
-// Frame type 0x1d - CONNECTION_CLOSE (application layer)
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief CONNECTION_CLOSE frame (0x1d, application layer).
+ */
 typedef struct {
-  uint64_t error_code; //varint
-  uint64_t reason_phrase_len; //varint
-  uint8_t *reason_phrase;  // Transience: borrowed, into the input datagram buffer
+  uint64_t error_code;
+  uint64_t reason_phrase_len;
+  /** @warning Transience: Borrowed pointer into the input datagram buffer. Do not retain. */
+  uint8_t *reason_phrase;
 } YAWT_Q_Frame_Connection_Close_App_t;
 
-// Frame type 0x1e - HANDSHAKE_DONE
-// No fields, just the type byte. No struct needed.
-
-// Frame type 0x30-0x31 - DATAGRAM (RFC 9221)
-// Low bit: LEN(0x01) — if set, length varint is present
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief DATAGRAM frame (0x30-0x31, RFC 9221).
+ * @note Low bit: LEN(0x01) — if set, length varint is present.
+ */
 typedef struct {
-  uint8_t len_present;          // 1 if frame type 0x31
-  uint64_t len;                 // varint, present if len_present
-  uint8_t *dataptr;             // Transience: borrowed, into the input datagram buffer
+  uint8_t len_present;
+  uint64_t len;
+  /** @warning Transience: Borrowed pointer into the input datagram buffer. Do not retain. */
+  uint8_t *dataptr;
 } YAWT_Q_Frame_Datagram_t;
 
-// Parsed frame — returned by YAWT_q_parse_frame
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Parsed frame — returned by YAWT_q_parse_frame.
+ */
 typedef struct {
   YAWT_Q_Frame_Type_t type;
-  YAWT_Q_Packet_Type_t pkt_type;  // source packet type (set by parser)
+  YAWT_Q_Packet_Type_t pkt_type;
   union {
     YAWT_Q_Frame_ACK_t ack;
     YAWT_Q_Frame_Crypto_t crypto;
@@ -338,28 +451,29 @@ typedef struct {
   };
 } YAWT_Q_Frame_t;
 
-// ---------------------------------------------------------------------------
-// QUIC event taxonomy. New events extend this enum AND add a matching
-// `P_<eventtype>` substruct to YAWT_Q_EventParam_t below. The 1:1 mapping
-// between enum suffix and union member name is part of the contract.
-// ---------------------------------------------------------------------------
-
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief QUIC event taxonomy.
+ * @note New events extend this enum AND add a matching `P_<eventtype>` substruct
+ * to YAWT_Q_EventParam_t below. The 1:1 mapping between enum suffix and union
+ * member name is part of the contract.
+ */
 typedef enum {
-  YAWT_Q_EVT_CONNECTED,   // handshake confirmed; no extra payload
-  YAWT_Q_EVT_STREAM,      // reassembled, in-order stream bytes available
-  YAWT_Q_EVT_DATAGRAM,    // unreliable datagram received (RFC 9221)
-  YAWT_Q_EVT_CLOSE,       // connection ended (peer CC, idle, closing expired)
-  YAWT_Q_EVT_TX,          // encrypted UDP packet ready to send
+  YAWT_Q_EVT_CONNECTED,
+  YAWT_Q_EVT_STREAM,
+  YAWT_Q_EVT_DATAGRAM,
+  YAWT_Q_EVT_CLOSE,
+  YAWT_Q_EVT_TX,
 } YAWT_Q_EventType_t;
 
-// Per-event parameters. Pure union: handler switches on event and reads the
-// matching `P_EVT_<NAME>` member.
-//
-// Transience (applies to EVERY pointer in this union): all pointers are valid
-// ONLY for the duration of the handler call. They reference internal/transient
-// storage (the input datagram buffer, a slab item, or an encode scratch buffer)
-// that the QUIC layer reuses immediately after the handler returns. Copy
-// anything you need to retain. This is the single most important contract here.
+/**
+ * @ingroup YAWT_Q_Types
+ * @brief Per-event parameters.
+ * @warning Transience: ALL pointers in this union are valid ONLY for the duration
+ * of the handler call. They reference internal/transient storage (the input datagram
+ * buffer, a slab item, or an encode scratch buffer) that the QUIC layer reuses
+ * immediately after the handler returns. Copy anything you need to retain.
+ */
 typedef union YAWT_Q_EventParam {
   struct { } P_EVT_CONNECTED;
 

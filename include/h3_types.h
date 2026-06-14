@@ -1,27 +1,44 @@
+/**
+ * @file h3_types.h
+ * @brief HTTP/3 data structures, constants, and enums.
+ */
+
+/**
+ * @defgroup YAWT_H3_Types YAWT_H3_Types
+ * @brief HTTP/3 data structures, constants, and enums.
+ */
+
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-// Forward declaration — full type in quic.h
+/** @ingroup YAWT_H3_Types Forward declaration — full type in quic.h */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
-#define H3_FRAME_MAX_HEADER_BYTES 16 // max varint size for Type + Length
-#define H3_STREAM_TYPE_MAX_BYTES   8 // uni stream-type prefix is one varint (<=8 bytes)
-// ---------------------------------------------------------------------------
-// HTTP/3 data types (RFC 9114) — the YAWT_H3 analog of quic_types.h. Holds the
-// enums and structs; the function API lives in h3.h. See docs/reference.md for
-// the per-RFC mandatory/skip breakdown.
-//
-// Encapsulation: H3 has no packet concept. H3 frames live on the in-order byte
-// stream of a QUIC stream (delivered by the QUIC layer via YAWT_Q_EVT_STREAM).
-// A QUIC stream chunk may carry a partial H3 frame or several, so the frame
-// parser has an INCOMPLETE outcome the QUIC frame parser never needed.
-// ---------------------------------------------------------------------------
+/** @ingroup YAWT_H3_Types Max varint size for Type + Length */
+#define H3_FRAME_MAX_HEADER_BYTES 16
+/** @ingroup YAWT_H3_Types Uni stream-type prefix is one varint (<=8 bytes) */
+#define H3_STREAM_TYPE_MAX_BYTES   8
 
-// HTTP/3 frame types (RFC 9114 §7.2). Named constants; YAWT_H3_Frame_t.type is
-// kept as a raw uint64_t so unknown/reserved/greased types survive round-trip
-// and are skipped generically rather than rejected.
+/**
+ * @note HTTP/3 data types (RFC 9114) — the YAWT_H3 analog of quic_types.h. Holds the
+ *       enums and structs; the function API lives in h3.h. See docs/reference.md for
+ *       the per-RFC mandatory/skip breakdown.
+ *       
+ *       Encapsulation: H3 has no packet concept. H3 frames live on the in-order byte
+ *       stream of a QUIC stream (delivered by the QUIC layer via YAWT_Q_EVT_STREAM).
+ *       A QUIC stream chunk may carry a partial H3 frame or several, so the frame
+ *       parser has an INCOMPLETE outcome the QUIC frame parser never needed.
+ */
+
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief HTTP/3 frame types (RFC 9114 §7.2).
+ * @note Named constants; YAWT_H3_Frame_t.type is kept as a raw uint64_t so
+ *       unknown/reserved/greased types survive round-trip and are skipped
+ *       generically rather than rejected.
+ */
 typedef enum {
   YAWT_H3_FRAME_DATA         = 0x00,
   YAWT_H3_FRAME_HEADERS      = 0x01,
@@ -32,9 +49,13 @@ typedef enum {
   YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d,
 } YAWT_H3_FrameType_t;
 
-// Unidirectional wire format stream types (RFC 9114 §6.2, RFC 9204 §4.2, draft-15). The
-// first varint on a client uni stream selects its role; we read it once into
-// the per-stream slot. Bidi (request) streams have no such prefix.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Unidirectional wire format stream types.
+ * @note RFC 9114 §6.2, RFC 9204 §4.2, draft-15. The first varint on a client
+ *       uni stream selects its role; we read it once into the per-stream slot.
+ *       Bidi (request) streams have no such prefix.
+ */
 typedef enum {
   YAWT_H3_STREAM_WIRE_CONTROL      = 0x00,
   YAWT_H3_STREAM_WIRE_PUSH         = 0x01,
@@ -43,9 +64,12 @@ typedef enum {
   YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54,
 } YAWT_H3_WireStreamType_t;
 
-
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Logical HTTP/3 stream types.
+ */
 typedef enum {
-  YAWT_H3_STREAM_UNASSIGNED = 0, //not yet assigned
+  YAWT_H3_STREAM_UNASSIGNED = 0, // not yet assigned
   YAWT_H3_STREAM_FRAME,      // bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) 
   YAWT_H3_STREAM_PUSH,       // push stream (RFC 9114 §6.2.2)
   YAWT_H3_STREAM_CONTROL,    // control stream (RFC 9114 §6.2.1)
@@ -53,8 +77,12 @@ typedef enum {
   YAWT_H3_STREAM_WEBTRANSPORT
 } YAWT_H3_StreamType_t;
 
-// SETTINGS identifiers (RFC 9114 §7.2.4.1, RFC 9204, RFC 9220, RFC 9297,
-// draft-ietf-webtrans-http3-15). Values are the on-the-wire identifiers.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief SETTINGS identifiers.
+ * @note RFC 9114 §7.2.4.1, RFC 9204, RFC 9220, RFC 9297, draft-ietf-webtrans-http3-15.
+ *       Values are the on-the-wire identifiers.
+ */
 typedef enum {
   YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01,
   YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06,
@@ -64,9 +92,12 @@ typedef enum {
   YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000,
 } YAWT_H3_SettingId_t;
 
-// Internal return status for H3 functions. Distinct from HTTP/3 *wire* error
-// codes (RFC 9114 §8.1, e.g. H3_SETTINGS_ERROR) — those are added separately
-// when GOAWAY / CONNECTION_CLOSE emission is built.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Internal return status for H3 functions.
+ * @note Distinct from HTTP/3 *wire* error codes (RFC 9114 §8.1, e.g. H3_SETTINGS_ERROR)
+ *       — those are added separately when GOAWAY / CONNECTION_CLOSE emission is built.
+ */
 typedef enum {
   YAWT_H3_OK = 0,
   YAWT_H3_ERR_SHORT_BUFFER,   // output buffer too small to encode
@@ -78,6 +109,12 @@ typedef enum {
   YAWT_H3_IGNORED,            // event was not handled (e.g. DATAGRAM, unknown QUIC event)
 } YAWT_H3_Error_t;
 
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Get a string representation of an H3 error code.
+ * @param err The error code.
+ * @return A static string describing the error.
+ */
 static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
   switch (err) {
     case YAWT_H3_OK:                return "OK";
@@ -92,53 +129,72 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
   }
 }
 
-// The one H3 frame currently in flight on a stream. Holds both the decoded
-// result (type, payload_len, payload) and the byte-level decode scratch
-// (hdr/hdr_size/accumulated) — only one frame parses at a time per stream, so a
-// single embedded instance serves. READ-ONLY / NOT retained when handed to the
-// app: `payload` points into transient stream bytes, and the whole struct is
-// reset and reused for the next frame, so anything kept beyond the delivering
-// call must be copied.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief The one H3 frame currently in flight on a stream.
+ * @note Holds both the decoded result (type, payload_len, payload) and the
+ *       byte-level decode scratch (hdr/hdr_size/accumulated). Only one frame
+ *       parses at a time per stream, so a single embedded instance serves.
+ * @warning READ-ONLY / NOT retained when handed to the app: `payload` points
+ *          into transient stream bytes, and the whole struct is reset and reused
+ *          for the next frame, so anything kept beyond the delivering call must be copied.
+ */
 typedef struct {
   uint64_t type;          // decoded frame type (raw varint; unknown types survive)
   uint64_t payload_len;   // decoded Length
-  uint8_t *payload; // Either malloced or pointing into the current stream chunk; caller must not mutate or retain
+  uint8_t *payload;       // Either malloced or pointing into the current stream chunk; caller must not mutate or retain
 
   uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
   uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
   uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
 } YAWT_H3_Frame_t;
 
-
-// Header fields — backed by ANB_Slab internally.  huff_scratch (ANB_Blob_t)
-// is used during QPACK decode of Huffman-encoded literals in header field
-// lines; allocated upfront in YAWT_h3_header_fields_create and grown as needed.
+/** @ingroup YAWT_H3_Types Forward declaration for ANB_Slab */
 typedef struct ANB_Slab ANB_Slab_t;
+/** @ingroup YAWT_H3_Types Forward declaration for ANB_Blob */
 typedef struct ANB_Blob ANB_Blob_t;
 
-
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Header fields — backed by ANB_Slab internally.
+ * @note huff_scratch (ANB_Blob_t) is used during QPACK decode of Huffman-encoded
+ *       literals in header field lines; allocated upfront in YAWT_h3_header_fields_create
+ *       and grown as needed.
+ */
 typedef struct {
-  ANB_Slab_t *slab; //stores _YAWT_H3_BufferedField_t entries
-  ANB_Blob_t *huff_scratch; //huffman decode scratch space, as far as I know only headers use huffman
+  ANB_Slab_t *slab;        // stores _YAWT_H3_BufferedField_t entries
+  ANB_Blob_t *huff_scratch; // huffman decode scratch space, as far as I know only headers use huffman
 } YAWT_H3_HeaderFields_t;
 
-// Semantic HTTP request/response — each holds a pointer to a header field section
-// (allocated via YAWT_h3_header_section_create).  NULL until headers are parsed.
-// The lifecycle is managed by H3_Connection
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Semantic HTTP request.
+ * @note Holds a pointer to a header field section (allocated via YAWT_h3_header_section_create).
+ *       NULL until headers are parsed. The lifecycle is managed by H3_Connection.
+ */
 typedef struct {
   YAWT_H3_HeaderFields_t *headers;
 } YAWT_H3_Request_t;
 
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Semantic HTTP response.
+ * @note Holds a pointer to a header field section. NULL until headers are parsed.
+ */
 typedef struct {
   YAWT_H3_HeaderFields_t *headers;
 } YAWT_H3_Response_t;
 
-// Per-stream H3 parse state. Lives in a preallocated slot pool on the H3
-// connection (slot index is NOT the stream id — ids are sparse and grow
-// unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta).
-// A slot is claimed (in_use=true) when assigned to a stream id. A stream
-// outlives any single frame and carries many of them, so the current frame is
-// a union member, reset when advancing to the next frame.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Per-stream H3 parse state.
+ * @note Lives in a preallocated slot pool on the H3 connection (slot index is NOT
+ *       the stream id — ids are sparse and grow unbounded, so we store stream_id
+ *       and linear-scan, like QUIC's stream_meta). A slot is claimed (in_use=true)
+ *       when assigned to a stream id. A stream outlives any single frame and carries
+ *       many of them, so the current frame is a union member, reset when advancing
+ *       to the next frame.
+ */
 typedef struct {
   bool     in_use;
   uint64_t id;
@@ -155,8 +211,11 @@ typedef struct {
   YAWT_H3_Frame_t frame;
 } YAWT_H3_Stream_t;
 
-// Negotiated HTTP/3 settings. One instance holds the values we advertise;
-// another holds what the peer sent.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Negotiated HTTP/3 settings.
+ * @note One instance holds the values we advertise; another holds what the peer sent.
+ */
 typedef struct {
   uint64_t qpack_max_table_capacity;   // we send 0 (static-table-only QPACK)
   uint64_t qpack_blocked_streams;      // we send 0
@@ -166,9 +225,12 @@ typedef struct {
   uint8_t  wt_enabled;                 // 0/1 — WebTransport (draft-15)
 } YAWT_H3_Settings_t;
 
-
-// Public view of a header field — points into slab memory, do not free or mutate.
-// i_static and i_name are QPACK static table indexes pre-resolved at add time.
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Public view of a header field.
+ * @warning Points into slab memory, do not free or mutate.
+ * @note i_static and i_name are QPACK static table indexes pre-resolved at add time.
+ */
 typedef struct {
   const char *name;
   const char *value;
@@ -178,17 +240,15 @@ typedef struct {
   size_t      i_name;    // name-only match in QPACK static table (0 = none)
 } YAWT_H3_Header_Field_t;
 
-// ---------------------------------------------------------------------------
-// H3 connection object — hung off the QUIC connection's user_data. Allocated on
-// EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once).
-// ---------------------------------------------------------------------------
+/** @ingroup YAWT_H3_Types Forward declaration for H3 connection object */
 typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
 
-// ---------------------------------------------------------------------------
-// H3 event taxonomy. Fired by the H3 layer toward the app via
-// YAWT_H3_EventHandler_t (set with YAWT_h3_set_event_handler).
-// ---------------------------------------------------------------------------
-
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief H3 event taxonomy.
+ * @note Fired by the H3 layer toward the app via YAWT_H3_EventHandler_t
+ *       (set with YAWT_h3_set_event_handler).
+ */
 typedef enum {
   YAWT_H3_EVT_HEADERS,    // HEADERS frame fully decoded; param has stream_id + headers
   YAWT_H3_EVT_DATA,       // DATA frame payload chunk; stream_id + data/len + fin
@@ -196,6 +256,14 @@ typedef enum {
   YAWT_H3_EVT_CLOSE,      // H3-level error/close; param has error_code + reason
 } YAWT_H3_EventType_t;
 
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Per-event parameters for H3.
+ * @warning Transience: ALL pointers in this union are valid ONLY for the duration
+ *          of the handler call. They reference internal/transient storage that the
+ *          H3/QUIC layer reuses immediately after the handler returns. Copy anything
+ *          you need to retain.
+ */
 typedef union YAWT_H3_EventParam {
   struct {
     uint64_t stream_id;
@@ -217,24 +285,35 @@ typedef union YAWT_H3_EventParam {
   } P_EVT_CLOSE;
 } YAWT_H3_EventParam_t;
 
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief App-level event callback for H3.
+ */
 typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
                                         YAWT_H3_EventType_t event,
                                         YAWT_H3_EventParam_t param);
 
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief H3 connection object.
+ * @note Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED,
+ *       freed on EVT_CLOSE (which con_free guarantees fires once).
+ */
 typedef struct YAWT_H3_Connection {
   YAWT_Q_Connection_t *qcon;            // back-reference to the QUIC layer
   YAWT_H3_EventHandler_t app_handler;   // app-level event callback
-  YAWT_H3_Settings_t *local_settings; // NULL until populated
-  YAWT_H3_Settings_t *peer_settings;  // NULL until decoded from peer
-  uint64_t nstreams;                  // slot pool size (concurrent stream cap)
-  YAWT_H3_Stream_t *streams;          // preallocated slot pool, linear-scan by id
-  uint64_t control_stream_id;         // server's control stream (UINT64_MAX = not opened)
+  YAWT_H3_Settings_t *local_settings;   // NULL until populated
+  YAWT_H3_Settings_t *peer_settings;    // NULL until decoded from peer
+  uint64_t nstreams;                    // slot pool size (concurrent stream cap)
+  YAWT_H3_Stream_t *streams;            // preallocated slot pool, linear-scan by id
+  uint64_t control_stream_id;           // server's control stream (UINT64_MAX = not opened)
 } YAWT_H3_Connection_t;
 
-
-//section 4.3 rfc 9204
-//not used yet
-//dynamic encoder instructions
+/**
+ * @ingroup YAWT_H3_Types
+ * @brief Dynamic encoder instructions (RFC 9204 §4.3).
+ * @note Not used yet.
+ */
 typedef enum {
     INSERT_WITH_NAME_REF,
     INSERT_WITH_LITERAL_NAME,

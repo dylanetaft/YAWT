@@ -1,25 +1,41 @@
+/**
+ * @file quic.h
+ * @brief QUIC low-level protocol operations, utilities, and event system.
+ */
+
+/**
+ * @defgroup YAWT_Q_LowLevel YAWT_Q_LowLevel
+ * @brief Low-level QUIC protocol operations and utilities.
+ */
+
+/**
+ * @defgroup YAWT_Q_Events YAWT_Q_Events
+ * @brief QUIC asynchronous event system contract.
+ */
+
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <allocnbuffer/slab.h>
 #include "quic_types.h"
 
-// Forward declaration — full type in crypt.h
+/** @ingroup YAWT_Q_LowLevel Forward declaration — full type in crypt.h */
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
-// Forward declaration — full type in quic_connection.h
+/** @ingroup YAWT_Q_LowLevel Forward declaration — full type in quic_connection.h */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
-// Process-wide event handler.
-//   Lifetime:  a single global, installed via YAWT_q_con_set_event_handler()
-//     (NULL restores a built-in no-op; install replaces any previous handler).
-//   Threading: the QUIC layer is single-threaded (one libev loop). The handler
-//     is invoked synchronously from YAWT_q_con_rx() (CONNECTED/STREAM/DATAGRAM)
-//     and YAWT_q_con_maintain() (TX/CLOSE). Nothing here is thread-safe.
+/**
+ * @ingroup YAWT_Q_Events
+ * @brief Process-wide event handler.
+ * @note Lifetime: a single global, installed via YAWT_q_con_set_event_handler().
+ *       Threading: the QUIC layer is single-threaded (one libev loop). The handler
+ *       is invoked synchronously from YAWT_q_con_rx() and YAWT_q_con_maintain().
+ *       Nothing here is thread-safe.
+ */
 typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
                                        YAWT_Q_EventType_t event,
                                        YAWT_Q_EventParam_t param);
-
 
 // Quic connection initialization goes like this
 // Initial -> Handshake -> 1-RTT
@@ -32,7 +48,10 @@ typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
 //UNIMPLEMENTED: Congestion Windows
 //UNIMPLEMENTED: Packet coalescing
 
-// QUIC error codes
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief QUIC error codes.
+ */
 typedef enum {
   YAWT_Q_OK = 0,
   YAWT_Q_ERR_SHORT_BUFFER,
@@ -45,6 +64,12 @@ typedef enum {
   YAWT_Q_ERR_FRAME_TOO_LARGE
 } YAWT_Q_Error_t;
 
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Get a string representation of a QUIC error code.
+ * @param err The error code.
+ * @return A static string describing the error.
+ */
 static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
   switch (err) {
     case YAWT_Q_OK:                 return "OK";
@@ -60,28 +85,30 @@ static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
   }
 }
 
-// Read cursor for zero-copy datagram parsing. `cursor` advances as bytes are
-// consumed; `data`/`len` are the input buffer (never copied out of).
-//   Errors:     `err` is STICKY. Once it is non-OK, every later varint_decode /
-//     parse_packet / parse_frame on this cursor is a no-op. So you can chain
-//     several decodes and check `err` ONCE at the end. On SHORT_BUFFER the
-//     cursor is left unchanged (no partial advance).
-//   Transience: pointers the parsers hand back point INTO `data` (zero-copy);
-//     they are valid only as long as the underlying datagram buffer is.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Read cursor for zero-copy datagram parsing.
+ * @note `cursor` advances as bytes are consumed; `data`/`len` are the input buffer.
+ *       Errors are STICKY. Once `err` is non-OK, every later decode/parse on this
+ *       cursor is a no-op. Transience: pointers handed back point INTO `data`.
+ */
 typedef struct {
   uint8_t *data;
   size_t len;
-  size_t cursor; //offset from data start
+  size_t cursor;
   YAWT_Q_Error_t err;
 } YAWT_Q_ReadCursor_t;
 
-// Generic frame struct for tx_buffer — wire-ready, self-contained.
-//   Lifetime:  produced by the YAWT_q_enqueue_frame_* encoders, which push a
-//     copy into con->tx_buffer (a slab). con_maintain() coalesces these into
-//     packets, sends them (EVT_TX), and retransmits/expires them. Owned by the
-//     slab for its lifetime; the enqueuing caller keeps no reference.
-//   Ownership: `wire_data` is a complete, self-contained copy of the encoded
-//     frame — no pointers into caller memory survive here.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Generic frame struct for tx_buffer — wire-ready, self-contained.
+ * @note Lifetime: produced by the YAWT_q_enqueue_frame_* encoders, which push a
+ *       copy into con->tx_buffer (a slab). con_maintain() coalesces these into
+ *       packets, sends them (EVT_TX), and retransmits/expires them. Owned by the
+ *       slab for its lifetime; the enqueuing caller keeps no reference.
+ *       Ownership: `wire_data` is a complete, self-contained copy of the encoded
+ *       frame — no pointers into caller memory survive here.
+ */
 typedef struct {
   YAWT_Q_Frame_Type_t type;
   uint8_t level;  // YAWT_Q_Encryption_Level_t — which packet type to send in
@@ -99,26 +126,34 @@ typedef struct {
   uint8_t wire_data[YAWT_Q_MAX_PKT_SIZE];
 } YAWT_Q_WireFrame_t;
 
-// Result from processing frames in a packet
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Result from processing frames in a packet.
+ */
 typedef struct {
   YAWT_Q_Error_t err;
-  int requires_ack;  // 1 if any ack-eliciting frame was seen
+  int requires_ack;
 } YAWT_Q_FrameHandler_Res_t;
 
-// Stream metadata — one per open stream, stored in the con->stream_meta slab.
-// The QUIC layer owns these; they track reassembly + flow-control position so
-// EVT_STREAM can be delivered gap-free (see YAWT_Q_EventParam_t P_EVT_STREAM).
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
+ * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
+ */
 typedef struct {
   uint64_t stream_id;
-  uint64_t rx_next_offset;        // next contiguous RX byte expected (drives ordered delivery)
-  uint64_t tx_next_offset;        // next TX byte offset to assign
-  uint64_t rx_fin_offset;         // final byte offset; valid once rx_fin is set
-  uint64_t tx_max_data;           // per-stream TX limit from peer (MAX_STREAM_DATA)
-  uint8_t rx_fin;                 // 1 once the peer's FIN has been seen
-  uint8_t tx_fin_sent;            // 1 once we've queued our FIN
+  uint64_t rx_next_offset;
+  uint64_t tx_next_offset;
+  uint64_t rx_fin_offset;
+  uint64_t tx_max_data;
+  uint8_t rx_fin;
+  uint8_t tx_fin_sent;
 } YAWT_Q_StreamMeta_t;
 
-// Connection-level counters and packet number tracking
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Connection-level counters and packet number tracking.
+ */
 typedef struct {
   uint64_t tx_count_bytes;
   uint64_t rx_count_bytes;
@@ -131,82 +166,168 @@ typedef struct {
   double closing_at;        // 0 = open, DBL_MAX = close pending flush, else timestamp of close sent
 } YAWT_Q_ConnectionStats_t;
 
-// ---------------------------------------------------------------------------
-// Frame encoders. Ownership: each COPIES the encoded frame into con->tx_buffer
-// (the caller keeps/reuses its own input buffer). Nothing is sent here — frames
-// are flushed, coalesced, and retransmitted later by YAWT_q_con_maintain().
-// Level: most application frames are APPLICATION (1-RTT) only, as noted.
-// ---------------------------------------------------------------------------
-
-// Encode PADDING frames into buf. Returns bytes written, or negative on error.
-// (Direct buffer encoder — does NOT touch tx_buffer.)
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode PADDING frames into buf.
+ * @param buf Output buffer.
+ * @param buf_len Output buffer length.
+ * @param pad_len Number of padding bytes to write.
+ * @return Bytes written, or negative on error.
+ * @note Direct buffer encoder — does NOT touch tx_buffer.
+ */
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
-// Encode a CRYPTO frame and push to tx_buffer. Level: per `level` arg.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a CRYPTO frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param level Encryption level.
+ * @param frame The CRYPTO frame to encode.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Ownership: COPIES the encoded frame into con->tx_buffer.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
                                              const YAWT_Q_Frame_Crypto_t *frame);
 
-// Encode an ACK frame and push to tx_buffer. Acknowledges packets [0..largest_ack].
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode an ACK frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param level Encryption level.
+ * @param largest_ack Largest acknowledged packet number.
+ * @return YAWT_Q_OK on success, or an error code.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
-// Encode a STREAM frame and push to tx_buffer. Level: APPLICATION only.
-// Ownership: copies frame->data into the queued WireFrame.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a STREAM frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param frame The STREAM frame to encode.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only. Ownership: copies frame->data into the queued WireFrame.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame);
 
-// Encode a PING frame and push to tx_buffer. Level: APPLICATION only.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a PING frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
-// Encode a CONNECTION_CLOSE frame (0x1c) and push to tx_buffer. Level: per arg.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a CONNECTION_CLOSE frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param level Encryption level.
+ * @param error_code The error code.
+ * @param frame_type The frame type that triggered the error.
+ * @return YAWT_Q_OK on success, or an error code.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
                                                       uint64_t error_code, uint64_t frame_type);
 
-// Encode a PATH_RESPONSE frame (echo 8 bytes back) and push to tx_buffer.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a PATH_RESPONSE frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param data The 8-byte data to echo back.
+ * @return YAWT_Q_OK on success, or an error code.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
 
-// Encode a DATAGRAM frame (0x31, with length) and push to tx_buffer.
-// Level: APPLICATION only. Ownership: copies `data`.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a DATAGRAM frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param data The datagram payload.
+ * @param data_len The datagram payload length.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only. Ownership: copies `data`.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
                                                const uint8_t *data, size_t data_len);
 
-// Encode a HANDSHAKE_DONE frame (0x1e) and push to tx_buffer. Level: APPLICATION only.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a HANDSHAKE_DONE frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only.
+ */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
-// Encode + encrypt a packet.
-//   Returns:    total wire bytes (including AEAD tag), or negative on error.
-//   Transience: *out_buf points to a STATIC internal buffer, overwritten by the
-//     next encode call — consume/copy it before encoding again.
+/** @ingroup YAWT_Q_LowLevel Forward declaration for crypto context */
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode + encrypt a packet.
+ * @param pkt The packet to encode.
+ * @param crypto The crypto context.
+ * @param out_buf Pointer to receive the output buffer.
+ * @return Total wire bytes (including AEAD tag), or negative on error.
+ * @warning Transience: *out_buf points to a STATIC internal buffer, overwritten by the
+ *          next encode call. Consume/copy it before encoding again.
+ */
 int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
                           YAWT_Q_Crypto_t *crypto,
                           const uint8_t **out_buf);
 
-// Decode a QUIC varint from cursor. `out == NULL` skips the value (advance only).
-// Errors: sticky (see YAWT_Q_ReadCursor_t) — SHORT_BUFFER if fewer bytes remain
-// than the varint's encoded length; cursor not advanced on error.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Decode a QUIC varint from cursor.
+ * @param rc The read cursor.
+ * @param out Output value. If NULL, skips the value (advance only).
+ * @note Errors are sticky. SHORT_BUFFER if fewer bytes remain than the varint's encoded length.
+ */
 void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 
-// Encode a QUIC varint into buf. Returns bytes written via *written.
-// Errors: VARINT_OVERFLOW if val exceeds 62 bits; SHORT_BUFFER if `len` too small.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Encode a QUIC varint into buf.
+ * @param val The value to encode.
+ * @param buf Output buffer.
+ * @param len Output buffer length.
+ * @param written Pointer to receive the number of bytes written.
+ * @return YAWT_Q_OK on success, or an error code.
+ */
 YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
                                      uint64_t *written);
 
-// Returns the number of bytes needed to encode val as a QUIC varint (RFC 9000 §16).
-// Returns 0 if val exceeds 62 bits (would overflow).
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Get the number of bytes needed to encode val as a QUIC varint.
+ * @param val The value to check.
+ * @return Number of bytes needed, or 0 if val exceeds 62 bits.
+ */
 size_t YAWT_q_varint_size(uint64_t val);
 
-// Parse a QUIC packet from a read cursor.
-//   Transience: output pointers (payload/raw/token) point INTO rc->data (zero-copy).
-//   Errors:     sticky; check rc->err after the call.
-// Advances rc->cursor past the parsed packet.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Parse a QUIC packet from a read cursor.
+ * @param rc The read cursor.
+ * @param out Output packet struct.
+ * @warning Transience: output pointers (payload/raw/token) point INTO rc->data (zero-copy).
+ *          Errors are sticky; check rc->err after the call.
+ * @note Advances rc->cursor past the parsed packet.
+ */
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
-// Parse a single frame from the cursor. Caller loops while rc->cursor < rc->len.
-//   `out` is memset, stamped with `pkt_type` (source encryption level), and the
-//     frame's pointer fields point INTO rc->data (zero-copy, transient).
-//   Errors: sticky; check rc->err after the call.
-//   Note:   parses the subset of frame types YAWT handles.
+/**
+ * @ingroup YAWT_Q_LowLevel
+ * @brief Parse a single frame from the cursor.
+ * @param rc The read cursor.
+ * @param pkt_type Source packet type (encryption level).
+ * @param out Output frame struct.
+ * @note Caller loops while rc->cursor < rc->len. `out` is memset, stamped with `pkt_type`,
+ *       and pointer fields point INTO rc->data (zero-copy, transient).
+ *       Errors are sticky; check rc->err after the call.
+ */
 void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
                          YAWT_Q_Frame_t *out);

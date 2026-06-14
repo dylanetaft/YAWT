@@ -1,3 +1,13 @@
+/**
+ * @file h3_header.h
+ * @brief Header field management and QPACK integration wrappers.
+ */
+
+/**
+ * @defgroup YAWT_H3_Headers YAWT_H3_Headers
+ * @brief Header field management and QPACK integration wrappers.
+ */
+
 #pragma once
 #include <stddef.h>
 #include <stdbool.h>
@@ -5,91 +15,191 @@
 #include "qpack.h"
 #include <allocnbuffer/slab.h>
 
-// Create a new header fields backed by an ANB_Slab (and optionally a scratch
-// blob for decode). Returns a heap-allocated YAWT_H3_HeaderFields_t*.
-// The pointer itself may be null-checked (non-NULL means resources were
-// allocated and destroy should be called later).
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Create a new header fields backed by an ANB_Slab.
+ * @return A heap-allocated YAWT_H3_HeaderFields_t*, or NULL on failure.
+ * @note Optionally includes a scratch blob for decode. The pointer itself may be
+ *       null-checked (non-NULL means resources were allocated and destroy should
+ *       be called later).
+ */
 YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void);
 
-// Destroy a header fields: destroys its slab (and any huff_scratch blob) and
-// frees the YAWT_H3_HeaderFields_t struct itself.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Destroy a header fields section.
+ * @param section The header fields to destroy.
+ * @note Destroys its slab (and any huff_scratch blob) and frees the
+ *       YAWT_H3_HeaderFields_t struct itself.
+ */
 void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section);
 
-// Add a field — copies name and value into slab storage.
-// Does not resolve QPACK indexes (i_static=0, i_name=0).
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Add a field — copies name and value into slab storage.
+ * @param section The header fields section.
+ * @param name The field name.
+ * @param name_len The field name length.
+ * @param value The field value.
+ * @param value_len The field value length.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Does not resolve QPACK indexes (i_static=0, i_name=0).
+ */
 YAWT_H3_Error_t YAWT_h3_header_add(YAWT_H3_HeaderFields_t *section,
                                     const char *name, size_t name_len,
                                     const char *value, size_t value_len);
 
-// Convenience: null-terminated strings.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Add a field using null-terminated strings.
+ * @param section The header fields section.
+ * @param name The field name.
+ * @param value The field value.
+ * @return YAWT_H3_OK on success, or an error code.
+ */
 YAWT_H3_Error_t YAWT_h3_header_add_str(YAWT_H3_HeaderFields_t *section,
                                         const char *name, const char *value);
 
-// Add a field with pre-resolved QPACK static table indexes.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Add a field with pre-resolved QPACK static table indexes.
+ * @param section The header fields section.
+ * @param name The field name.
+ * @param name_len The field name length.
+ * @param value The field value.
+ * @param value_len The field value length.
+ * @param i_static Full name-value match in QPACK static table.
+ * @param i_name Name-only match in QPACK static table.
+ * @return YAWT_H3_OK on success, or an error code.
+ */
 YAWT_H3_Error_t YAWT_h3_header_add_static(YAWT_H3_HeaderFields_t *section,
                                            const char *name, size_t name_len,
                                            const char *value, size_t value_len,
                                            size_t i_static, size_t i_name);
 
-// Convenience: null-terminated strings with indexes.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Add a field with pre-resolved indexes using null-terminated strings.
+ * @param section The header fields section.
+ * @param name The field name.
+ * @param value The field value.
+ * @param i_static Full name-value match in QPACK static table.
+ * @param i_name Name-only match in QPACK static table.
+ * @return YAWT_H3_OK on success, or an error code.
+ */
 YAWT_H3_Error_t YAWT_h3_header_add_str_static(YAWT_H3_HeaderFields_t *section,
                                                const char *name, const char *value,
                                                size_t i_static, size_t i_name);
 
-// Resolve QPACK static table indexes for a name/value pair.
-// Returns a populated YAWT_H3_Header_Field_t; pass to add_static or use directly.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Resolve QPACK static table indexes for a name/value pair.
+ * @param name The field name.
+ * @param name_len The field name length.
+ * @param value The field value.
+ * @param value_len The field value length.
+ * @return A populated YAWT_H3_Header_Field_t; pass to add_static or use directly.
+ */
 YAWT_H3_Header_Field_t YAWT_h3_header_resolve(const char *name, size_t name_len,
                                                const char *value, size_t value_len);
 
-// Convenience: null-terminated strings.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Resolve QPACK static table indexes using null-terminated strings.
+ * @param name The field name.
+ * @param value The field value.
+ * @return A populated YAWT_H3_Header_Field_t.
+ */
 YAWT_H3_Header_Field_t YAWT_h3_header_resolve_str(const char *name, const char *value);
 
-// Look up a field by name — returns a const view into slab memory.
-// Returns a struct with NULL name if not found.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Look up a field by name.
+ * @param section The header fields section.
+ * @param name The field name to find.
+ * @param name_len The field name length.
+ * @return A const view into slab memory. Returns a struct with NULL name if not found.
+ */
 YAWT_H3_Header_Field_t YAWT_h3_header_find(const YAWT_H3_HeaderFields_t *section,
                                             const char *name, size_t name_len);
 
-// Convenience: null-terminated name lookup.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Look up a field by name using a null-terminated string.
+ * @param section The header fields section.
+ * @param name The field name to find.
+ * @return A const view into slab memory. Returns a struct with NULL name if not found.
+ */
 YAWT_H3_Header_Field_t YAWT_h3_header_find_str(const YAWT_H3_HeaderFields_t *section,
                                                 const char *name);
 
-// Iterate all fields — pass NULL iter to start, returns a struct with NULL name when done.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Iterate all fields.
+ * @param section The header fields section.
+ * @param iter The slab iterator. Pass NULL to start.
+ * @return A struct with the current field, or a struct with NULL name when done.
+ */
 YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section,
                                             ANB_SlabIter_t *iter);
 
-// Returns true if the header fields have been allocated (slab != NULL).
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Check if header fields have been allocated.
+ * @param headers The header fields section.
+ * @return true if the slab is not NULL.
+ */
 static inline bool YAWT_h3_headers_is_set(const YAWT_H3_HeaderFields_t *headers) {
   return headers && headers->slab != NULL;
 }
 
-// Decode the entire encoded field section (HEADERS frame payload) into `out`.
-// Only static table entries and literal representations are supported.
-// Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t).
-// Name/value pairs are copied into out->slab using the existing header field storage.
-//
-// Returns YAWT_QPACK_OK on success.  On error the section may be left
-// partially populated; caller (h3 layer) typically destroys it.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Decode the entire encoded field section (HEADERS frame payload).
+ * @param data The encoded data.
+ * @param len The encoded data length.
+ * @param out The output header fields section.
+ * @return YAWT_QPACK_OK on success, or an error code.
+ * @note Only static table entries and literal representations are supported.
+ *       Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t).
+ *       Name/value pairs are copied into out->slab using the existing header field storage.
+ *       On error the section may be left partially populated; caller (h3 layer)
+ *       typically destroys it.
+ */
 YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     const uint8_t *data, size_t len,
     YAWT_H3_HeaderFields_t *out);
 
-// Encode a header fields section into a QPACK header block (static table only,
-// no Huffman). Writes the 2-byte header block prefix (RIC=0, Base=0) followed
-// by encoded field lines. Uses Indexed representation for full name+value
-// matches, Literal with Name Reference for name-only matches, and Literal with
-// Literal Name for everything else.
-//
-// Returns YAWT_QPACK_OK on success, YAWT_QPACK_ERR_SHORT_BUFFER if buf is too
-// small. Sets *written to the number of bytes written.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Encode a header fields section into a QPACK header block.
+ * @param headers The header fields to encode.
+ * @param buf Output buffer.
+ * @param len Output buffer length.
+ * @param written Pointer to receive the number of bytes written.
+ * @return YAWT_QPACK_OK on success, YAWT_QPACK_ERR_SHORT_BUFFER if buf is too small.
+ * @note Static table only, no Huffman. Writes the 2-byte header block prefix (RIC=0, Base=0)
+ *       followed by encoded field lines. Uses Indexed representation for full name+value
+ *       matches, Literal with Name Reference for name-only matches, and Literal with
+ *       Literal Name for everything else.
+ */
 YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     const YAWT_H3_HeaderFields_t *headers,
     uint8_t *buf, size_t len, size_t *written);
 
-// Calculate the encoded size of a header block without actually encoding it.
-// Returns the number of bytes that would be written by YAWT_qpack_encode_header_block.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Calculate the encoded size of a header block without actually encoding it.
+ * @param headers The header fields to measure.
+ * @return The number of bytes that would be written by YAWT_qpack_encode_header_block.
+ */
 size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers);
 
-// Returns an upper bound on the encoded size of a header block, assuming
-// worst-case prefix integer sizes. Useful for right-sizing a buffer before
-// calling YAWT_qpack_encode_header_block.
+/**
+ * @ingroup YAWT_H3_Headers
+ * @brief Calculate an upper bound on the encoded size of a header block.
+ * @param headers The header fields to measure.
+ * @return The maximum number of bytes, assuming worst-case prefix integer sizes.
+ * @note Useful for right-sizing a buffer before calling YAWT_qpack_encode_header_block.
+ */
 size_t YAWT_qpack_header_block_max_size(const YAWT_H3_HeaderFields_t *headers);

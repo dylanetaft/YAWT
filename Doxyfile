@@ -1,0 +1,11 @@
+PROJECT_NAME           = "YAWT"
+INPUT                  = include
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+OUTPUT_DIRECTORY       = docs/doxygen
+HTML_OUTPUT            = .
+OPTIMIZE_OUTPUT_FOR_C  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_LOGFILE           = docs/doxygen/warnings.log
