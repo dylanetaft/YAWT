@@ -24,54 +24,25 @@ static const YAWT_H3_Settings_t _default_h3_settings = {
 };
 
 
-YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
-                                       const uint8_t *payload, size_t payload_len,
-                                       uint8_t *buf, size_t len, size_t *written) {
-  if (!buf || !written || (payload_len > 0 && !payload)) {
-    return YAWT_H3_ERR_INVALID_PARAM;
-  }
-
-  size_t off = 0;
-  uint64_t n;
-
-  if (YAWT_q_varint_encode(type, buf + off, len - off, &n) != YAWT_Q_OK) {
-    return YAWT_H3_ERR_SHORT_BUFFER;
-  }
-  off += n;
-  if (YAWT_q_varint_encode(payload_len, buf + off, len - off, &n) != YAWT_Q_OK) {
-    return YAWT_H3_ERR_SHORT_BUFFER;
-  }
-  off += n;
-
-  if (payload_len > len - off) return YAWT_H3_ERR_SHORT_BUFFER;
-  if (payload_len > 0) {
-    memcpy(buf + off, payload, payload_len);
-    off += payload_len;
-  }
-
-  *written = off;
-  return YAWT_H3_OK;
-}
-
-size_t YAWT_h3_encode_frame_headers(size_t block_len, uint8_t *buf) {
+size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint8_t *buf) {
   if (!buf) return 0;
 
   size_t off = 0;
   uint64_t n;
 
-  if (YAWT_q_varint_encode(YAWT_H3_FRAME_HEADERS, buf + off, H3_FRAME_MAX_HEADER_BYTES - off, &n) != YAWT_Q_OK)
+  if (YAWT_q_varint_encode(frame_type, buf + off, H3_FRAME_MAX_HEADER_BYTES - off, &n) != YAWT_Q_OK)
     return 0;
   off += n;
 
-  if (YAWT_q_varint_encode(block_len, buf + off, H3_FRAME_MAX_HEADER_BYTES - off, &n) != YAWT_Q_OK)
+  if (YAWT_q_varint_encode(payload_len, buf + off, H3_FRAME_MAX_HEADER_BYTES - off, &n) != YAWT_Q_OK)
     return 0;
   off += n;
 
   return off;
 }
 
-size_t YAWT_h3_frame_header_size(size_t block_len) {
-  return YAWT_q_varint_size(YAWT_H3_FRAME_HEADERS) + YAWT_q_varint_size(block_len);
+size_t YAWT_h3_frame_header_size(size_t payload_len) {
+  return YAWT_q_varint_size(YAWT_H3_FRAME_HEADERS) + YAWT_q_varint_size(payload_len);
 }
 
 YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
@@ -627,26 +598,24 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
       h3->local_settings, settings_payload, sizeof(settings_payload), &payload_len);
   if (err != YAWT_H3_OK) return err;
 
-  uint8_t frame_buf[264];
-  size_t frame_len = 0;
-  err = YAWT_h3_encode_frame(YAWT_H3_FRAME_SETTINGS,
-      settings_payload, payload_len, frame_buf, sizeof(frame_buf), &frame_len);
-  if (err != YAWT_H3_OK) return err;
-
-  uint8_t buf[272];
-  size_t off = 0;
+  uint8_t stream_type_buf[8];
+  size_t stream_type_len = 0;
   uint64_t n;
-  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, buf, sizeof(buf), &n) != YAWT_Q_OK)
+  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, stream_type_buf, sizeof(stream_type_buf), &n) != YAWT_Q_OK)
     return YAWT_H3_ERR_SHORT_BUFFER;
-  off += n;
+  stream_type_len = n;
 
-  if (off + frame_len > sizeof(buf)) return YAWT_H3_ERR_SHORT_BUFFER;
-  memcpy(buf + off, frame_buf, frame_len);
-  off += frame_len;
+  uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
+  size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_len, frame_hdr);
+  if (frame_hdr_len == 0) return YAWT_H3_ERR_SHORT_BUFFER;
 
   uint64_t stream_id = 3;
-  YAWT_Q_IoVec_t iov = { buf, off };
-  YAWT_Q_Error_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov, 1, 0);
+  YAWT_Q_IoVec_t iov[3] = {
+    { stream_type_buf, stream_type_len },
+    { frame_hdr, frame_hdr_len },
+    { settings_payload, payload_len }
+  };
+  YAWT_Q_Error_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 3, 0);
   if (qerr != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send SETTINGS on stream %lu: %d",
              stream_id, qerr);
@@ -655,7 +624,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
 
   h3->control_stream_id = stream_id;
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent SETTINGS on control stream %lu (%zu bytes)",
-           stream_id, off);
+           stream_id, stream_type_len + frame_hdr_len + payload_len);
   return YAWT_H3_OK;
 }
 
@@ -675,7 +644,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
   }
 
   uint8_t hdr[H3_FRAME_MAX_HEADER_BYTES];
-  size_t hdr_len = YAWT_h3_encode_frame_headers(block_len, hdr);
+  size_t hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_HEADERS, block_len, hdr);
   if (hdr_len == 0) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to encode HEADERS frame header");
     return YAWT_H3_ERR_SHORT_BUFFER;
@@ -698,41 +667,27 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
 }
 
 YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
-                                    uint64_t stream_id,
-                                    const uint8_t *data, size_t data_len,
-                                    int fin) {
+                                     uint64_t stream_id,
+                                     const uint8_t *data, size_t data_len,
+                                     int fin) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
   if (data_len > 0 && !data) return YAWT_H3_ERR_INVALID_PARAM;
 
-  uint8_t frame_hdr[16];
-  size_t frame_hdr_len = 0;
-  YAWT_H3_Error_t err = YAWT_h3_encode_frame(YAWT_H3_FRAME_DATA,
-      data, data_len, frame_hdr, sizeof(frame_hdr), &frame_hdr_len);
-  if (err != YAWT_H3_OK) return err;
+  uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
+  size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_DATA, data_len, frame_hdr);
+  if (frame_hdr_len == 0) return YAWT_H3_ERR_SHORT_BUFFER;
 
-  YAWT_Q_IoVec_t iov_hdr = { frame_hdr, frame_hdr_len };
-  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov_hdr, 1, 0);
+  YAWT_Q_IoVec_t iov[2] = {
+    { frame_hdr, frame_hdr_len },
+    { data, data_len }
+  };
+  int iov_count = (data_len > 0) ? 2 : 1;
+
+  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, iov_count, fin);
   if (qe != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA frame header on stream %lu: %d",
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA on stream %lu: %d",
              stream_id, qe);
     return YAWT_H3_ERR_INVALID_PARAM;
-  }
-
-  if (data_len > 0) {
-    YAWT_Q_IoVec_t iov_data = { data, data_len };
-    qe = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov_data, 1, fin);
-    if (qe != YAWT_Q_OK) {
-      YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA payload on stream %lu: %d",
-               stream_id, qe);
-      return YAWT_H3_ERR_INVALID_PARAM;
-    }
-  } else if (fin) {
-    qe = YAWT_q_con_send_stream(h3->qcon, stream_id, NULL, 0, 1);
-    if (qe != YAWT_Q_OK) {
-      YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send FIN on stream %lu: %d",
-               stream_id, qe);
-      return YAWT_H3_ERR_INVALID_PARAM;
-    }
   }
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: sent DATA on stream %lu (%zu bytes, fin=%d)",
