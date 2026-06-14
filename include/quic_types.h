@@ -230,6 +230,11 @@ typedef struct YAWT_Q_Frame_BufferedStream {
   uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.data points here when buffered
 } YAWT_Q_Frame_BufferedStream_t;
 
+typedef struct YAWT_Q_IoVec {
+  const uint8_t *buf;
+  size_t len;
+} YAWT_Q_IoVec_t;
+
 // Frame type 0x10 - MAX_DATA
 typedef struct {
   uint64_t max_data; //varint

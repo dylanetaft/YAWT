@@ -751,8 +751,10 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
 #define YAWT_Q_STREAM_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_SHORT - YAWT_Q_STREAM_FRAME_OVERHEAD) // 1284
 
 YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                                       const uint8_t *data, size_t data_len, int fin) {
+                                       const YAWT_Q_IoVec_t *iov, int iov_count, int fin) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
+  if (iov_count < 0) return YAWT_Q_ERR_INVALID_PARAM;
+  if (iov_count > 0 && !iov) return YAWT_Q_ERR_INVALID_PARAM;
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
   if (!meta) {
@@ -771,8 +773,14 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
   }
   if (meta->tx_fin_sent) return YAWT_Q_ERR_INVALID_PARAM;
 
+  size_t total_len = 0;
+  for (int i = 0; i < iov_count; i++) {
+    if (iov[i].len > 0 && !iov[i].buf) return YAWT_Q_ERR_INVALID_PARAM;
+    total_len += iov[i].len;
+  }
+
   // Handle empty FIN (close stream with no data)
-  if (data_len == 0 && fin) {
+  if (total_len == 0 && fin) {
     YAWT_Q_Frame_BufferedStream_t sf = {0};
     sf.frame.stream_id = stream_id;
     sf.frame.off = (meta->tx_next_offset > 0) ? 1 : 0;
@@ -786,8 +794,9 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     return YAWT_Q_OK;
   }
 
-  size_t remaining = data_len;
-  const uint8_t *src = data;
+  size_t remaining = total_len;
+  int iov_idx = 0;
+  size_t iov_off = 0;
 
   while (remaining > 0) {
     size_t chunk_len = remaining;
@@ -800,7 +809,22 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     sf.frame.len_present = 1;
     sf.frame.data_len = chunk_len;
     sf.frame.fin = (fin && remaining == chunk_len) ? 1 : 0;
-    memcpy(sf.data, src, chunk_len);
+
+    size_t dst_off = 0;
+    while (dst_off < chunk_len) {
+      size_t avail = (iov_idx < iov_count) ? (iov[iov_idx].len - iov_off) : 0;
+      if (avail == 0) {
+        iov_idx++;
+        iov_off = 0;
+        if (iov_idx >= iov_count) break;
+        continue;
+      }
+      size_t need = chunk_len - dst_off;
+      size_t copy = (avail < need) ? avail : need;
+      memcpy(sf.data + dst_off, iov[iov_idx].buf + iov_off, copy);
+      dst_off += copy;
+      iov_off += copy;
+    }
 
     YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
@@ -809,7 +833,6 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     // RFC 9000 §4.1: flow control is offset-based — count bytes once here when
     // the offset advances, not on retransmit. Retransmits don't consume budget.
     con->stats.tx_count_bytes += chunk_len;
-    src += chunk_len;
     remaining -= chunk_len;
   }
 

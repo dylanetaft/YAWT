@@ -83,11 +83,12 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
 
 
 
-// Enqueue STREAM frames for the given data on stream_id. Fragments as needed.
-// Ownership: copies `data` (caller keeps its buffer). If fin is set, marks the
-// stream finished after the last chunk.
+// Enqueue STREAM frames for the given scatter/gather buffers on stream_id.
+// Fragments across iovec entries as needed, spanning buffer boundaries.
+// Ownership: copies all iov[] data (caller keeps its buffers). If fin is set,
+// marks the stream finished after the last chunk.
 YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                                       const uint8_t *data, size_t data_len, int fin);
+                                       const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 

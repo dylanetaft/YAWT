@@ -6,7 +6,6 @@ set(MY_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
 
-
 ExternalProject_add(
   libev
   UPDATE_DISCONNECTED True

@@ -648,7 +648,8 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   off += frame_len;
 
   uint64_t stream_id = 3;
-  YAWT_Q_Error_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, buf, off, 0);
+  YAWT_Q_IoVec_t iov = { buf, off };
+  YAWT_Q_Error_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov, 1, 0);
   if (qerr != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send SETTINGS on stream %lu: %d",
              stream_id, qerr);
@@ -687,8 +688,8 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
     return herr;
   }
 
-  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id,
-      _h3_encode_buf + start, written + block_len, fin);
+  YAWT_Q_IoVec_t iov = { _h3_encode_buf + start, written + block_len };
+  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov, 1, fin);
   if (qe != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send HEADERS on stream %lu: %d",
              stream_id, qe);
@@ -713,8 +714,8 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
       data, data_len, frame_hdr, sizeof(frame_hdr), &frame_hdr_len);
   if (err != YAWT_H3_OK) return err;
 
-  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id,
-      frame_hdr, frame_hdr_len, 0);
+  YAWT_Q_IoVec_t iov_hdr = { frame_hdr, frame_hdr_len };
+  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov_hdr, 1, 0);
   if (qe != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA frame header on stream %lu: %d",
              stream_id, qe);
@@ -722,7 +723,8 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
   }
 
   if (data_len > 0) {
-    qe = YAWT_q_con_send_stream(h3->qcon, stream_id, data, data_len, fin);
+    YAWT_Q_IoVec_t iov_data = { data, data_len };
+    qe = YAWT_q_con_send_stream(h3->qcon, stream_id, &iov_data, 1, fin);
     if (qe != YAWT_Q_OK) {
       YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA payload on stream %lu: %d",
                stream_id, qe);
