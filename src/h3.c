@@ -353,13 +353,16 @@ void _handle_rx_stream_frame(
   YAWT_H3_Frame_t *f = &stream->frame;
 
   while (rc->cursor < rc->len && rc->err == YAWT_Q_OK) {
-    // Header phase: read Type + Length once.
+    // Header phase: read Type + Length once per frame.
+    // hdr_size == 0 means we haven't yet decoded both varints for this frame.
     if (f->hdr_size == 0) {
       if (!_gather_h3_frame_head(con, stream, rc)) {
         return; // header spans into the next chunk — resume when it arrives
       }
 
-      // Allocate buffer only for frames we must hold whole.
+      // Allocation decision: only SETTINGS and HEADERS must be held whole
+      // (decoded after full receipt). DATA frames stream through without
+      // allocation. Unknown/ignored frame types also skip allocation.
       bool must_buffer = (f->type == YAWT_H3_FRAME_SETTINGS ||
                           f->type == YAWT_H3_FRAME_HEADERS);
       if (must_buffer && f->payload_len > 0) {
@@ -371,6 +374,7 @@ void _handle_rx_stream_frame(
                    f->payload_len, sec->max_frame_buffer_bytes, stream->id);
           return;
         }
+        // malloc: owned by f->payload, freed at frame completion below.
         f->payload = malloc(f->payload_len);
         if (!f->payload) {
           YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM buffering %lu-byte frame", f->payload_len);
@@ -379,9 +383,10 @@ void _handle_rx_stream_frame(
       }
     }
 
-    // Payload phase.
+    // Payload phase: three paths depending on frame type.
     if (f->payload) {
-      // Buffered frame: copy into malloc'd buffer.
+      // Buffered frame (SETTINGS/HEADERS): copy payload bytes into the
+      // malloc'd buffer. f->accumulated tracks bytes received so far.
       uint64_t need = f->payload_len - f->accumulated;
       size_t avail = rc->len - rc->cursor;
       size_t n = (need < avail) ? (size_t)need : avail;
@@ -389,7 +394,8 @@ void _handle_rx_stream_frame(
       f->accumulated += n;
       rc->cursor += n;
     } else if (f->type == YAWT_H3_FRAME_DATA && f->payload_len > 0) {
-      // DATA frame: stream through to app, no malloc.
+      // DATA frame: stream through to app without buffering. The app receives
+      // a borrowed pointer into rc->data — it must copy if it wants to retain.
       uint64_t need = f->payload_len - f->accumulated;
       size_t avail = rc->len - rc->cursor;
       size_t n = (need < avail) ? (size_t)need : avail;
@@ -400,7 +406,7 @@ void _handle_rx_stream_frame(
       f->accumulated += n;
       rc->cursor += n;
     } else {
-      // Unknown/ignored frame type: skip payload bytes.
+      // Unknown/ignored frame type: skip payload bytes without copying.
       uint64_t need = f->payload_len - f->accumulated;
       size_t avail = rc->len - rc->cursor;
       size_t n = (need < avail) ? (size_t)need : avail;
@@ -408,19 +414,22 @@ void _handle_rx_stream_frame(
       rc->cursor += n;
     }
 
-    // Frame complete?
+    // Frame complete: all payload bytes received (or payload_len was 0).
     if (f->hdr_size && f->accumulated >= f->payload_len) {
       YAWT_LOG(YAWT_LOG_DEBUG, "h3: frame complete type=0x%lx len=%lu stream=%lu",
                f->type, f->payload_len, stream->id);
 
       if (f->payload) {
+        // Dispatch buffered frame. _dispatch_buffered_frame reads f->payload
+        // but does not take ownership — we free it here regardless of outcome.
         if (!_dispatch_buffered_frame(con, stream)) {
-          // Protocol error — connection-level. For now just log; the caller
-          // should close the connection.
           YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
         }
       }
 
+      // free: releases the malloc'd payload (NULL if DATA/unknown — free(NULL) is safe).
+      // memset: resets the frame struct for the next frame on this stream.
+      // The stream->frame struct is reused, not reallocated.
       free(f->payload);
       memset(f, 0, sizeof(YAWT_H3_Frame_t));
     }
