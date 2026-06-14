@@ -29,7 +29,7 @@ YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
   }
 
   size_t off = 0;
-  int n;
+  uint64_t n;
 
   if (YAWT_q_varint_encode(type, buf + off, len - off, &n) != YAWT_Q_OK) {
     return YAWT_H3_ERR_SHORT_BUFFER;
@@ -56,7 +56,7 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
   if (!settings || !buf || !written) return YAWT_H3_ERR_INVALID_PARAM;
 
   size_t off = 0;
-  int n;
+  uint64_t n;
 
   if (settings->qpack_max_table_capacity > 0) {
     if (YAWT_q_varint_encode(YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY,
@@ -611,7 +611,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
 
   uint8_t buf[272];
   size_t off = 0;
-  int n;
+  uint64_t n;
   if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, buf, sizeof(buf), &n) != YAWT_Q_OK)
     return YAWT_H3_ERR_SHORT_BUFFER;
   off += n;

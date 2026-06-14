@@ -7,15 +7,7 @@ set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERR
 option(BUILD_EXAMPLES "Build example programs" OFF)
 
 
-set(YAWT_SOURCES
-    crypt.c
-    h3.c
-    h3_header.c
-    qpack.c
-    quic.c
-    quic_connection.c
-    security.c
-)
+file(GLOB_RECURSE YAWT_SOURCES ${PROJECT_SOURCE_DIR}/*.c)
 
 add_library(yawt STATIC ${YAWT_SOURCES})
 

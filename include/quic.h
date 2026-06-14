@@ -191,7 +191,7 @@ void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 // Encode a QUIC varint into buf. Returns bytes written via *written.
 // Errors: VARINT_OVERFLOW if val exceeds 62 bits; SHORT_BUFFER if `len` too small.
 YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
-                                     int *written);
+                                     uint64_t *written);
 
 // Parse a QUIC packet from a read cursor.
 //   Transience: output pointers (payload/raw/token) point INTO rc->data (zero-copy).

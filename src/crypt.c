@@ -326,7 +326,7 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   };
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];
-    int vlen;
+    uint64_t vlen;
     YAWT_Q_Error_t err = YAWT_q_varint_encode(fc_params[i].val, vbuf, sizeof(vbuf), &vlen);
     if (err != YAWT_Q_OK) return -1;
     ret = _tp_append(extdata, fc_params[i].id, vbuf, vlen);

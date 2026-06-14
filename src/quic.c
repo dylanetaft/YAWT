@@ -32,8 +32,8 @@ void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out) {
 }
 
 YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
-                                     int *written) {
-  int vlen;
+                                     uint64_t *written) {
+  uint64_t vlen;
   uint8_t prefix;
 
   if (val <= 0x3f) {
@@ -269,7 +269,7 @@ static int _encode_long_header(const YAWT_Q_Packet_t *pkt, uint8_t long_packet_t
 
 static int _encode_pkt_initial(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
@@ -334,7 +334,7 @@ static int _encode_pkt_initial(YAWT_Q_Packet_t *pkt, size_t *written) {
 
 static int _encode_pkt_0rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
@@ -370,7 +370,7 @@ static int _encode_pkt_0rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
 
 static int _encode_pkt_handshake(YAWT_Q_Packet_t *pkt, size_t *written) {
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   uint8_t type_bits = (pkt->reserved << 2) | ((pkt->packet_number_length - 1) & 3);
@@ -621,7 +621,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   // Frame type 0x06
@@ -658,7 +658,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level,
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   // Frame type 0x02
@@ -696,7 +696,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   // Type byte: 0x08 | OFF | LEN | FIN
@@ -761,7 +761,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   // Frame type 0x1c
@@ -811,7 +811,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
   memset(&f, 0, sizeof(f));
 
   size_t cursor = 0;
-  int n;
+  uint64_t n;
   YAWT_Q_Error_t err;
 
   // Frame type 0x31 (DATAGRAM with length)

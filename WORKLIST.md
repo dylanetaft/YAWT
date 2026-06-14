@@ -177,9 +177,11 @@ Excludes: ECN, 0-RTT, spin bit, congestion control (beyond basic), connection mi
 - [x] Encode + send SETTINGS frame on control stream from `local_settings`
 - [x] Encode response: build HEADERS frame — resolve header fields via QPACK encoder, wrap in H3 frame, send on bidi stream
 - [x] Encode DATA frames from body, send on bidi stream
+- [x] Flow control: initialize stream tx_max_data from peer's transport parameters (initial_max_stream_data_bidi_remote/uni) per RFC 9000 §18.2
 - [ ] GOAWAY frame encode/decode (RFC 9114 §7.2.6)
 - [ ] MAX_PUSH_ID frame encode (RFC 9114 §7.2.5)
 - [ ] Consider flushing TX buffer outside of maintenance window — currently `_drain_tx` runs after each `con_rx` packet batch and during `con_maintain`, which works for request/response patterns but may need explicit flush for proactive sends (e.g. server push, keepalive). Decide where/when later.
+- [ ] Investigate unknown frame type 0x1d from curl after response — occurs during connection cleanup, not blocking functionality. RFC 9000 §12.4 requires FRAME_ENCODING_ERROR for unknown types (current behavior). May be extension frame or experimental feature.
 
 ## Done (foundational)
 - [x] Packet parse/encode (all 5 types)

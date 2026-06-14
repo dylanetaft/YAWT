@@ -3,8 +3,8 @@ project(yawt_superbuild)
 include (ExternalProject)
 set(MY_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 
-option(BUILD_TESTS "Build unit tests" OFF)
-option(BUILD_EXAMPLES "Build example programs" OFF)
+option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_EXAMPLES "Build example programs" ON)
 
 
 ExternalProject_add(

@@ -226,12 +226,28 @@ static YAWT_Q_StreamMeta_t *_stream_meta_find(ANB_Slab_t *meta_slab, uint64_t st
 }
 
 // Create a new stream metadata entry in the slab.
-static YAWT_Q_StreamMeta_t *_stream_meta_add(ANB_Slab_t *meta_slab, uint64_t stream_id) {
-  YAWT_Q_StreamMeta_t *m = (YAWT_Q_StreamMeta_t *)ANB_slab_alloc_item(meta_slab, sizeof(YAWT_Q_StreamMeta_t));
+static YAWT_Q_StreamMeta_t *_stream_meta_add(YAWT_Q_Connection_t *con, uint64_t stream_id) {
+  YAWT_Q_StreamMeta_t *m = (YAWT_Q_StreamMeta_t *)ANB_slab_alloc_item(con->stream_meta, sizeof(YAWT_Q_StreamMeta_t));
   if (!m) return NULL;
   memset(m, 0, sizeof(*m));
   m->stream_id = stream_id;
-  m->tx_max_data = 65535;
+  
+  // Set initial tx_max_data based on stream type and peer's transport parameters
+  // RFC 9000 §18.2: peer advertises limits on what we can send
+  uint8_t stype = stream_id & 0x03;
+  switch (stype) {
+    case 0x00: // Client-initiated bidi: use peer's bidi_local
+      m->tx_max_data = con->peer_fc.max_stream_data_bidi_local;
+      break;
+    case 0x01: // Server-initiated bidi: use peer's bidi_remote
+      m->tx_max_data = con->peer_fc.max_stream_data_bidi_remote;
+      break;
+    case 0x02: // Client-initiated uni: use peer's uni
+    case 0x03: // Server-initiated uni: use peer's uni
+      m->tx_max_data = con->peer_fc.max_stream_data_uni;
+      break;
+  }
+  
   return m;
 }
 
@@ -399,7 +415,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
       case YAWT_Q_FRAME_STREAM: {
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.stream.stream_id);
         if (!meta) {
-          meta = _stream_meta_add(con->stream_meta, frame.stream.stream_id);
+          meta = _stream_meta_add(con, frame.stream.stream_id);
           if (!meta) break;
         }
         uint64_t end = frame.stream.offset + frame.stream.data_len;
@@ -445,7 +461,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_DATA updated to %lu", con->peer_fc.max_data);
         }
         break;
-
+      // RFC 9000 19.10 - it applies to the specific stream
       case YAWT_Q_FRAME_MAX_STREAM_DATA: {
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.max_stream_data.stream_id);
         if (meta && frame.max_stream_data.max_stream_data > meta->tx_max_data) {
@@ -577,9 +593,18 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     if (full_pn > con->stats.pkt_num_rx[level]) con->stats.pkt_num_rx[level] = full_pn;
 
     // Parse frames from decrypted payload
-    YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
-             pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
-             pkt.payload[4], pkt.payload[5], pkt.payload[6], pkt.payload[7]);
+    if (pkt.payload_len >= 8) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
+               pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
+               pkt.payload[4], pkt.payload[5], pkt.payload[6], pkt.payload[7]);
+    } else {
+      YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload (%zu bytes): %02x %02x %02x %02x",
+               pkt.payload_len,
+               pkt.payload_len > 0 ? pkt.payload[0] : 0,
+               pkt.payload_len > 1 ? pkt.payload[1] : 0,
+               pkt.payload_len > 2 ? pkt.payload[2] : 0,
+               pkt.payload_len > 3 ? pkt.payload[3] : 0);
+    }
     YAWT_Q_FrameHandler_Res_t res = _handle_frames(con, &pkt);
 
     // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
@@ -741,7 +766,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
                 stype, count, limit);
       return YAWT_Q_ERR_INVALID_PARAM;
     }
-    meta = _stream_meta_add(con->stream_meta, stream_id);
+    meta = _stream_meta_add(con, stream_id);
     if (!meta) return YAWT_Q_ERR_ALLOC;
   }
   if (meta->tx_fin_sent) return YAWT_Q_ERR_INVALID_PARAM;

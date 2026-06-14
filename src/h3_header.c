@@ -153,7 +153,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_resolve_str(const char *name, const char *
 }
 
 // Helper: build a view from a buffered field.
-static YAWT_H3_Header_Field_t _make_view(const _YAWT_H3_Header_BufferedField_t *bf) {
+static YAWT_H3_Header_Field_t _field_view_from_buffered(const _YAWT_H3_Header_BufferedField_t *bf) {
   YAWT_H3_Header_Field_t v = {0};
   v.name = bf->data;
   v.value = bf->data + bf->name_len + 1;
@@ -183,7 +183,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_find(const YAWT_H3_HeaderFields_t *section
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
     if (bf->name_len == name_len &&
         memcmp(bf->data, name, name_len) == 0) {
-      return _make_view(bf);
+      return _field_view_from_buffered(bf);
     }
   }
 
@@ -215,7 +215,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
   if (!item) return done;
 
   _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
-  return _make_view(bf);
+  return _field_view_from_buffered(bf);
 }
 
 
@@ -427,14 +427,7 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     if (!item) break;
 
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
-    YAWT_H3_Header_Field_t v = {
-      .name = bf->data,
-      .value = bf->data + bf->name_len + 1,
-      .name_len = bf->name_len,
-      .value_len = bf->value_len,
-      .i_static = bf->i_static,
-      .i_name = bf->i_name,
-    };
+    YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
 
     if (v.i_static > 0) {
       if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
