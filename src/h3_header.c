@@ -470,3 +470,54 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
   *written = off;
   return YAWT_QPACK_OK;
 }
+
+// ---------------------------------------------------------------------------
+// QPACK header block size calculation (static table only, no Huffman).
+// ---------------------------------------------------------------------------
+
+static size_t _prefix_int_size(uint64_t val, uint8_t offset_bits) {
+  uint8_t N = 8 - offset_bits;
+  uint64_t max = (1ULL << N) - 1;
+  if (val < max) return 1;
+  size_t size = 1;
+  uint64_t remaining = val - max;
+  while (remaining >= 128) {
+    remaining /= 128;
+    size++;
+  }
+  return size + 1;
+}
+
+static size_t _string_literal_size(size_t str_len) {
+  return 1 + _prefix_int_size(str_len, 7) + str_len;
+}
+
+size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers) {
+  if (!headers || !headers->slab) return 0;
+
+  size_t size = 2;  // 2-byte header block prefix (RIC=0, Base=0)
+
+  ANB_SlabIter_t iter = {0};
+  size_t item_size = 0;
+
+  while (1) {
+    uint8_t *item = ANB_slab_peek_item_iter(headers->slab, &iter, &item_size);
+    if (!item) break;
+
+    _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
+    YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
+
+    if (v.i_static > 0) {
+      size += _prefix_int_size(v.i_static, 6);
+    } else if (v.i_name > 0) {
+      size += _prefix_int_size(v.i_name, 4);
+      size += _string_literal_size(v.value_len);
+    } else {
+      size += 1;  // 0x20 prefix byte
+      size += _string_literal_size(v.name_len);
+      size += _string_literal_size(v.value_len);
+    }
+  }
+
+  return size;
+}

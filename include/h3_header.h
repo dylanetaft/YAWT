@@ -84,3 +84,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     const YAWT_H3_HeaderFields_t *headers,
     uint8_t *buf, size_t len, size_t *written);
+
+// Calculate the encoded size of a header block without actually encoding it.
+// Returns the number of bytes that would be written by YAWT_qpack_encode_header_block.
+size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers);

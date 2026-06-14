@@ -10,6 +10,9 @@
 #include <stdlib.h>
 
 
+#define H3_MAX_FRAME_SIZE 16384
+static uint8_t _h3_encode_buf[H3_MAX_FRAME_SIZE];
+
 
 static const YAWT_H3_Settings_t _default_h3_settings = {
   .qpack_max_table_capacity = 0,
@@ -19,6 +22,89 @@ static const YAWT_H3_Settings_t _default_h3_settings = {
   .h3_datagram = 0,
   .wt_enabled = 0,
 };
+
+
+// ---------------------------------------------------------------------------
+// Internal: build H3 frames directly into _h3_encode_buf (single-copy path).
+// ---------------------------------------------------------------------------
+
+static int _encode_h3_frame_headers(const YAWT_H3_HeaderFields_t *headers,
+                                     size_t *written) {
+  size_t block_size = YAWT_qpack_header_block_size(headers);
+  size_t off = 0;
+  uint64_t n;
+
+  // Frame type: HEADERS (0x01)
+  if (YAWT_q_varint_encode(YAWT_H3_FRAME_HEADERS, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Frame length
+  if (YAWT_q_varint_encode(block_size, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Encode QPACK header block directly into buffer
+  if (off + block_size > sizeof(_h3_encode_buf)) return -1;
+  size_t encoded = 0;
+  YAWT_QPACK_Error_t qerr = YAWT_qpack_encode_header_block(
+      headers, _h3_encode_buf + off, sizeof(_h3_encode_buf) - off, &encoded);
+  if (qerr != YAWT_QPACK_OK) return -1;
+  off += encoded;
+
+  *written = off;
+  return 0;
+}
+
+static int _encode_h3_frame_headers_from_block(const uint8_t *block, size_t block_len,
+                                                size_t *written) {
+  size_t off = 0;
+  uint64_t n;
+
+  // Frame type: HEADERS (0x01)
+  if (YAWT_q_varint_encode(YAWT_H3_FRAME_HEADERS, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Frame length
+  if (YAWT_q_varint_encode(block_len, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Copy pre-encoded QPACK block
+  if (off + block_len > sizeof(_h3_encode_buf)) return -1;
+  memcpy(_h3_encode_buf + off, block, block_len);
+  off += block_len;
+
+  *written = off;
+  return 0;
+}
+
+static int _encode_h3_frame_data(const uint8_t *data, size_t data_len,
+                                  size_t *written) {
+  size_t off = 0;
+  uint64_t n;
+
+  // Frame type: DATA (0x00)
+  if (YAWT_q_varint_encode(YAWT_H3_FRAME_DATA, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Frame length
+  if (YAWT_q_varint_encode(data_len, _h3_encode_buf + off,
+                           sizeof(_h3_encode_buf) - off, &n) != YAWT_Q_OK) return -1;
+  off += n;
+
+  // Copy payload
+  if (off + data_len > sizeof(_h3_encode_buf)) return -1;
+  if (data_len > 0) {
+    memcpy(_h3_encode_buf + off, data, data_len);
+    off += data_len;
+  }
+
+  *written = off;
+  return 0;
+}
 
 
 YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
@@ -649,14 +735,14 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
     return YAWT_H3_ERR_SHORT_BUFFER;
   }
 
-  uint8_t frame_buf[4112];
   size_t frame_len = 0;
-  YAWT_H3_Error_t err = YAWT_h3_encode_frame(YAWT_H3_FRAME_HEADERS,
-      block, block_len, frame_buf, sizeof(frame_buf), &frame_len);
-  if (err != YAWT_H3_OK) return err;
+  if (_encode_h3_frame_headers_from_block(block, block_len, &frame_len) < 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to encode HEADERS frame");
+    return YAWT_H3_ERR_SHORT_BUFFER;
+  }
 
   YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id,
-      frame_buf, frame_len, fin);
+      _h3_encode_buf, frame_len, fin);
   if (qe != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send HEADERS on stream %lu: %d",
              stream_id, qe);
