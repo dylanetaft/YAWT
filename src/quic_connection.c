@@ -341,7 +341,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
     if (frc.err != YAWT_Q_OK) break;
 
     // RFC 9000 §13.2: only ACK and PADDING are non-ack-eliciting
-    if (frame.type != YAWT_Q_FRAME_ACK && frame.type != YAWT_Q_FRAME_PADDING) {
+    if (frame.type != YAWT_Q_FRAME_ACK && frame.type != YAWT_Q_FRAME_PADDING &&
+        frame.type != YAWT_Q_FRAME_CONNECTION_CLOSE && frame.type != YAWT_Q_FRAME_CONNECTION_CLOSE_APP) {
       res.requires_ack = 1;
     }
 
@@ -408,6 +409,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         _record_close(con, frame.connection_close.error_code,
                       (const char *)frame.connection_close.reason_phrase,
                       frame.connection_close.reason_phrase_len);
+        if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
+        break;
+      }
+
+      case YAWT_Q_FRAME_CONNECTION_CLOSE_APP: {
+        YAWT_LOG(YAWT_LOG_INFO, "CONNECTION_CLOSE (app): error=%lu",
+                 frame.connection_close_app.error_code);
+
+        _record_close(con, frame.connection_close_app.error_code,
+                      (const char *)frame.connection_close_app.reason_phrase,
+                      frame.connection_close_app.reason_phrase_len);
         if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
         break;
       }
@@ -952,6 +964,7 @@ void YAWT_q_con_maintain(double now) {
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
     double idle_sec = _effective_idle_timeout(con);
     if (_maint_kill(&con, idle_sec, now)) continue;
+    if (con->stats.closing_at != 0) continue;
     _maint_ping(con, idle_sec, now);
     _maint_retransmit(con, now);
 

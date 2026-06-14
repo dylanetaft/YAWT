@@ -568,6 +568,18 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       rc->cursor += out->connection_close.reason_phrase_len;
       break;
 
+    case YAWT_Q_FRAME_CONNECTION_CLOSE_APP:
+      YAWT_q_varint_decode(rc, &out->connection_close_app.error_code);
+      YAWT_q_varint_decode(rc, &out->connection_close_app.reason_phrase_len);
+      if (rc->err != YAWT_Q_OK) return;
+      if (rc->cursor + out->connection_close_app.reason_phrase_len > rc->len) {
+        rc->err = YAWT_Q_ERR_SHORT_BUFFER; return;
+      }
+      out->connection_close_app.reason_phrase = out->connection_close_app.reason_phrase_len > 0
+        ? (uint8_t *)(rc->data + rc->cursor) : NULL;
+      rc->cursor += out->connection_close_app.reason_phrase_len;
+      break;
+
     case YAWT_Q_FRAME_NEW_CONNECTION_ID:
       YAWT_q_varint_decode(rc, &out->new_connection_id.seq_num);
       YAWT_q_varint_decode(rc, &out->new_connection_id.retire_prior_to);

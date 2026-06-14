@@ -327,6 +327,7 @@ typedef struct {
     YAWT_Q_Frame_Crypto_t crypto;
     YAWT_Q_Frame_Stream_t stream;
     YAWT_Q_Frame_Connection_Close_t connection_close;
+    YAWT_Q_Frame_Connection_Close_App_t connection_close_app;
     YAWT_Q_Frame_New_Connection_ID_t new_connection_id;
     YAWT_Q_Frame_Max_Data_t max_data;
     YAWT_Q_Frame_Max_Stream_Data_t max_stream_data;
