@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "h3_types.h"
 
 // ---------------------------------------------------------------------------
 // QPACK static table (RFC 9204 Appendix A) — 99 entries, index 0..98.
@@ -9,6 +10,10 @@
 // ---------------------------------------------------------------------------
 
 #define YAWT_QPACK_STATIC_TABLE_SIZE 99
+
+// Maximum bytes a single prefix-encoded integer can occupy (1 prefix + 10
+// continuation bytes for UINT64_MAX with an 8-bit prefix, RFC 7541 §5.1).
+#define YAWT_QPACK_PREFIX_INT_MAX_BYTES 11
 
 typedef struct {
   const char *name;
@@ -60,6 +65,22 @@ typedef enum {
 // plus how many prefix bits were consumed by the dispatcher (see RFC 9204 §4.5).
 // The remaining bits are dispatched by the caller after this function returns.
 YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, uint8_t *out_prefix_bits);
+
+// Encode a single field line representation (Indexed, Literal with Name Ref,
+// or Literal with Literal Name) into buf. Chooses the representation based on
+// field->i_static and field->i_name. Returns YAWT_QPACK_OK on success and sets
+// *written to the number of bytes written. If out_type is non-NULL, it is set
+// to the representation type that was encoded.
+YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
+    const YAWT_H3_Header_Field_t *field,
+    uint8_t *buf, size_t len, size_t *written,
+    YAWT_QPACK_FieldLineRepType_t *out_type);
+
+// Returns the maximum number of bytes a single field line could occupy when
+// encoded, assuming worst-case prefix integer sizes (UINT64_MAX). String
+// lengths are taken from the field as-is. Useful for right-sizing buffers
+// before encoding.
+size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *field);
 
 // Decode a prefixed integer. RFC 7541 §5.1 / RFC 9204 §4.1.1.
 YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(

@@ -60,6 +60,14 @@ YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
   return YAWT_Q_OK;
 }
 
+size_t YAWT_q_varint_size(uint64_t val) {
+  if (val <= 0x3f) return 1;
+  if (val <= 0x3fff) return 2;
+  if (val <= 0x3fffffff) return 4;
+  if (val <= 0x3fffffffffffffff) return 8;
+  return 0;
+}
+
 // Parse the shared long header fields directly into a flat YAWT_Q_Packet_t.
 // Advances rc->cursor past consumed bytes. Does NOT parse byte 0's lower 4 bits.
 static void _parse_long_header(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {

@@ -193,6 +193,10 @@ void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
                                      uint64_t *written);
 
+// Returns the number of bytes needed to encode val as a QUIC varint (RFC 9000 §16).
+// Returns 0 if val exceeds 62 bits (would overflow).
+size_t YAWT_q_varint_size(uint64_t val);
+
 // Parse a QUIC packet from a read cursor.
 //   Transience: output pointers (payload/raw/token) point INTO rc->data (zero-copy).
 //   Errors:     sticky; check rc->err after the call.

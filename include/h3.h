@@ -22,6 +22,18 @@ YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
                                       const uint8_t *payload, size_t payload_len,
                                       uint8_t *buf, size_t len, size_t *written);
 
+// Encode just the H3 HEADERS frame header (type varint + length varint) into
+// buf, where block_len is the size of the QPACK header block that will follow.
+// Sets *written to the number of bytes written. Callers then encode the QPACK
+// block directly at buf + *written for a zero-copy path.
+YAWT_H3_Error_t YAWT_h3_encode_frame_headers(size_t block_len,
+                                               uint8_t *buf, size_t len,
+                                               size_t *written);
+
+// Returns the number of bytes needed for an H3 HEADERS frame header (type +
+// length varints) given the QPACK block length that will follow.
+size_t YAWT_h3_frame_header_size(size_t block_len);
+
 // H3 event handler — register via YAWT_q_con_set_event_handler, or forward to it
 // from the app's own handler. Manages the H3 connection object (allocated on
 // CONNECTED, freed on CLOSE) and consumes stream events. Ignores TX (the app's

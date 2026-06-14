@@ -392,22 +392,6 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 // QPACK field section encode (static table only, no Huffman).
 // ---------------------------------------------------------------------------
 
-static YAWT_QPACK_Error_t _encode_string_literal(
-    uint8_t *buf, size_t len,
-    const char *str, size_t str_len,
-    size_t *written) {
-  if (1 + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-  buf[0] = 0x00;
-  uint64_t cons = 0;
-  YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-      buf, len, 1, (uint64_t)str_len, &cons);
-  if (err != YAWT_QPACK_OK) return err;
-  if (cons + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-  memcpy(buf + cons, str, str_len);
-  *written = (size_t)cons + str_len;
-  return YAWT_QPACK_OK;
-}
-
 YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     const YAWT_H3_HeaderFields_t *headers,
     uint8_t *buf, size_t len, size_t *written) {
@@ -429,42 +413,11 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
     YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
 
-    if (v.i_static > 0) {
-      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-      buf[off] = 0xC0;
-      uint64_t cons = 0;
-      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-          buf + off, len - off, 2, (uint64_t)v.i_static, &cons);
-      if (err != YAWT_QPACK_OK) return err;
-      off += (size_t)cons;
-    } else if (v.i_name > 0) {
-      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-      buf[off] = 0x50;
-      uint64_t cons = 0;
-      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-          buf + off, len - off, 4, (uint64_t)v.i_name, &cons);
-      if (err != YAWT_QPACK_OK) return err;
-      off += (size_t)cons;
-
-      size_t slen = 0;
-      err = _encode_string_literal(buf + off, len - off, v.value, v.value_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
-    } else {
-      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-      buf[off] = 0x20;
-      off++;
-
-      size_t slen = 0;
-      YAWT_QPACK_Error_t err = _encode_string_literal(
-          buf + off, len - off, v.name, v.name_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
-
-      err = _encode_string_literal(buf + off, len - off, v.value, v.value_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
-    }
+    size_t flen = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_field_line(
+        &v, buf + off, len - off, &flen, NULL);
+    if (err != YAWT_QPACK_OK) return err;
+    off += flen;
   }
 
   *written = off;
@@ -475,6 +428,10 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
 // QPACK header block size calculation (static table only, no Huffman).
 // ---------------------------------------------------------------------------
 
+// Computes encoded size of an HPACK/QPACK prefix integer (RFC 7541 §5.1).
+// This is NOT the same as QUIC varint encoding (RFC 9000 §16) — prefix integers
+// use a variable-width prefix (8 - offset_bits) followed by continuation bytes
+// with MSB=1, while QUIC varints are always 1/2/4/8 bytes with a 2-bit length prefix.
 static size_t _prefix_int_size(uint64_t val, uint8_t offset_bits) {
   uint8_t N = 8 - offset_bits;
   uint64_t max = (1ULL << N) - 1;
@@ -517,6 +474,26 @@ size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers) {
       size += _string_literal_size(v.name_len);
       size += _string_literal_size(v.value_len);
     }
+  }
+
+  return size;
+}
+
+size_t YAWT_qpack_header_block_max_size(const YAWT_H3_HeaderFields_t *headers) {
+  if (!headers || !headers->slab) return 0;
+
+  size_t size = 2;
+
+  ANB_SlabIter_t iter = {0};
+  size_t item_size = 0;
+
+  while (1) {
+    uint8_t *item = ANB_slab_peek_item_iter(headers->slab, &iter, &item_size);
+    if (!item) break;
+
+    _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
+    YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
+    size += YAWT_H3_QPACK_encode_field_line_max_size(&v);
   }
 
   return size;

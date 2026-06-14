@@ -733,3 +733,90 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_header_block_prefix(
     return YAWT_QPACK_OK;
 }
 
+// ---------------------------------------------------------------------------
+// QPACK field line representation encoder — RFC 9204 §4.5
+// ---------------------------------------------------------------------------
+
+static YAWT_QPACK_Error_t _encode_string_literal(
+    uint8_t *buf, size_t len,
+    const char *str, size_t str_len,
+    size_t *written) {
+  if (1 + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+  buf[0] = 0x00;
+  uint64_t cons = 0;
+  YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+      buf, len, 1, (uint64_t)str_len, &cons);
+  if (err != YAWT_QPACK_OK) return err;
+  if (cons + str_len > len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+  memcpy(buf + cons, str, str_len);
+  *written = (size_t)cons + str_len;
+  return YAWT_QPACK_OK;
+}
+
+YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
+    const YAWT_H3_Header_Field_t *field,
+    uint8_t *buf, size_t len, size_t *written,
+    YAWT_QPACK_FieldLineRepType_t *out_type) {
+  if (!field || !buf || !written) return YAWT_QPACK_ERR_INVALID_PARAM;
+
+  size_t off = 0;
+
+  if (field->i_static > 0) {
+    if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    buf[off] = 0xC0;
+    uint64_t cons = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+        buf + off, len - off, 2, (uint64_t)field->i_static, &cons);
+    if (err != YAWT_QPACK_OK) return err;
+    off += (size_t)cons;
+    if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_INDEXED;
+  } else if (field->i_name > 0) {
+    if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    buf[off] = 0x50;
+    uint64_t cons = 0;
+    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+        buf + off, len - off, 4, (uint64_t)field->i_name, &cons);
+    if (err != YAWT_QPACK_OK) return err;
+    off += (size_t)cons;
+
+    size_t slen = 0;
+    err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+    if (err != YAWT_QPACK_OK) return err;
+    off += slen;
+    if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF;
+  } else {
+    if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    buf[off] = 0x20;
+    off++;
+
+    size_t slen = 0;
+    YAWT_QPACK_Error_t err = _encode_string_literal(
+        buf + off, len - off, field->name, field->name_len, &slen);
+    if (err != YAWT_QPACK_OK) return err;
+    off += slen;
+
+    err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+    if (err != YAWT_QPACK_OK) return err;
+    off += slen;
+    if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME;
+  }
+
+  *written = off;
+  return YAWT_QPACK_OK;
+}
+
+size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *field) {
+  if (!field) return 0;
+
+  if (field->i_static > 0) {
+    return 1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES;
+  } else if (field->i_name > 0) {
+    return 1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES +
+           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->value_len;
+  } else {
+    return 1 +
+           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->name_len +
+           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->value_len;
+  }
+}
+
