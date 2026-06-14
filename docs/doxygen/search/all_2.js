@@ -1,8 +1,4 @@
 var searchData=
 [
-  ['h3_2eh_0',['h3.h',['../h3_8h.html',1,'']]],
-  ['h3_5fframe_5fmax_5fheader_5fbytes_1',['H3_FRAME_MAX_HEADER_BYTES',['../group__YAWT__H3__Types.html#gaa1c74dcfce021ef9dc7e936bd7c2e56d',1,'h3_types.h']]],
-  ['h3_5fheader_2eh_2',['h3_header.h',['../h3__header_8h.html',1,'']]],
-  ['h3_5fstream_5ftype_5fmax_5fbytes_3',['H3_STREAM_TYPE_MAX_BYTES',['../group__YAWT__H3__Types.html#ga051c31e35ec6425ff9b056561feb558b',1,'h3_types.h']]],
-  ['h3_5ftypes_2eh_4',['h3_types.h',['../h3__types_8h.html',1,'']]]
+  ['extra_0',['extra',['../structYAWT__Q__Packet.html#a09cd72bc8bb0424d5239d53c85420957',1,'YAWT_Q_Packet']]]
 ];

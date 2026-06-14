@@ -93,33 +93,8 @@ $(function(){initNavTree('group__YAWT__Q__Events.html','',''); });
 <div class="contents">
 
 <p>QUIC asynchronous event system contract.  
-<a href="#details">More...</a></p>
-<table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
-Typedefs</h2></td></tr>
-<tr class="memitem:ga82409f8be34321b9774adf65b5422dbb" id="r_ga82409f8be34321b9774adf65b5422dbb"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga82409f8be34321b9774adf65b5422dbb">YAWT_Q_EventHandler_t</a>) (<a class="el" href="group__YAWT__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="group__YAWT__Q__Types.html#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="group__YAWT__Q__Types.html#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td></tr>
-<tr class="memdesc:ga82409f8be34321b9774adf65b5422dbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process-wide event handler.  <br /></td></tr>
-</table>
-<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
+</p>
 <p>QUIC asynchronous event system contract. </p>
-<a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
-<a id="ga82409f8be34321b9774adf65b5422dbb" name="ga82409f8be34321b9774adf65b5422dbb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga82409f8be34321b9774adf65b5422dbb">&#9670;&#160;</a></span>YAWT_Q_EventHandler_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef void(* YAWT_Q_EventHandler_t) (<a class="el" href="group__YAWT__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="group__YAWT__Q__Types.html#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="group__YAWT__Q__Types.html#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Process-wide event handler. </p>
-<dl class="section note"><dt>Note</dt><dd>Lifetime: a single global, installed via <a class="el" href="group__YAWT__Q__Core.html#ga1b6fbf09c5d78347b023750c3875d6c0" title="Install the process-wide event handler.">YAWT_q_con_set_event_handler()</a>. Threading: the QUIC layer is single-threaded (one libev loop). The handler is invoked synchronously from <a class="el" href="group__YAWT__Q__Core.html#gad371a09d91fb6b2510594eb82c9ae392" title="Single ingress for received UDP datagrams.">YAWT_q_con_rx()</a> and <a class="el" href="group__YAWT__Q__Core.html#gafca5419f25d1e344cf6e35558a0530fc" title="Unified maintenance pass over all connections.">YAWT_q_con_maintain()</a>. Nothing here is thread-safe. </dd></dl>
-
-</div>
-</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">

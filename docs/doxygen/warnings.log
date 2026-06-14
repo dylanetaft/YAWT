@@ -29,7 +29,50 @@
 /home/dylanetaft/projects/YAWT/include/quic.h:26: warning: Found non-existing group 'in' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic.h:26: warning: Found non-existing group 'quic_connection' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic.h:26: warning: Found non-existing group 'h' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:26: warning: Member YAWT_Q_PeerAddr_t found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:56: warning: Member YAWT_Q_Connection_t found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:69: warning: Member YAWT_Q_Con_Create_Info_t found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/h3.h:26: warning: Member YAWT_h3_parse_frame found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:39: warning: Member YAWT_h3_encode_frame_header found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:47: warning: Member YAWT_h3_frame_header_size found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:62: warning: Member YAWT_h3_on_event found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:74: warning: Member YAWT_h3_settings_decode found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:87: warning: Member YAWT_h3_settings_encode found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:99: warning: Member YAWT_h3_set_event_handler found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:108: warning: Member YAWT_h3_get_qcon found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:118: warning: Member YAWT_h3_send_settings found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:129: warning: Member YAWT_h3_send_headers found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3.h:144: warning: Member YAWT_h3_send_data found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:26: warning: Member YAWT_h3_header_fields_create found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:35: warning: Member YAWT_h3_header_fields_destroy found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:48: warning: Member YAWT_h3_header_add found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:60: warning: Member YAWT_h3_header_add_str found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:75: warning: Member YAWT_h3_header_add_static found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:90: warning: Member YAWT_h3_header_add_str_static found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:103: warning: Member YAWT_h3_header_resolve found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:113: warning: Member YAWT_h3_header_resolve_str found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:123: warning: Member YAWT_h3_header_find found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:133: warning: Member YAWT_h3_header_find_str found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:143: warning: Member YAWT_h3_header_iter found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:152: warning: Member YAWT_h3_headers_is_set found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:169: warning: Member YAWT_qpack_decode_header_block found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:186: warning: Member YAWT_qpack_encode_header_block found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:196: warning: Member YAWT_qpack_header_block_size found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
+/home/dylanetaft/projects/YAWT/include/h3_header.h:205: warning: Member YAWT_qpack_header_block_max_size found in multiple @ingroup groups! The member will be put in group Core, and not in group HTTP3
 /home/dylanetaft/projects/YAWT/include/logger.h:26: warning: Found non-existing group 'yatl_logging' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:97: warning: Member YAWT_q_con_create found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:105: warning: Member YAWT_q_con_find_by_cid found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:114: warning: Member YAWT_q_con_free found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:121: warning: Member YAWT_q_con_clear_odcid found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:134: warning: Member YAWT_q_con_rx found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:148: warning: Member YAWT_q_con_send_stream found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:157: warning: Member YAWT_q_con_update_peer_cid found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:164: warning: Member YAWT_q_con_set_event_handler found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:173: warning: Member YAWT_q_con_set_user_data found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:183: warning: Member YAWT_q_con_get_user_data found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:195: warning: Member YAWT_q_con_close found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:202: warning: Member YAWT_q_con_get_maint_config found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
+/home/dylanetaft/projects/YAWT/include/quic_connection.h:213: warning: Member YAWT_q_con_maintain found in multiple @ingroup groups! The member will be put in group Core, and not in group Quic
 /home/dylanetaft/projects/YAWT/include/h3_types.h:20: warning: Found non-existing group 'Max' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/h3_types.h:20: warning: Found non-existing group 'varint' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/h3_types.h:20: warning: Found non-existing group 'size' for the command '@ingroup', ignoring command
@@ -66,51 +109,51 @@
 /home/dylanetaft/projects/YAWT/include/qpack.h:154: warning: Found non-existing group 'Huffman' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/qpack.h:154: warning: Found non-existing group 'decode' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/qpack.h:154: warning: Found non-existing group 'tree' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:26: warning: Found non-existing group 'Maximum' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:26: warning: Found non-existing group 'QUIC' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:26: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:26: warning: Found non-existing group 'size' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:28: warning: Found non-existing group 'Maximum' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:28: warning: Found non-existing group 'Connection' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:28: warning: Found non-existing group 'ID' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:28: warning: Found non-existing group 'length' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'Worst-case' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'long' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'overhead' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'PN' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'AEAD' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'tag' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'Worst-case' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'short' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'overhead' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'PN' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'AEAD' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'tag' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'Max' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'frame' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'data' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'that' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'can' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'safely' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'fit' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'in' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'a' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'Maximum' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'QUIC' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:31: warning: Found non-existing group 'size' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'Maximum' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'Connection' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'ID' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:33: warning: Found non-existing group 'length' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'Worst-case' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'long' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'Max' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'frame' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'data' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'that' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'can' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'safely' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'fit' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'in' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'a' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'overhead' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'PN' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'AEAD' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:36: warning: Found non-existing group 'tag' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'Worst-case' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'short' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'overhead' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'PN' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'AEAD' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:38: warning: Found non-existing group 'tag' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'Max' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'frame' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'data' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'that' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'can' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'safely' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'fit' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'in' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'a' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'long' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:41: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'Max' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'frame' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'data' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'that' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'can' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'safely' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'fit' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'in' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'a' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'short' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'header' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:43: warning: Found non-existing group 'packet' for the command '@ingroup', ignoring command
 /home/dylanetaft/projects/YAWT/include/h3_types.h:17: warning: End of list marker found without any preceding list items
 /home/dylanetaft/projects/YAWT/include/quic.h:26: warning: End of list marker found without any preceding list items
