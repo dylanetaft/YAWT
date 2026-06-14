@@ -24,11 +24,9 @@ YAWT_H3_Error_t YAWT_h3_encode_frame(uint64_t type,
 
 // Encode just the H3 HEADERS frame header (type varint + length varint) into
 // buf, where block_len is the size of the QPACK header block that will follow.
-// Sets *written to the number of bytes written. Callers then encode the QPACK
-// block directly at buf + *written for a zero-copy path.
-YAWT_H3_Error_t YAWT_h3_encode_frame_headers(size_t block_len,
-                                               uint8_t *buf, size_t len,
-                                               size_t *written);
+// buf must be at least H3_FRAME_MAX_HEADER_BYTES. Returns bytes written on
+// success, 0 on error (safe — minimum valid header is 2 bytes).
+size_t YAWT_h3_encode_frame_headers(size_t block_len, uint8_t *buf);
 
 // Returns the number of bytes needed for an H3 HEADERS frame header (type +
 // length varints) given the QPACK block length that will follow.
