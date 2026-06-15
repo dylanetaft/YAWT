@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['quic_0',['QUIC',['../group__QUIC.html',1,'']]]
+  ['logging_0',['Logging',['../group__Logging.html',1,'']]]
 ];

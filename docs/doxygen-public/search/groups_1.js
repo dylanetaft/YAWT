@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['http3_0',['HTTP3',['../group__HTTP3.html',1,'']]]
+  ['frame_20types_0',['Frame Types',['../group__QUIC__FRAME__TYPES.html',1,'']]]
 ];
