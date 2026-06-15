@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -95,6 +96,19 @@ $(function(){initNavTree('group__Quic.html','',''); });
 <p>All QUIC protocol types, constants, and low-level operations.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-groups" class="groupheader"><a id="groups" name="groups"></a>
+Topics</h2></td></tr>
+<tr class="memitem:YAWT_5FQ_5FCrypto" id="r_YAWT_5FQ_5FCrypto"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__Q__Crypto.html">YAWT_Q_Crypto </a></td></tr>
+<tr class="memdesc:group__YAWT__Q__Crypto"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC cryptographic operations and credential management. <br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FLowLevel" id="r_YAWT_5FQ_5FLowLevel"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__Q__LowLevel.html">YAWT_Q_LowLevel </a></td></tr>
+<tr class="memdesc:group__YAWT__Q__LowLevel"><td class="mdescLeft">&#160;</td><td class="mdescRight">Low-level QUIC protocol operations and utilities. <br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FEvents" id="r_YAWT_5FQ_5FEvents"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__Q__Events.html">YAWT_Q_Events </a></td></tr>
+<tr class="memdesc:group__YAWT__Q__Events"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC asynchronous event system contract. <br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FCore" id="r_YAWT_5FQ_5FCore"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__Q__Core.html">YAWT_Q_Core </a></td></tr>
+<tr class="memdesc:group__YAWT__Q__Core"><td class="mdescLeft">&#160;</td><td class="mdescRight">Primary user-facing QUIC API for connection management and I/O. <br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FSecurity" id="r_YAWT_5FQ_5FSecurity"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__Q__Security.html">YAWT_Q_Security </a></td></tr>
+<tr class="memdesc:group__YAWT__Q__Security"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC security policy and flow control configuration. <br /></td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
 <tr class="memitem:YAWT_5FQ_5FReadCursor_5Ft" id="r_YAWT_5FQ_5FReadCursor_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a></td></tr>
@@ -107,14 +121,6 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stream metadata — one per open stream, stored in the con-&gt;stream_meta slab.  <a href="structYAWT__Q__StreamMeta__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FConnectionStats_5Ft" id="r_YAWT_5FQ_5FConnectionStats_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__ConnectionStats__t.html">YAWT_Q_ConnectionStats_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connection-level counters and packet number tracking.  <a href="structYAWT__Q__ConnectionStats__t.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FQ_5FPeerAddr" id="r_YAWT_5FQ_5FPeerAddr"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__PeerAddr.html">YAWT_Q_PeerAddr</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).  <a href="structYAWT__Q__PeerAddr.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FQ_5FConnection" id="r_YAWT_5FQ_5FConnection"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A QUIC connection.  <a href="structYAWT__Q__Connection.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FQ_5FCon_5FCreate_5FInfo" id="r_YAWT_5FQ_5FCon_5FCreate_5FInfo"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Con__Create__Info.html">YAWT_Q_Con_Create_Info</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connection creation parameters.  <a href="structYAWT__Q__Con__Create__Info.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FQ_5FMaintenanceConfig_5Ft" id="r_YAWT_5FQ_5FMaintenanceConfig_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__MaintenanceConfig__t.html">YAWT_Q_MaintenanceConfig_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Global maintenance configuration.  <a href="structYAWT__Q__MaintenanceConfig__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FCid" id="r_YAWT_5FQ_5FCid"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Cid.html">YAWT_Q_Cid</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC Connection ID.  <a href="structYAWT__Q__Cid.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FPacket" id="r_YAWT_5FQ_5FPacket"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a></td></tr>
@@ -170,22 +176,10 @@ Data Structures</h2></td></tr>
 <tr class="memitem:YAWT_5FQ_5FEventParam" id="r_YAWT_5FQ_5FEventParam"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters.  <a href="unionYAWT__Q__EventParam.html#details">More...</a><br /></td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
-Macros</h2></td></tr>
-<tr class="memitem:gaaab832e4b378244a75b5ecc3695b1bd7" id="r_gaaab832e4b378244a75b5ecc3695b1bd7"><td class="memItemLeft" align="right" valign="top"><a id="gaaab832e4b378244a75b5ecc3695b1bd7" name="gaaab832e4b378244a75b5ecc3695b1bd7"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_PKT_SIZE</b>&#160;&#160;&#160;1350</td></tr>
-<tr class="memitem:ga47c7294ff90faafc25689aa1a106fe40" id="r_ga47c7294ff90faafc25689aa1a106fe40"><td class="memItemLeft" align="right" valign="top"><a id="ga47c7294ff90faafc25689aa1a106fe40" name="ga47c7294ff90faafc25689aa1a106fe40"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_CID_LEN</b>&#160;&#160;&#160;20</td></tr>
-<tr class="memitem:gab263e38160f6f685bb4b0544caf965b2" id="r_gab263e38160f6f685bb4b0544caf965b2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>&#160;&#160;&#160;69</td></tr>
-<tr class="memitem:ga82c4656639707ecf232c87d029f000ce" id="r_ga82c4656639707ecf232c87d029f000ce"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>&#160;&#160;&#160;41</td></tr>
-<tr class="memitem:ga8b4af4e102b58ca4eb4163cf2a0eb6d4" id="r_ga8b4af4e102b58ca4eb4163cf2a0eb6d4"><td class="memItemLeft" align="right" valign="top"><a id="ga8b4af4e102b58ca4eb4163cf2a0eb6d4" name="ga8b4af4e102b58ca4eb4163cf2a0eb6d4"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_FRAME_PAYLOAD_LONG</b>&#160;&#160;&#160;(YAWT_Q_MAX_PKT_SIZE - <a class="el" href="#gab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>)</td></tr>
-<tr class="memitem:ga67ae20777dbc1c5a086872d451806818" id="r_ga67ae20777dbc1c5a086872d451806818"><td class="memItemLeft" align="right" valign="top"><a id="ga67ae20777dbc1c5a086872d451806818" name="ga67ae20777dbc1c5a086872d451806818"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_FRAME_PAYLOAD_SHORT</b>&#160;&#160;&#160;(YAWT_Q_MAX_PKT_SIZE - <a class="el" href="#ga82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>)</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga48eeb291f8b1aa1867e90dbd40b71028" id="r_ga48eeb291f8b1aa1867e90dbd40b71028"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></td></tr>
+<tr class="memdesc:ga48eeb291f8b1aa1867e90dbd40b71028"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration — full type in <a class="el" href="quic__connection_8h.html" title="QUIC connection lifecycle, I/O, and state management (High-Level API).">quic_connection.h</a>.  <br /></td></tr>
 <tr class="memitem:ga82409f8be34321b9774adf65b5422dbb" id="r_ga82409f8be34321b9774adf65b5422dbb"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga82409f8be34321b9774adf65b5422dbb">YAWT_Q_EventHandler_t</a>) (<a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td></tr>
 <tr class="memdesc:ga82409f8be34321b9774adf65b5422dbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process-wide event handler.  <br /></td></tr>
 <tr class="memitem:gad46831779e0383b371d88542aeae9f27" id="r_gad46831779e0383b371d88542aeae9f27"><td class="memItemLeft" align="right" valign="top"><a id="gad46831779e0383b371d88542aeae9f27" name="gad46831779e0383b371d88542aeae9f27"></a>
@@ -205,7 +199,7 @@ typedef struct <a class="el" href="structYAWT__Q__IoVec.html">YAWT_Q_IoVec</a>&#
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:ga2850b37ee3121eafdc74262c04bf59f2" id="r_ga2850b37ee3121eafdc74262c04bf59f2"><td class="memItemLeft" align="right" valign="top"><a id="ga2850b37ee3121eafdc74262c04bf59f2" name="ga2850b37ee3121eafdc74262c04bf59f2"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> { <br />
+<tr class="memitem:ga2850b37ee3121eafdc74262c04bf59f2" id="r_ga2850b37ee3121eafdc74262c04bf59f2"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_OK</b> = 0
 , <b>YAWT_Q_ERR_SHORT_BUFFER</b>
 , <b>YAWT_Q_ERR_INVALID_PACKET</b>
@@ -219,7 +213,7 @@ Enumerations</h2></td></tr>
 &#160;&#160;<b>YAWT_Q_ERR_FRAME_TOO_LARGE</b>
 <br />
  }</td></tr>
-<tr class="memdesc:ga2850b37ee3121eafdc74262c04bf59f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC error codes. <br /></td></tr>
+<tr class="memdesc:ga2850b37ee3121eafdc74262c04bf59f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC error codes.  <a href="#ga2850b37ee3121eafdc74262c04bf59f2">More...</a><br /></td></tr>
 <tr class="memitem:ga7f26dad2b0638cc66f8ef1cc1423a481" id="r_ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_PKT_TYPE_INITIAL</b> = 0x00
 , <b>YAWT_Q_PKT_TYPE_0RTT</b> = 0x01
@@ -230,13 +224,13 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC packet types (all 5 forms).  <a href="#ga7f26dad2b0638cc66f8ef1cc1423a481">More...</a><br /></td></tr>
-<tr class="memitem:ga18527349c2d3f9f52c1600abc554b8b6" id="r_ga18527349c2d3f9f52c1600abc554b8b6"><td class="memItemLeft" align="right" valign="top"><a id="ga18527349c2d3f9f52c1600abc554b8b6" name="ga18527349c2d3f9f52c1600abc554b8b6"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a> { <b>YAWT_Q_C_BIDI</b> = 0x00
+<tr class="memitem:ga18527349c2d3f9f52c1600abc554b8b6" id="r_ga18527349c2d3f9f52c1600abc554b8b6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a> { <b>YAWT_Q_C_BIDI</b> = 0x00
 , <b>YAWT_Q_S_BIDI</b> = 0x01
 , <b>YAWT_Q_C_UNI</b> = 0x02
 , <b>YAWT_Q_S_UNI</b> = 0x03
  }</td></tr>
-<tr class="memdesc:ga18527349c2d3f9f52c1600abc554b8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC stream types (RFC 9000). <br /></td></tr>
-<tr class="memitem:ga57a79159b86da14e34eb450d26fe6072" id="r_ga57a79159b86da14e34eb450d26fe6072"><td class="memItemLeft" align="right" valign="top"><a id="ga57a79159b86da14e34eb450d26fe6072" name="ga57a79159b86da14e34eb450d26fe6072"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga57a79159b86da14e34eb450d26fe6072">YAWT_Q_Frame_Type_t</a> { <br />
+<tr class="memdesc:ga18527349c2d3f9f52c1600abc554b8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC stream types (RFC 9000).  <a href="#ga18527349c2d3f9f52c1600abc554b8b6">More...</a><br /></td></tr>
+<tr class="memitem:ga57a79159b86da14e34eb450d26fe6072" id="r_ga57a79159b86da14e34eb450d26fe6072"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga57a79159b86da14e34eb450d26fe6072">YAWT_Q_Frame_Type_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_FRAME_PADDING</b> = 0x00
 , <b>YAWT_Q_FRAME_PING</b> = 0x01
 , <b>YAWT_Q_FRAME_ACK</b> = 0x02
@@ -271,13 +265,13 @@ Enumerations</h2></td></tr>
 , <b>YAWT_Q_FRAME_DATAGRAM_LEN</b> = 0x31
 <br />
  }</td></tr>
-<tr class="memdesc:ga57a79159b86da14e34eb450d26fe6072"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types. <br /></td></tr>
-<tr class="memitem:ga84c95fc076cafaaed9f9f8997703e454" id="r_ga84c95fc076cafaaed9f9f8997703e454"><td class="memItemLeft" align="right" valign="top"><a id="ga84c95fc076cafaaed9f9f8997703e454" name="ga84c95fc076cafaaed9f9f8997703e454"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a> { <b>YAWT_Q_PKT_INITIAL</b> = 0x00
+<tr class="memdesc:ga57a79159b86da14e34eb450d26fe6072"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types.  <a href="#ga57a79159b86da14e34eb450d26fe6072">More...</a><br /></td></tr>
+<tr class="memitem:ga84c95fc076cafaaed9f9f8997703e454" id="r_ga84c95fc076cafaaed9f9f8997703e454"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a> { <b>YAWT_Q_PKT_INITIAL</b> = 0x00
 , <b>YAWT_Q_PKT_0RTT</b> = 0x01
 , <b>YAWT_Q_PKT_HANDSHAKE</b> = 0x02
 , <b>YAWT_Q_PKT_RETRY</b> = 0x03
  }</td></tr>
-<tr class="memdesc:ga84c95fc076cafaaed9f9f8997703e454"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC long packet types. <br /></td></tr>
+<tr class="memdesc:ga84c95fc076cafaaed9f9f8997703e454"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC long packet types.  <a href="#ga84c95fc076cafaaed9f9f8997703e454">More...</a><br /></td></tr>
 <tr class="memitem:ga8f207db1067de78b254ce521377215dd" id="r_ga8f207db1067de78b254ce521377215dd"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_EVT_CONNECTED</b>
 , <b>YAWT_Q_EVT_STREAM</b>
@@ -311,7 +305,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:ga6164fb811cea82e7ae8966a7c75ea3b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a DATAGRAM frame and push to tx_buffer.  <br /></td></tr>
 <tr class="memitem:ga9eba5c50306e864cb18868bb16260d18" id="r_ga9eba5c50306e864cb18868bb16260d18"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9eba5c50306e864cb18868bb16260d18">YAWT_q_enqueue_frame_handshake_done</a> (<a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con)</td></tr>
 <tr class="memdesc:ga9eba5c50306e864cb18868bb16260d18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a HANDSHAKE_DONE frame and push to tx_buffer.  <br /></td></tr>
-<tr class="memitem:gabb32472ceaba4206fc6a9816a642f8b3" id="r_gabb32472ceaba4206fc6a9816a642f8b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabb32472ceaba4206fc6a9816a642f8b3">YAWT_q_encode_packet</a> (<a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, YAWT_Q_Crypto_t *crypto, const uint8_t **out_buf)</td></tr>
+<tr class="memitem:gabb32472ceaba4206fc6a9816a642f8b3" id="r_gabb32472ceaba4206fc6a9816a642f8b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabb32472ceaba4206fc6a9816a642f8b3">YAWT_q_encode_packet</a> (<a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, const uint8_t **out_buf)</td></tr>
 <tr class="memdesc:gabb32472ceaba4206fc6a9816a642f8b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode + encrypt a packet.  <br /></td></tr>
 <tr class="memitem:gac2deb6826f537bba0dc566e3aa3d5e7a" id="r_gac2deb6826f537bba0dc566e3aa3d5e7a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gac2deb6826f537bba0dc566e3aa3d5e7a">YAWT_q_varint_decode</a> (<a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *rc, uint64_t *out)</td></tr>
 <tr class="memdesc:gac2deb6826f537bba0dc566e3aa3d5e7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode a QUIC varint from cursor.  <br /></td></tr>
@@ -330,37 +324,6 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <p>All QUIC protocol types, constants, and low-level operations. </p>
-<a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
-<a id="gab263e38160f6f685bb4b0544caf965b2" name="gab263e38160f6f685bb4b0544caf965b2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gab263e38160f6f685bb4b0544caf965b2">&#9670;&#160;</a></span>YAWT_Q_LONG_HDR_OVERHEAD</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define YAWT_Q_LONG_HDR_OVERHEAD&#160;&#160;&#160;69</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>( + + ) </p>
-
-</div>
-</div>
-<a id="ga82c4656639707ecf232c87d029f000ce" name="ga82c4656639707ecf232c87d029f000ce"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga82c4656639707ecf232c87d029f000ce">&#9670;&#160;</a></span>YAWT_Q_SHORT_HDR_OVERHEAD</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define YAWT_Q_SHORT_HDR_OVERHEAD&#160;&#160;&#160;41</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>( + + ) </p>
-
-</div>
-</div>
 <a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
 <a id="ga48eeb291f8b1aa1867e90dbd40b71028" name="ga48eeb291f8b1aa1867e90dbd40b71028"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga48eeb291f8b1aa1867e90dbd40b71028">&#9670;&#160;</a></span>YAWT_Q_Connection_t</h2>
@@ -373,6 +336,10 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Forward declaration — full type in <a class="el" href="quic__connection_8h.html" title="QUIC connection lifecycle, I/O, and state management (High-Level API).">quic_connection.h</a>. </p>
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00034">34</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -389,58 +356,9 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Process-wide event handler. </p>
-<dl class="section note"><dt>Note</dt><dd>Lifetime: a single global, installed via <a class="el" href="group__Core.html#ga1b6fbf09c5d78347b023750c3875d6c0" title="Install the process-wide event handler.">YAWT_q_con_set_event_handler()</a>. Threading: the QUIC layer is single-threaded (one libev loop). The handler is invoked synchronously from <a class="el" href="group__Core.html#gad371a09d91fb6b2510594eb82c9ae392" title="Single ingress for received UDP datagrams.">YAWT_q_con_rx()</a> and <a class="el" href="group__Core.html#gafca5419f25d1e344cf6e35558a0530fc" title="Unified maintenance pass over all connections.">YAWT_q_con_maintain()</a>. Nothing here is thread-safe. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Lifetime: a single global, installed via <a class="el" href="group__YAWT__Q__Core.html#ga1b6fbf09c5d78347b023750c3875d6c0" title="Install the process-wide event handler.">YAWT_q_con_set_event_handler()</a>. Threading: the QUIC layer is single-threaded (one libev loop). The handler is invoked synchronously from <a class="el" href="group__YAWT__Q__Core.html#gad371a09d91fb6b2510594eb82c9ae392" title="Single ingress for received UDP datagrams.">YAWT_q_con_rx()</a> and <a class="el" href="group__YAWT__Q__Core.html#gafca5419f25d1e344cf6e35558a0530fc" title="Unified maintenance pass over all connections.">YAWT_q_con_maintain()</a>. Nothing here is thread-safe. </dd></dl>
 
-</div>
-</div>
-<a id="gaba54d7c0f161bc3e7f3efab411968712" name="gaba54d7c0f161bc3e7f3efab411968712"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaba54d7c0f161bc3e7f3efab411968712">&#9670;&#160;</a></span>YAWT_Q_EventParam_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef union <a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a> <a class="el" href="#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Per-event parameters. </p>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: ALL pointers in this union are valid ONLY for the duration of the handler call. They reference internal/transient storage (the input datagram buffer, a slab item, or an encode scratch buffer) that the QUIC layer reuses immediately after the handler returns. Copy anything you need to retain. </dd></dl>
-
-</div>
-</div>
-<a id="gade8ac1df5770886c672261a83d40e3ea" name="gade8ac1df5770886c672261a83d40e3ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gade8ac1df5770886c672261a83d40e3ea">&#9670;&#160;</a></span>YAWT_Q_Frame_BufferedStream_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a> <a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>A STREAM frame plus the storage its .frame.data points at. </p>
-<dl class="section note"><dt>Note</dt><dd>Used when a frame must outlive the input datagram (out-of-order RX buffering and TX queuing). bf-&gt;data is the OWNED inline copy. bf-&gt;frame.data is the borrowed pointer, set to point at bf-&gt;data when buffered. </dd></dl>
-
-</div>
-</div>
-<a id="gaae6e88026a73c2efeae1eb6777d6034c" name="gaae6e88026a73c2efeae1eb6777d6034c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaae6e88026a73c2efeae1eb6777d6034c">&#9670;&#160;</a></span>YAWT_Q_Frame_Stream_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a> <a class="el" href="#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>STREAM frame (0x08-0x0f). </p>
-<dl class="section note"><dt>Note</dt><dd>Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01). </dd></dl>
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00044">44</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -461,21 +379,73 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a name="doc-enum-members" id="doc-enum-members"></a><h2 id="header-doc-enum-members" class="groupheader">Enumeration Type Documentation</h2>
-<a id="ga8f207db1067de78b254ce521377215dd" name="ga8f207db1067de78b254ce521377215dd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga8f207db1067de78b254ce521377215dd">&#9670;&#160;</a></span>YAWT_Q_EventType_t</h2>
+<a id="gaae6e88026a73c2efeae1eb6777d6034c" name="gaae6e88026a73c2efeae1eb6777d6034c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaae6e88026a73c2efeae1eb6777d6034c">&#9670;&#160;</a></span>YAWT_Q_Frame_Stream_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a></td>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a> <a class="el" href="#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>QUIC event taxonomy. </p>
-<dl class="section note"><dt>Note</dt><dd>New events extend this enum AND add a matching <span class="tt">P_&lt;eventtype&gt;</span> substruct to <a class="el" href="#gaba54d7c0f161bc3e7f3efab411968712" title="Per-event parameters.">YAWT_Q_EventParam_t</a> below. The 1:1 mapping between enum suffix and union member name is part of the contract. </dd></dl>
+<p>STREAM frame (0x08-0x0f). </p>
+<dl class="section note"><dt>Note</dt><dd>Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01). </dd></dl>
+
+</div>
+</div>
+<a id="gade8ac1df5770886c672261a83d40e3ea" name="gade8ac1df5770886c672261a83d40e3ea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gade8ac1df5770886c672261a83d40e3ea">&#9670;&#160;</a></span>YAWT_Q_Frame_BufferedStream_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a> <a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A STREAM frame plus the storage its .frame.data points at. </p>
+<dl class="section note"><dt>Note</dt><dd>Used when a frame must outlive the input datagram (out-of-order RX buffering and TX queuing). bf-&gt;data is the OWNED inline copy. bf-&gt;frame.data is the borrowed pointer, set to point at bf-&gt;data when buffered. </dd></dl>
+
+</div>
+</div>
+<a id="gaba54d7c0f161bc3e7f3efab411968712" name="gaba54d7c0f161bc3e7f3efab411968712"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaba54d7c0f161bc3e7f3efab411968712">&#9670;&#160;</a></span>YAWT_Q_EventParam_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef union <a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a> <a class="el" href="#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Per-event parameters. </p>
+<dl class="section warning"><dt>Warning</dt><dd>Transience: ALL pointers in this union are valid ONLY for the duration of the handler call. They reference internal/transient storage (the input datagram buffer, a slab item, or an encode scratch buffer) that the QUIC layer reuses immediately after the handler returns. Copy anything you need to retain. </dd></dl>
+
+</div>
+</div>
+<a name="doc-enum-members" id="doc-enum-members"></a><h2 id="header-doc-enum-members" class="groupheader">Enumeration Type Documentation</h2>
+<a id="ga2850b37ee3121eafdc74262c04bf59f2" name="ga2850b37ee3121eafdc74262c04bf59f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2850b37ee3121eafdc74262c04bf59f2">&#9670;&#160;</a></span>YAWT_Q_Error_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QUIC error codes. </p>
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00063">63</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -494,11 +464,86 @@ Functions</h2></td></tr>
 <p>QUIC packet types (all 5 forms). </p>
 <dl class="section note"><dt>Note</dt><dd>Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2). 1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel. </dd></dl>
 
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00080">80</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ga18527349c2d3f9f52c1600abc554b8b6" name="ga18527349c2d3f9f52c1600abc554b8b6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga18527349c2d3f9f52c1600abc554b8b6">&#9670;&#160;</a></span>YAWT_Q_Stream_Type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="#ga18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QUIC stream types (RFC 9000). </p>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00092">92</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ga57a79159b86da14e34eb450d26fe6072" name="ga57a79159b86da14e34eb450d26fe6072"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga57a79159b86da14e34eb450d26fe6072">&#9670;&#160;</a></span>YAWT_Q_Frame_Type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="#ga57a79159b86da14e34eb450d26fe6072">YAWT_Q_Frame_Type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QUIC frame types. </p>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00103">103</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ga84c95fc076cafaaed9f9f8997703e454" name="ga84c95fc076cafaaed9f9f8997703e454"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga84c95fc076cafaaed9f9f8997703e454">&#9670;&#160;</a></span>YAWT_Q_Long_Packet_Type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QUIC long packet types. </p>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00137">137</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ga8f207db1067de78b254ce521377215dd" name="ga8f207db1067de78b254ce521377215dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8f207db1067de78b254ce521377215dd">&#9670;&#160;</a></span>YAWT_Q_EventType_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QUIC event taxonomy. </p>
+<dl class="section note"><dt>Note</dt><dd>New events extend this enum AND add a matching <span class="tt">P_&lt;eventtype&gt;</span> substruct to <a class="el" href="#gaba54d7c0f161bc3e7f3efab411968712" title="Per-event parameters.">YAWT_Q_EventParam_t</a> below. The 1:1 mapping between enum suffix and union member name is part of the contract. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00455">455</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
-<a id="ga6aacddb761627c8e9ace2cc1e9ec323c" name="ga6aacddb761627c8e9ace2cc1e9ec323c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga6aacddb761627c8e9ace2cc1e9ec323c">&#9670;&#160;</a></span>YAWT_q_cid_set()</h2>
+<a id="ga3529a3999b7f32b60683abbe952fcc7f" name="ga3529a3999b7f32b60683abbe952fcc7f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3529a3999b7f32b60683abbe952fcc7f">&#9670;&#160;</a></span>YAWT_q_err_str()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -507,53 +552,9 @@ Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void YAWT_q_cid_set </td>
+          <td class="memname">const char * YAWT_q_err_str </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dst</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>id</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Set a Connection ID. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">dst</td><td>Destination CID struct. </td></tr>
-    <tr><td class="paramname">id</td><td>Source byte array. </td></tr>
-    <tr><td class="paramname">len</td><td>Length of the source byte array. Truncated to 20 if &gt; 20. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="ga579789bdc3d3a5f8796fd450ec756d3c" name="ga579789bdc3d3a5f8796fd450ec756d3c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga579789bdc3d3a5f8796fd450ec756d3c">&#9670;&#160;</a></span>YAWT_q_cid_to_hex()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">const char * YAWT_q_cid_to_hex </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cid</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a></td>          <td class="paramname"><span class="paramname"><em>err</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -564,14 +565,16 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Format a CID as a hex string. </p>
+<p>Get a string representation of a QUIC error code. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cid</td><td>The Connection ID to format. </td></tr>
+    <tr><td class="paramname">err</td><td>The error code. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to a static buffer containing the hex string (not thread-safe). </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A static string describing the error. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00081">81</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -613,41 +616,41 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="gabb32472ceaba4206fc6a9816a642f8b3" name="gabb32472ceaba4206fc6a9816a642f8b3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabb32472ceaba4206fc6a9816a642f8b3">&#9670;&#160;</a></span>YAWT_q_encode_packet()</h2>
+<a id="gac400a6915d5eaefacc963251f3249f4f" name="gac400a6915d5eaefacc963251f3249f4f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac400a6915d5eaefacc963251f3249f4f">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_crypto()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int YAWT_q_encode_packet </td>
+          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_crypto </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *</td>          <td class="paramname"><span class="paramname"><em>pkt</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">YAWT_Q_Crypto_t *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>level</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const uint8_t **</td>          <td class="paramname"><span class="paramname"><em>out_buf</em></span>&#160;)</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Frame__Crypto__t.html">YAWT_Q_Frame_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Encode + encrypt a packet. </p>
+<p>Encode a CRYPTO frame and push to tx_buffer. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">pkt</td><td>The packet to encode. </td></tr>
-    <tr><td class="paramname">crypto</td><td>The crypto context. </td></tr>
-    <tr><td class="paramname">out_buf</td><td>Pointer to receive the output buffer. </td></tr>
+    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
+    <tr><td class="paramname">level</td><td>Encryption level. </td></tr>
+    <tr><td class="paramname">frame</td><td>The CRYPTO frame to encode. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Total wire bytes (including AEAD tag), or negative on error. </dd></dl>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: *out_buf points to a STATIC internal buffer, overwritten by the next encode call. Consume/copy it before encoding again. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Ownership: COPIES the encoded frame into con-&gt;tx_buffer. </dd></dl>
 
 </div>
 </div>
@@ -685,6 +688,65 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
+<a id="ga4722dd3abbf1d5d9404b211ffd0f7230" name="ga4722dd3abbf1d5d9404b211ffd0f7230"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4722dd3abbf1d5d9404b211ffd0f7230">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_stream()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_stream </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode a STREAM frame and push to tx_buffer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
+    <tr><td class="paramname">frame</td><td>The STREAM frame to encode. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Level: APPLICATION only. Ownership: copies frame-&gt;data into the queued WireFrame. </dd></dl>
+
+</div>
+</div>
+<a id="ga2166fa41e8657579f72550c9935a348e" name="ga2166fa41e8657579f72550c9935a348e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2166fa41e8657579f72550c9935a348e">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_ping()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_ping </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode a PING frame and push to tx_buffer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Level: APPLICATION only. </dd></dl>
 
 </div>
 </div>
@@ -731,41 +793,34 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="gac400a6915d5eaefacc963251f3249f4f" name="gac400a6915d5eaefacc963251f3249f4f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gac400a6915d5eaefacc963251f3249f4f">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_crypto()</h2>
+<a id="gaf9226c0a041547b18b2feec10beb870d" name="gaf9226c0a041547b18b2feec10beb870d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf9226c0a041547b18b2feec10beb870d">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_path_response()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_crypto </td>
+          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_path_response </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>level</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="structYAWT__Q__Frame__Crypto__t.html">YAWT_Q_Frame_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
+          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>data</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Encode a CRYPTO frame and push to tx_buffer. </p>
+<p>Encode a PATH_RESPONSE frame and push to tx_buffer. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
-    <tr><td class="paramname">level</td><td>Encryption level. </td></tr>
-    <tr><td class="paramname">frame</td><td>The CRYPTO frame to encode. </td></tr>
+    <tr><td class="paramname">data</td><td>The 8-byte data to echo back. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Ownership: COPIES the encoded frame into con-&gt;tx_buffer. </dd></dl>
 
 </div>
 </div>
@@ -834,196 +889,41 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="gaf9226c0a041547b18b2feec10beb870d" name="gaf9226c0a041547b18b2feec10beb870d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaf9226c0a041547b18b2feec10beb870d">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_path_response()</h2>
+<a id="gabb32472ceaba4206fc6a9816a642f8b3" name="gabb32472ceaba4206fc6a9816a642f8b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabb32472ceaba4206fc6a9816a642f8b3">&#9670;&#160;</a></span>YAWT_q_encode_packet()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_path_response </td>
+          <td class="memname">int YAWT_q_encode_packet </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+          <td class="paramtype"><a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *</td>          <td class="paramname"><span class="paramname"><em>pkt</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>data</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Encode a PATH_RESPONSE frame and push to tx_buffer. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
-    <tr><td class="paramname">data</td><td>The 8-byte data to echo back. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
-
-</div>
-</div>
-<a id="ga2166fa41e8657579f72550c9935a348e" name="ga2166fa41e8657579f72550c9935a348e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga2166fa41e8657579f72550c9935a348e">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_ping()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_ping </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Encode a PING frame and push to tx_buffer. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Level: APPLICATION only. </dd></dl>
-
-</div>
-</div>
-<a id="ga4722dd3abbf1d5d9404b211ffd0f7230" name="ga4722dd3abbf1d5d9404b211ffd0f7230"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4722dd3abbf1d5d9404b211ffd0f7230">&#9670;&#160;</a></span>YAWT_q_enqueue_frame_stream()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_enqueue_frame_stream </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
+          <td class="paramtype">const uint8_t **</td>          <td class="paramname"><span class="paramname"><em>out_buf</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Encode a STREAM frame and push to tx_buffer. </p>
+<p>Encode + encrypt a packet. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
-    <tr><td class="paramname">frame</td><td>The STREAM frame to encode. </td></tr>
+    <tr><td class="paramname">pkt</td><td>The packet to encode. </td></tr>
+    <tr><td class="paramname">crypto</td><td>The crypto context. </td></tr>
+    <tr><td class="paramname">out_buf</td><td>Pointer to receive the output buffer. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Level: APPLICATION only. Ownership: copies frame-&gt;data into the queued WireFrame. </dd></dl>
-
-</div>
-</div>
-<a id="ga3529a3999b7f32b60683abbe952fcc7f" name="ga3529a3999b7f32b60683abbe952fcc7f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3529a3999b7f32b60683abbe952fcc7f">&#9670;&#160;</a></span>YAWT_q_err_str()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">const char * YAWT_q_err_str </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a></td>          <td class="paramname"><span class="paramname"><em>err</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Get a string representation of a QUIC error code. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">err</td><td>The error code. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>A static string describing the error. </dd></dl>
-
-</div>
-</div>
-<a id="ga9435261344a47515257d1311a942b53e" name="ga9435261344a47515257d1311a942b53e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9435261344a47515257d1311a942b53e">&#9670;&#160;</a></span>YAWT_q_parse_frame()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_parse_frame </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *</td>          <td class="paramname"><span class="paramname"><em>rc</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a></td>          <td class="paramname"><span class="paramname"><em>pkt_type</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Parse a single frame from the cursor. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">rc</td><td>The read cursor. </td></tr>
-    <tr><td class="paramname">pkt_type</td><td>Source packet type (encryption level). </td></tr>
-    <tr><td class="paramname">out</td><td>Output frame struct. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section note"><dt>Note</dt><dd>Caller loops while rc-&gt;cursor &lt; rc-&gt;len. <span class="tt">out</span> is memset, stamped with <span class="tt">pkt_type</span>, and pointer fields point INTO rc-&gt;data (zero-copy, transient). Errors are sticky; check rc-&gt;err after the call. </dd></dl>
-
-</div>
-</div>
-<a id="ga0c1c03b1b387428ae034b93b73554787" name="ga0c1c03b1b387428ae034b93b73554787"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0c1c03b1b387428ae034b93b73554787">&#9670;&#160;</a></span>YAWT_q_parse_packet()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_parse_packet </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *</td>          <td class="paramname"><span class="paramname"><em>rc</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Parse a QUIC packet from a read cursor. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">rc</td><td>The read cursor. </td></tr>
-    <tr><td class="paramname">out</td><td>Output packet struct. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: output pointers (payload/raw/token) point INTO rc-&gt;data (zero-copy). Errors are sticky; check rc-&gt;err after the call. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Advances rc-&gt;cursor past the parsed packet. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Total wire bytes (including AEAD tag), or negative on error. </dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>Transience: *out_buf points to a STATIC internal buffer, overwritten by the next encode call. Consume/copy it before encoding again. </dd></dl>
 
 </div>
 </div>
@@ -1124,6 +1024,159 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Number of bytes needed, or 0 if val exceeds 62 bits. </dd></dl>
+
+</div>
+</div>
+<a id="ga0c1c03b1b387428ae034b93b73554787" name="ga0c1c03b1b387428ae034b93b73554787"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0c1c03b1b387428ae034b93b73554787">&#9670;&#160;</a></span>YAWT_q_parse_packet()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_q_parse_packet </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *</td>          <td class="paramname"><span class="paramname"><em>rc</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Parse a QUIC packet from a read cursor. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rc</td><td>The read cursor. </td></tr>
+    <tr><td class="paramname">out</td><td>Output packet struct. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section warning"><dt>Warning</dt><dd>Transience: output pointers (payload/raw/token) point INTO rc-&gt;data (zero-copy). Errors are sticky; check rc-&gt;err after the call. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Advances rc-&gt;cursor past the parsed packet. </dd></dl>
+
+</div>
+</div>
+<a id="ga9435261344a47515257d1311a942b53e" name="ga9435261344a47515257d1311a942b53e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9435261344a47515257d1311a942b53e">&#9670;&#160;</a></span>YAWT_q_parse_frame()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_q_parse_frame </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *</td>          <td class="paramname"><span class="paramname"><em>rc</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a></td>          <td class="paramname"><span class="paramname"><em>pkt_type</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Parse a single frame from the cursor. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rc</td><td>The read cursor. </td></tr>
+    <tr><td class="paramname">pkt_type</td><td>Source packet type (encryption level). </td></tr>
+    <tr><td class="paramname">out</td><td>Output frame struct. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Caller loops while rc-&gt;cursor &lt; rc-&gt;len. <span class="tt">out</span> is memset, stamped with <span class="tt">pkt_type</span>, and pointer fields point INTO rc-&gt;data (zero-copy, transient). Errors are sticky; check rc-&gt;err after the call. </dd></dl>
+
+</div>
+</div>
+<a id="ga6aacddb761627c8e9ace2cc1e9ec323c" name="ga6aacddb761627c8e9ace2cc1e9ec323c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6aacddb761627c8e9ace2cc1e9ec323c">&#9670;&#160;</a></span>YAWT_q_cid_set()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_q_cid_set </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dst</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>id</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Set a Connection ID. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">dst</td><td>Destination CID struct. </td></tr>
+    <tr><td class="paramname">id</td><td>Source byte array. </td></tr>
+    <tr><td class="paramname">len</td><td>Length of the source byte array. Truncated to 20 if &gt; 20. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00050">50</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+<p class="reference">References <a class="el" href="logger_8h_source.html#l00073">YAWT_LOG</a>, and <a class="el" href="logger_8h_source.html#l00025">YAWT_LOG_ERROR</a>.</p>
+
+</div>
+</div>
+<a id="ga579789bdc3d3a5f8796fd450ec756d3c" name="ga579789bdc3d3a5f8796fd450ec756d3c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga579789bdc3d3a5f8796fd450ec756d3c">&#9670;&#160;</a></span>YAWT_q_cid_to_hex()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const char * YAWT_q_cid_to_hex </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cid</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Format a CID as a hex string. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">cid</td><td>The Connection ID to format. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to a static buffer containing the hex string (not thread-safe). </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00065">65</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 
 </div>
 </div>

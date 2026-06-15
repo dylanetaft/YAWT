@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -99,83 +100,59 @@ $(function(){initNavTree('structYAWT__Q__Packet.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a9f94ddad5965c81011a2ca061ab934fd" id="r_a9f94ddad5965c81011a2ca061ab934fd"><td class="memItemLeft" align="right" valign="top"><a id="a9f94ddad5965c81011a2ca061ab934fd" name="a9f94ddad5965c81011a2ca061ab934fd"></a>
-<a class="el" href="group__Quic.html#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<tr class="memitem:a9f94ddad5965c81011a2ca061ab934fd" id="r_a9f94ddad5965c81011a2ca061ab934fd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Quic.html#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9f94ddad5965c81011a2ca061ab934fd">type</a></td></tr>
 <tr class="memitem:a4af64fe7a7ff5f0f1ebd56d8923b7a43" id="r_a4af64fe7a7ff5f0f1ebd56d8923b7a43"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4af64fe7a7ff5f0f1ebd56d8923b7a43">version</a></td></tr>
-<tr class="memitem:a5ad869180f28f646e477cdf0d2fe2515" id="r_a5ad869180f28f646e477cdf0d2fe2515"><td class="memItemLeft" align="right" valign="top"><a id="a5ad869180f28f646e477cdf0d2fe2515" name="a5ad869180f28f646e477cdf0d2fe2515"></a>
-<a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dest_cid</b></td></tr>
-<tr class="memitem:abdec38b0bf89d3151a33b96a972f7a61" id="r_abdec38b0bf89d3151a33b96a972f7a61"><td class="memItemLeft" align="right" valign="top"><a id="abdec38b0bf89d3151a33b96a972f7a61" name="abdec38b0bf89d3151a33b96a972f7a61"></a>
-<a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>src_cid</b></td></tr>
+<tr class="memdesc:a4af64fe7a7ff5f0f1ebd56d8923b7a43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header fields (all packet types).  <br /></td></tr>
+<tr class="memitem:a5ad869180f28f646e477cdf0d2fe2515" id="r_a5ad869180f28f646e477cdf0d2fe2515"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ad869180f28f646e477cdf0d2fe2515">dest_cid</a></td></tr>
+<tr class="memitem:abdec38b0bf89d3151a33b96a972f7a61" id="r_abdec38b0bf89d3151a33b96a972f7a61"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abdec38b0bf89d3151a33b96a972f7a61">src_cid</a></td></tr>
 <tr class="memitem:a70a0f9ca1658aacc60a8cb2f781a2b43" id="r_a70a0f9ca1658aacc60a8cb2f781a2b43"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a70a0f9ca1658aacc60a8cb2f781a2b43">reserved</a></td></tr>
-<tr class="memitem:a78cf8f17b9bc9a64ba44a58450d74802" id="r_a78cf8f17b9bc9a64ba44a58450d74802"><td class="memItemLeft" align="right" valign="top"><a id="a78cf8f17b9bc9a64ba44a58450d74802" name="a78cf8f17b9bc9a64ba44a58450d74802"></a>
-uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>packet_number_length</b></td></tr>
-<tr class="memitem:a37280fb47137429001b802078e183ebd" id="r_a37280fb47137429001b802078e183ebd"><td class="memItemLeft" align="right" valign="top"><a id="a37280fb47137429001b802078e183ebd" name="a37280fb47137429001b802078e183ebd"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>packet_num</b></td></tr>
-<tr class="memitem:afd25540ea0293ba5a12929aa12a27b2f" id="r_afd25540ea0293ba5a12929aa12a27b2f"><td class="memItemLeft" align="right" valign="top"><a id="afd25540ea0293ba5a12929aa12a27b2f" name="afd25540ea0293ba5a12929aa12a27b2f"></a>
-uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><b>payload</b></td></tr>
-<tr class="memitem:a5437546403f018d3ccdda056c50f92dc" id="r_a5437546403f018d3ccdda056c50f92dc"><td class="memItemLeft" align="right" valign="top"><a id="a5437546403f018d3ccdda056c50f92dc" name="a5437546403f018d3ccdda056c50f92dc"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>payload_len</b></td></tr>
-<tr class="memitem:afeecbe4b3fe7f9a4461d6bf0559ba91b" id="r_afeecbe4b3fe7f9a4461d6bf0559ba91b"><td class="memItemLeft" align="right" valign="top"><a id="afeecbe4b3fe7f9a4461d6bf0559ba91b" name="afeecbe4b3fe7f9a4461d6bf0559ba91b"></a>
-uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><b>raw</b></td></tr>
-<tr class="memitem:ac9e5f2a55756de51466d8998b87818b3" id="r_ac9e5f2a55756de51466d8998b87818b3"><td class="memItemLeft" align="right" valign="top"><a id="ac9e5f2a55756de51466d8998b87818b3" name="ac9e5f2a55756de51466d8998b87818b3"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>pn_offset</b></td></tr>
-<tr class="memitem:"><td class="memItemLeft anon">union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memdesc:a70a0f9ca1658aacc60a8cb2f781a2b43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encrypted packet fields (not Retry).  <br /></td></tr>
+<tr class="memitem:a78cf8f17b9bc9a64ba44a58450d74802" id="r_a78cf8f17b9bc9a64ba44a58450d74802"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78cf8f17b9bc9a64ba44a58450d74802">packet_number_length</a></td></tr>
+<tr class="memitem:a37280fb47137429001b802078e183ebd" id="r_a37280fb47137429001b802078e183ebd"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a37280fb47137429001b802078e183ebd">packet_num</a></td></tr>
+<tr class="memitem:afd25540ea0293ba5a12929aa12a27b2f" id="r_afd25540ea0293ba5a12929aa12a27b2f"><td class="memItemLeft" align="right" valign="top">uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afd25540ea0293ba5a12929aa12a27b2f">payload</a></td></tr>
+<tr class="memitem:a5437546403f018d3ccdda056c50f92dc" id="r_a5437546403f018d3ccdda056c50f92dc"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5437546403f018d3ccdda056c50f92dc">payload_len</a></td></tr>
+<tr class="memitem:afeecbe4b3fe7f9a4461d6bf0559ba91b" id="r_afeecbe4b3fe7f9a4461d6bf0559ba91b"><td class="memItemLeft" align="right" valign="top">uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afeecbe4b3fe7f9a4461d6bf0559ba91b">raw</a></td></tr>
+<tr class="memitem:ac9e5f2a55756de51466d8998b87818b3" id="r_ac9e5f2a55756de51466d8998b87818b3"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac9e5f2a55756de51466d8998b87818b3">pn_offset</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft anon"><a id="a09cd72bc8bb0424d5239d53c85420957" name="a09cd72bc8bb0424d5239d53c85420957"></a>
+union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="memitem:"><td class="memItemLeft anon">
 &#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:a874d5fe0cb069fc5c3b63c964bca6612" id="r_a874d5fe0cb069fc5c3b63c964bca6612"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<b>token_len</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:a5e9030546e3881f4b07760e756312913" id="r_a5e9030546e3881f4b07760e756312913"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint8_t *&#160;&#160;&#160;<b>token</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a874d5fe0cb069fc5c3b63c964bca6612" id="r_a874d5fe0cb069fc5c3b63c964bca6612"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="#adfddf06a158be699373565bb12ce6f4c">token_len</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a5e9030546e3881f4b07760e756312913" id="r_a5e9030546e3881f4b07760e756312913"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint8_t *&#160;&#160;&#160;<a class="el" href="#a072d82dccf453e664e5587020e9fd608">token</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="memitem:a0ba4f023cd4bc862dbc05d82347ae85a" id="r_a0ba4f023cd4bc862dbc05d82347ae85a"><td class="memItemLeft anonEnd" valign="top">&#160;&#160;&#160;}&#160;&#160;&#160;<b>initial</b></td></tr>
 <tr class="memitem:"><td class="memItemLeft anon">
 &#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:a706c2e2662b22effca31fa783c8e4f28" id="r_a706c2e2662b22effca31fa783c8e4f28"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<b>spin_bit</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:a0aa6362e3f122ccf777ee17596ab5909" id="r_a0aa6362e3f122ccf777ee17596ab5909"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<b>key_phase</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a706c2e2662b22effca31fa783c8e4f28" id="r_a706c2e2662b22effca31fa783c8e4f28"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<a class="el" href="#aa40d21db0d881f9877e02a3c3e2f944c">spin_bit</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a0aa6362e3f122ccf777ee17596ab5909" id="r_a0aa6362e3f122ccf777ee17596ab5909"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<a class="el" href="#abf42f00a5e3aa8cedccaef6239f0d3af">key_phase</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="memitem:a367086b75f9d1acc5100b451e03cd931" id="r_a367086b75f9d1acc5100b451e03cd931"><td class="memItemLeft anonEnd" valign="top">&#160;&#160;&#160;}&#160;&#160;&#160;<b>one_rtt</b></td></tr>
 <tr class="memitem:"><td class="memItemLeft anon">
 &#160;&#160;&#160;struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:abb2ba8110b16597e4cfbb08f31b8456c" id="r_abb2ba8110b16597e4cfbb08f31b8456c"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<b>token_len</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:afe0188a1bb93cd3d0acae363d7768657" id="r_afe0188a1bb93cd3d0acae363d7768657"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint8_t *&#160;&#160;&#160;<b>token</b>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memitem:a5f1a0ea536d11e46e0413d8ab59f9bec" id="r_a5f1a0ea536d11e46e0413d8ab59f9bec"><td class="memItemLeft anon">
-&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<b>retry_integrity_tag</b> [16]&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:abb2ba8110b16597e4cfbb08f31b8456c" id="r_abb2ba8110b16597e4cfbb08f31b8456c"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="#adfddf06a158be699373565bb12ce6f4c">token_len</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:afe0188a1bb93cd3d0acae363d7768657" id="r_afe0188a1bb93cd3d0acae363d7768657"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint8_t *&#160;&#160;&#160;<a class="el" href="#a072d82dccf453e664e5587020e9fd608">token</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:a5f1a0ea536d11e46e0413d8ab59f9bec" id="r_a5f1a0ea536d11e46e0413d8ab59f9bec"><td class="memItemLeft anon">&#160;&#160;&#160;&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<a class="el" href="#a01dc5546a1773afc91d0cf8d01a435b9">retry_integrity_tag</a> [16]&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="memitem:a493017a795e3434ed30c333a25d7e92b" id="r_a493017a795e3434ed30c333a25d7e92b"><td class="memItemLeft anonEnd" valign="top">&#160;&#160;&#160;}&#160;&#160;&#160;<b>retry</b></td></tr>
-<tr class="memitem:a09cd72bc8bb0424d5239d53c85420957" id="r_a09cd72bc8bb0424d5239d53c85420957"><td class="memItemLeft anonEnd" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a09cd72bc8bb0424d5239d53c85420957">extra</a></td></tr>
+<tr class="memitem:a09cd72bc8bb0424d5239d53c85420957" id="r_a09cd72bc8bb0424d5239d53c85420957"><td class="memItemLeft anonEnd" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><b>extra</b></td></tr>
+<tr class="memdesc:a09cd72bc8bb0424d5239d53c85420957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type-specific extras. <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Flat packet struct — all packet types collapsed into one. </p>
 <dl class="section warning"><dt>Warning</dt><dd>Transience: when produced by YAWT_q_parse_packet, the pointer fields below (payload, raw, and extra.*.token) borrow INTO the input datagram buffer. They are valid only while that buffer is. Decrypt happens in-place on those bytes. Do not retain these pointers beyond the current parse scope. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00152">152</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
-<a id="a09cd72bc8bb0424d5239d53c85420957" name="a09cd72bc8bb0424d5239d53c85420957"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a09cd72bc8bb0424d5239d53c85420957">&#9670;&#160;</a></span>[union]</h2>
+<a id="a9f94ddad5965c81011a2ca061ab934fd" name="a9f94ddad5965c81011a2ca061ab934fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9f94ddad5965c81011a2ca061ab934fd">&#9670;&#160;</a></span>type</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">union  { ... }  YAWT_Q_Packet::extra</td>
+          <td class="memname"><a class="el" href="group__Quic.html#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> YAWT_Q_Packet::type</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Type-specific extras </p>
 
-</div>
-</div>
-<a id="a70a0f9ca1658aacc60a8cb2f781a2b43" name="a70a0f9ca1658aacc60a8cb2f781a2b43"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a70a0f9ca1658aacc60a8cb2f781a2b43">&#9670;&#160;</a></span>reserved</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint8_t YAWT_Q_Packet::reserved</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Encrypted packet fields (not Retry) </p>
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00153">153</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 
 </div>
 </div>
@@ -190,12 +167,241 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><b>pn_offset</b></td><
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Header fields (all packet types) </p>
+
+<p>Header fields (all packet types). </p>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00156">156</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a5ad869180f28f646e477cdf0d2fe2515" name="a5ad869180f28f646e477cdf0d2fe2515"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ad869180f28f646e477cdf0d2fe2515">&#9670;&#160;</a></span>dest_cid</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> YAWT_Q_Packet::dest_cid</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00157">157</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="abdec38b0bf89d3151a33b96a972f7a61" name="abdec38b0bf89d3151a33b96a972f7a61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abdec38b0bf89d3151a33b96a972f7a61">&#9670;&#160;</a></span>src_cid</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> YAWT_Q_Packet::src_cid</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00158">158</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a70a0f9ca1658aacc60a8cb2f781a2b43" name="a70a0f9ca1658aacc60a8cb2f781a2b43"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a70a0f9ca1658aacc60a8cb2f781a2b43">&#9670;&#160;</a></span>reserved</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Packet::reserved</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encrypted packet fields (not Retry). </p>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00161">161</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a78cf8f17b9bc9a64ba44a58450d74802" name="a78cf8f17b9bc9a64ba44a58450d74802"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78cf8f17b9bc9a64ba44a58450d74802">&#9670;&#160;</a></span>packet_number_length</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Packet::packet_number_length</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00162">162</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a37280fb47137429001b802078e183ebd" name="a37280fb47137429001b802078e183ebd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37280fb47137429001b802078e183ebd">&#9670;&#160;</a></span>packet_num</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t YAWT_Q_Packet::packet_num</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00163">163</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="afd25540ea0293ba5a12929aa12a27b2f" name="afd25540ea0293ba5a12929aa12a27b2f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd25540ea0293ba5a12929aa12a27b2f">&#9670;&#160;</a></span>payload</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t* YAWT_Q_Packet::payload</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00164">164</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a5437546403f018d3ccdda056c50f92dc" name="a5437546403f018d3ccdda056c50f92dc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5437546403f018d3ccdda056c50f92dc">&#9670;&#160;</a></span>payload_len</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_Q_Packet::payload_len</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00165">165</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="afeecbe4b3fe7f9a4461d6bf0559ba91b" name="afeecbe4b3fe7f9a4461d6bf0559ba91b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afeecbe4b3fe7f9a4461d6bf0559ba91b">&#9670;&#160;</a></span>raw</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t* YAWT_Q_Packet::raw</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00168">168</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ac9e5f2a55756de51466d8998b87818b3" name="ac9e5f2a55756de51466d8998b87818b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9e5f2a55756de51466d8998b87818b3">&#9670;&#160;</a></span>pn_offset</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_Q_Packet::pn_offset</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00169">169</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="adfddf06a158be699373565bb12ce6f4c" name="adfddf06a158be699373565bb12ce6f4c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adfddf06a158be699373565bb12ce6f4c">&#9670;&#160;</a></span>token_len</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_Packet::token_len</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00174">174</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a072d82dccf453e664e5587020e9fd608" name="a072d82dccf453e664e5587020e9fd608"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a072d82dccf453e664e5587020e9fd608">&#9670;&#160;</a></span>token</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t* YAWT_Q_Packet::token</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00175">175</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="aa40d21db0d881f9877e02a3c3e2f944c" name="aa40d21db0d881f9877e02a3c3e2f944c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa40d21db0d881f9877e02a3c3e2f944c">&#9670;&#160;</a></span>spin_bit</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Packet::spin_bit</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00178">178</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="abf42f00a5e3aa8cedccaef6239f0d3af" name="abf42f00a5e3aa8cedccaef6239f0d3af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abf42f00a5e3aa8cedccaef6239f0d3af">&#9670;&#160;</a></span>key_phase</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Packet::key_phase</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00179">179</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a01dc5546a1773afc91d0cf8d01a435b9" name="a01dc5546a1773afc91d0cf8d01a435b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a01dc5546a1773afc91d0cf8d01a435b9">&#9670;&#160;</a></span>retry_integrity_tag</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Packet::retry_integrity_tag[16]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00184">184</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="quic__types_8h_source.html">quic_types.h</a></li>
+<li><a class="el" href="quic__types_8h_source.html">quic_types.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

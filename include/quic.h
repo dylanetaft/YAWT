@@ -5,11 +5,13 @@
 
 /**
  * @defgroup YAWT_Q_LowLevel YAWT_Q_LowLevel
+ * @ingroup Quic
  * @brief Low-level QUIC protocol operations and utilities.
  */
 
 /**
  * @defgroup YAWT_Q_Events YAWT_Q_Events
+ * @ingroup Quic
  * @brief QUIC asynchronous event system contract.
  */
 
@@ -19,10 +21,16 @@
 #include <allocnbuffer/slab.h>
 #include "quic_types.h"
 
-/** @ingroup Quic Forward declaration — full type in crypt.h */
+/**
+ * @ingroup Quic
+ * @brief Forward declaration — full type in crypt.h
+ */
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
-/** @ingroup Quic Forward declaration — full type in quic_connection.h */
+/**
+ * @ingroup Quic
+ * @brief Forward declaration — full type in quic_connection.h
+ */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
 /**
@@ -261,7 +269,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
  */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
-/** @ingroup Quic Forward declaration for crypto context */
+/**
+ * @ingroup Quic
+ * @brief Forward declaration for crypto context
+ */
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 

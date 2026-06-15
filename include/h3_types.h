@@ -13,13 +13,14 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/** @ingroup HTTP3 Forward declaration — full type in quic.h */
+/**
+ * @ingroup HTTP3
+ * @brief Forward declaration — full type in quic.h
+ */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
-/** @ingroup HTTP3 Max varint size for Type + Length */
-#define H3_FRAME_MAX_HEADER_BYTES 16
-/** @ingroup HTTP3 Uni stream-type prefix is one varint (<=8 bytes) */
-#define H3_STREAM_TYPE_MAX_BYTES   8
+#define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
+#define H3_STREAM_TYPE_MAX_BYTES   8  /**< Uni stream-type prefix is one varint (<=8 bytes) */
 
 /**
  * @note HTTP/3 data types (RFC 9114) — the YAWT_H3 analog of quic_types.h. Holds the
@@ -149,9 +150,15 @@ typedef struct {
   uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
 } YAWT_H3_Frame_t;
 
-/** @ingroup HTTP3 Forward declaration for ANB_Slab */
+/**
+ * @ingroup HTTP3
+ * @brief Forward declaration for ANB_Slab
+ */
 typedef struct ANB_Slab ANB_Slab_t;
-/** @ingroup HTTP3 Forward declaration for ANB_Blob */
+/**
+ * @ingroup HTTP3
+ * @brief Forward declaration for ANB_Blob
+ */
 typedef struct ANB_Blob ANB_Blob_t;
 
 /**
@@ -240,7 +247,10 @@ typedef struct {
   size_t      i_name;    // name-only match in QPACK static table (0 = none)
 } YAWT_H3_Header_Field_t;
 
-/** @ingroup HTTP3 Forward declaration for H3 connection object */
+/**
+ * @ingroup HTTP3
+ * @brief Forward declaration for H3 connection object
+ */
 typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
 
 /**

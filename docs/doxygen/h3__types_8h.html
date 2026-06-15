@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.15.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>YAWT: include/h3_types.h File Reference</title>
+<title>YAWT: h3_types.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -123,23 +124,25 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:gaa1c74dcfce021ef9dc7e936bd7c2e56d" id="r_gaa1c74dcfce021ef9dc7e936bd7c2e56d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gaa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a>&#160;&#160;&#160;16</td></tr>
-<tr class="memitem:ga051c31e35ec6425ff9b056561feb558b" id="r_ga051c31e35ec6425ff9b056561feb558b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a>&#160;&#160;&#160;8</td></tr>
+<tr class="memitem:aa1c74dcfce021ef9dc7e936bd7c2e56d" id="r_aa1c74dcfce021ef9dc7e936bd7c2e56d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a>&#160;&#160;&#160;16</td></tr>
+<tr class="memdesc:aa1c74dcfce021ef9dc7e936bd7c2e56d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max varint size for Type + Length.  <br /></td></tr>
+<tr class="memitem:a051c31e35ec6425ff9b056561feb558b" id="r_a051c31e35ec6425ff9b056561feb558b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a>&#160;&#160;&#160;8</td></tr>
+<tr class="memdesc:a051c31e35ec6425ff9b056561feb558b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Uni stream-type prefix is one varint (&lt;=8 bytes).  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga48eeb291f8b1aa1867e90dbd40b71028" id="r_ga48eeb291f8b1aa1867e90dbd40b71028"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></td></tr>
-<tr class="memitem:ga6d215eda629f858265a72c875a627458" id="r_ga6d215eda629f858265a72c875a627458"><td class="memItemLeft" align="right" valign="top">
-typedef struct ANB_Slab&#160;</td><td class="memItemRight" valign="bottom"><b>ANB_Slab_t</b></td></tr>
-<tr class="memitem:ga62c274fcc5cdb7f30bdcca7f45caf15e" id="r_ga62c274fcc5cdb7f30bdcca7f45caf15e"><td class="memItemLeft" align="right" valign="top">
-typedef struct ANB_Blob&#160;</td><td class="memItemRight" valign="bottom"><b>ANB_Blob_t</b></td></tr>
+<tr class="memdesc:ga48eeb291f8b1aa1867e90dbd40b71028"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration — full type in <a class="el" href="quic_8h.html" title="QUIC low-level protocol operations, utilities, and event system.">quic.h</a>.  <br /></td></tr>
+<tr class="memitem:ga6d215eda629f858265a72c875a627458" id="r_ga6d215eda629f858265a72c875a627458"><td class="memItemLeft" align="right" valign="top">typedef struct ANB_Slab&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a></td></tr>
+<tr class="memdesc:ga6d215eda629f858265a72c875a627458"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration for ANB_Slab.  <br /></td></tr>
+<tr class="memitem:ga62c274fcc5cdb7f30bdcca7f45caf15e" id="r_ga62c274fcc5cdb7f30bdcca7f45caf15e"><td class="memItemLeft" align="right" valign="top">typedef struct ANB_Blob&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a></td></tr>
+<tr class="memdesc:ga62c274fcc5cdb7f30bdcca7f45caf15e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration for ANB_Blob.  <br /></td></tr>
 <tr class="memitem:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" id="r_gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></td></tr>
-<tr class="memdesc:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 connection object.  <br /></td></tr>
+<tr class="memdesc:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration for H3 connection object.  <br /></td></tr>
 <tr class="memitem:ga2b447d0a9609cf9651dd797c0fcd9f30" id="r_ga2b447d0a9609cf9651dd797c0fcd9f30"><td class="memItemLeft" align="right" valign="top">typedef union <a class="el" href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a></td></tr>
 <tr class="memdesc:ga2b447d0a9609cf9651dd797c0fcd9f30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters for H3.  <br /></td></tr>
-<tr class="memitem:ga5d1d694f8c2f154003d76a186db6385b" id="r_ga5d1d694f8c2f154003d76a186db6385b"><td class="memItemLeft" align="right" valign="top">
-typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_EventHandler_t</b>) (<a class="el" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con, <a class="el" href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> event, <a class="el" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a> param)</td></tr>
-<tr class="memdesc:ga5d1d694f8c2f154003d76a186db6385b"><td class="mdescLeft">&#160;</td><td class="mdescRight">App-level event callback for H3. <br /></td></tr>
+<tr class="memitem:ga5d1d694f8c2f154003d76a186db6385b" id="r_ga5d1d694f8c2f154003d76a186db6385b"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>) (<a class="el" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con, <a class="el" href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> event, <a class="el" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a> param)</td></tr>
+<tr class="memdesc:ga5d1d694f8c2f154003d76a186db6385b"><td class="mdescLeft">&#160;</td><td class="mdescRight">App-level event callback for H3.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -165,7 +168,7 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:ga1feb87ab2d5c3769763990325a4c89bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unidirectional wire format stream types.  <a href="group__HTTP3.html#ga1feb87ab2d5c3769763990325a4c89bb">More...</a><br /></td></tr>
-<tr class="memitem:ga4138fe0cf8509aa0f5cf95c57041ceb0" id="r_ga4138fe0cf8509aa0f5cf95c57041ceb0"><td class="memItemLeft" align="right" valign="top"><a id="ga4138fe0cf8509aa0f5cf95c57041ceb0" name="ga4138fe0cf8509aa0f5cf95c57041ceb0"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a> { <br />
+<tr class="memitem:ga4138fe0cf8509aa0f5cf95c57041ceb0" id="r_ga4138fe0cf8509aa0f5cf95c57041ceb0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a> { <br />
 &#160;&#160;<b>YAWT_H3_STREAM_UNASSIGNED</b> = 0
 , <b>YAWT_H3_STREAM_FRAME</b>
 , <b>YAWT_H3_STREAM_PUSH</b>
@@ -175,7 +178,7 @@ Enumerations</h2></td></tr>
 , <b>YAWT_H3_STREAM_WEBTRANSPORT</b>
 <br />
  }</td></tr>
-<tr class="memdesc:ga4138fe0cf8509aa0f5cf95c57041ceb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Logical HTTP/3 stream types. <br /></td></tr>
+<tr class="memdesc:ga4138fe0cf8509aa0f5cf95c57041ceb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Logical HTTP/3 stream types.  <a href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">More...</a><br /></td></tr>
 <tr class="memitem:gac275e05e4bbc28952cc885859ac5767a" id="r_gac275e05e4bbc28952cc885859ac5767a"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gac275e05e4bbc28952cc885859ac5767a">YAWT_H3_SettingId_t</a> { <br />
 &#160;&#160;<b>YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY</b> = 0x01
 , <b>YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE</b> = 0x06
@@ -224,7 +227,46 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>HTTP/3 data structures, constants, and enums. </p>
-</div></div><!-- contents -->
+
+<p class="definition">Definition in file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+</div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
+<a id="aa1c74dcfce021ef9dc7e936bd7c2e56d" name="aa1c74dcfce021ef9dc7e936bd7c2e56d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1c74dcfce021ef9dc7e936bd7c2e56d">&#9670;&#160;</a></span>H3_FRAME_MAX_HEADER_BYTES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define H3_FRAME_MAX_HEADER_BYTES&#160;&#160;&#160;16</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Max varint size for Type + Length. </p>
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00022">22</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a051c31e35ec6425ff9b056561feb558b" name="a051c31e35ec6425ff9b056561feb558b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a051c31e35ec6425ff9b056561feb558b">&#9670;&#160;</a></span>H3_STREAM_TYPE_MAX_BYTES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define H3_STREAM_TYPE_MAX_BYTES&#160;&#160;&#160;8</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Uni stream-type prefix is one varint (&lt;=8 bytes). </p>
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00023">23</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">
 <div id="page-nav-resize-handle"></div>

@@ -5,6 +5,7 @@
 
 /**
  * @defgroup YAWT_H3_Core YAWT_H3_Core
+ * @ingroup HTTP3
  * @brief Primary HTTP/3 API for connection management, frame parsing, and sending data/headers.
  */
 
@@ -15,7 +16,7 @@
 #include "quic.h"   // YAWT_q_varint_*, YAWT_Q_ReadCursor_t, YAWT_Q_EventType_t, YAWT_Q_EventParam_t
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Assembles a frame from located metadata.
  * @param stream The QUIC stream frame.
  * @param meta The H3 stream metadata.
@@ -28,7 +29,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream,
                                     YAWT_H3_Frame_t *out);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Encode an H3 frame header (type varint + length varint) into buf.
  * @param frame_type The H3 frame type.
  * @param payload_len The payload length.
@@ -39,7 +40,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream,
 size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint8_t *buf);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Get the number of bytes needed for an H3 frame header.
  * @param payload_len The payload length that will follow.
  * @return Number of bytes needed for type + length varints.
@@ -47,7 +48,7 @@ size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint
 size_t YAWT_h3_frame_header_size(size_t payload_len);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief H3 event handler.
  * @param con The underlying QUIC connection.
  * @param event The QUIC event type.
@@ -63,7 +64,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
                                    YAWT_Q_EventParam_t param);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Decode a SETTINGS frame body.
  * @param rc Read cursor whose data/len cover exactly the SETTINGS payload.
  * @param out Output settings struct.
@@ -75,7 +76,7 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
                                           YAWT_H3_Settings_t *out);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Encode a SETTINGS frame body (id/value varint pairs) into buf.
  * @param settings The settings to encode.
  * @param buf Output buffer.
@@ -89,7 +90,7 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
                                           size_t *written);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Install an app-level event handler on an H3 connection.
  * @param con The H3 connection.
  * @param handler The event handler function.
@@ -100,7 +101,7 @@ void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
                                 YAWT_H3_EventHandler_t handler);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Get the underlying QUIC connection from an H3 connection.
  * @param con The H3 connection.
  * @return Pointer to the underlying QUIC connection.
@@ -108,7 +109,7 @@ void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
 YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Open the server control stream and send a SETTINGS frame.
  * @param h3 The H3 connection.
  * @return YAWT_H3_OK on success, or an error code.
@@ -118,7 +119,7 @@ YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con);
 YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Encode headers as a QPACK header block, wrap in an H3 HEADERS frame, and send.
  * @param h3 The H3 connection.
  * @param stream_id The target bidi stream ID.
@@ -132,7 +133,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
                                        int fin);
 
 /**
- * @ingroup HTTP3 Core
+ * @ingroup YAWT_H3_Core
  * @brief Wrap data in an H3 DATA frame and send on the given bidi stream.
  * @param h3 The H3 connection.
  * @param stream_id The target bidi stream ID.

@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -99,19 +100,82 @@ $(function(){initNavTree('structYAWT__Q__Frame__New__Connection__ID__t.html','',
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a7c6ce3ccdfe25b328541dc179956dd95" id="r_a7c6ce3ccdfe25b328541dc179956dd95"><td class="memItemLeft" align="right" valign="top"><a id="a7c6ce3ccdfe25b328541dc179956dd95" name="a7c6ce3ccdfe25b328541dc179956dd95"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>seq_num</b></td></tr>
-<tr class="memitem:a1a27df930bb478c82f43b25bdef0d93d" id="r_a1a27df930bb478c82f43b25bdef0d93d"><td class="memItemLeft" align="right" valign="top"><a id="a1a27df930bb478c82f43b25bdef0d93d" name="a1a27df930bb478c82f43b25bdef0d93d"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>retire_prior_to</b></td></tr>
-<tr class="memitem:a1a8821facd41a40f79d144533d80a992" id="r_a1a8821facd41a40f79d144533d80a992"><td class="memItemLeft" align="right" valign="top"><a id="a1a8821facd41a40f79d144533d80a992" name="a1a8821facd41a40f79d144533d80a992"></a>
-<a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cid</b></td></tr>
-<tr class="memitem:a789850a6baf2713db44a51701e3d020b" id="r_a789850a6baf2713db44a51701e3d020b"><td class="memItemLeft" align="right" valign="top"><a id="a789850a6baf2713db44a51701e3d020b" name="a789850a6baf2713db44a51701e3d020b"></a>
-uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>stateless_reset_token</b> [16]</td></tr>
+<tr class="memitem:a7c6ce3ccdfe25b328541dc179956dd95" id="r_a7c6ce3ccdfe25b328541dc179956dd95"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7c6ce3ccdfe25b328541dc179956dd95">seq_num</a></td></tr>
+<tr class="memitem:a1a27df930bb478c82f43b25bdef0d93d" id="r_a1a27df930bb478c82f43b25bdef0d93d"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1a27df930bb478c82f43b25bdef0d93d">retire_prior_to</a></td></tr>
+<tr class="memitem:a1a8821facd41a40f79d144533d80a992" id="r_a1a8821facd41a40f79d144533d80a992"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1a8821facd41a40f79d144533d80a992">cid</a></td></tr>
+<tr class="memitem:a789850a6baf2713db44a51701e3d020b" id="r_a789850a6baf2713db44a51701e3d020b"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a789850a6baf2713db44a51701e3d020b">stateless_reset_token</a> [16]</td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>NEW_CONNECTION_ID frame (0x18). </p>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="quic__types_8h_source.html">quic_types.h</a></li>
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00359">359</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="a7c6ce3ccdfe25b328541dc179956dd95" name="a7c6ce3ccdfe25b328541dc179956dd95"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c6ce3ccdfe25b328541dc179956dd95">&#9670;&#160;</a></span>seq_num</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_Frame_New_Connection_ID_t::seq_num</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00360">360</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a1a27df930bb478c82f43b25bdef0d93d" name="a1a27df930bb478c82f43b25bdef0d93d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a27df930bb478c82f43b25bdef0d93d">&#9670;&#160;</a></span>retire_prior_to</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_Frame_New_Connection_ID_t::retire_prior_to</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00361">361</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a1a8821facd41a40f79d144533d80a992" name="a1a8821facd41a40f79d144533d80a992"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a8821facd41a40f79d144533d80a992">&#9670;&#160;</a></span>cid</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> YAWT_Q_Frame_New_Connection_ID_t::cid</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00362">362</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a789850a6baf2713db44a51701e3d020b" name="a789850a6baf2713db44a51701e3d020b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a789850a6baf2713db44a51701e3d020b">&#9670;&#160;</a></span>stateless_reset_token</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_Frame_New_Connection_ID_t::stateless_reset_token[16]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00363">363</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li><a class="el" href="quic__types_8h_source.html">quic_types.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

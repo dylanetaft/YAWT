@@ -8,11 +8,6 @@
  * @brief All QUIC protocol types, constants, and low-level operations.
  */
 
-/**
- * @defgroup Core Core
- * @brief High-level connection management and I/O API for both QUIC and HTTP/3.
- */
-
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
@@ -27,20 +22,14 @@
 struct YAWT_Q_PeerAddr;
 typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
 
-/** @ingroup Quic Maximum QUIC packet size */
-#define YAWT_Q_MAX_PKT_SIZE 1350
-/** @ingroup Quic Maximum Connection ID length */
-#define YAWT_Q_CID_LEN 20
+#define YAWT_Q_MAX_PKT_SIZE 1350  /**< Maximum QUIC packet size */
+#define YAWT_Q_CID_LEN 20  /**< Maximum Connection ID length */
 
-/** @ingroup Quic Worst-case long header overhead (header + PN + AEAD tag) */
-#define YAWT_Q_LONG_HDR_OVERHEAD  69
-/** @ingroup Quic Worst-case short header overhead (header + PN + AEAD tag) */
-#define YAWT_Q_SHORT_HDR_OVERHEAD 41
+#define YAWT_Q_LONG_HDR_OVERHEAD  69  /**< Worst-case long header overhead (header + PN + AEAD tag) */
+#define YAWT_Q_SHORT_HDR_OVERHEAD 41  /**< Worst-case short header overhead (header + PN + AEAD tag) */
 
-/** @ingroup Quic Max frame data that can safely fit in a long header packet */
-#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG  (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_LONG_HDR_OVERHEAD)
-/** @ingroup Quic Max frame data that can safely fit in a short header packet */
-#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)
+#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG  (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_LONG_HDR_OVERHEAD)  /**< Max frame data that can safely fit in a long header packet */
+#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)  /**< Max frame data that can safely fit in a short header packet */
 
 /**
  * @ingroup Quic

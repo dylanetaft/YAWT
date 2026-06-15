@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -99,25 +100,118 @@ $(function(){initNavTree('structYAWT__H3__Header__Field__t.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a13188096a54c28b4550c5aa6176bcf80" id="r_a13188096a54c28b4550c5aa6176bcf80"><td class="memItemLeft" align="right" valign="top"><a id="a13188096a54c28b4550c5aa6176bcf80" name="a13188096a54c28b4550c5aa6176bcf80"></a>
-const char *&#160;</td><td class="memItemRight" valign="bottom"><b>name</b></td></tr>
-<tr class="memitem:adde63bbd0ac462f2f2238fda4e9fe6cb" id="r_adde63bbd0ac462f2f2238fda4e9fe6cb"><td class="memItemLeft" align="right" valign="top"><a id="adde63bbd0ac462f2f2238fda4e9fe6cb" name="adde63bbd0ac462f2f2238fda4e9fe6cb"></a>
-const char *&#160;</td><td class="memItemRight" valign="bottom"><b>value</b></td></tr>
-<tr class="memitem:a66ea26348f4a711571b69943f8e05ac4" id="r_a66ea26348f4a711571b69943f8e05ac4"><td class="memItemLeft" align="right" valign="top"><a id="a66ea26348f4a711571b69943f8e05ac4" name="a66ea26348f4a711571b69943f8e05ac4"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>name_len</b></td></tr>
-<tr class="memitem:a796fe8fb5b0f4829440de79c57f602b7" id="r_a796fe8fb5b0f4829440de79c57f602b7"><td class="memItemLeft" align="right" valign="top"><a id="a796fe8fb5b0f4829440de79c57f602b7" name="a796fe8fb5b0f4829440de79c57f602b7"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>value_len</b></td></tr>
-<tr class="memitem:ac7723815bba8f980e668a02270772dac" id="r_ac7723815bba8f980e668a02270772dac"><td class="memItemLeft" align="right" valign="top"><a id="ac7723815bba8f980e668a02270772dac" name="ac7723815bba8f980e668a02270772dac"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>i_static</b></td></tr>
-<tr class="memitem:a92b694a737e26d55f42e4b91e52721d3" id="r_a92b694a737e26d55f42e4b91e52721d3"><td class="memItemLeft" align="right" valign="top"><a id="a92b694a737e26d55f42e4b91e52721d3" name="a92b694a737e26d55f42e4b91e52721d3"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>i_name</b></td></tr>
+<tr class="memitem:a13188096a54c28b4550c5aa6176bcf80" id="r_a13188096a54c28b4550c5aa6176bcf80"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a13188096a54c28b4550c5aa6176bcf80">name</a></td></tr>
+<tr class="memitem:adde63bbd0ac462f2f2238fda4e9fe6cb" id="r_adde63bbd0ac462f2f2238fda4e9fe6cb"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adde63bbd0ac462f2f2238fda4e9fe6cb">value</a></td></tr>
+<tr class="memitem:a66ea26348f4a711571b69943f8e05ac4" id="r_a66ea26348f4a711571b69943f8e05ac4"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a66ea26348f4a711571b69943f8e05ac4">name_len</a></td></tr>
+<tr class="memitem:a796fe8fb5b0f4829440de79c57f602b7" id="r_a796fe8fb5b0f4829440de79c57f602b7"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a796fe8fb5b0f4829440de79c57f602b7">value_len</a></td></tr>
+<tr class="memitem:ac7723815bba8f980e668a02270772dac" id="r_ac7723815bba8f980e668a02270772dac"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac7723815bba8f980e668a02270772dac">i_static</a></td></tr>
+<tr class="memitem:a92b694a737e26d55f42e4b91e52721d3" id="r_a92b694a737e26d55f42e4b91e52721d3"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a92b694a737e26d55f42e4b91e52721d3">i_name</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Public view of a header field. </p>
 <dl class="section warning"><dt>Warning</dt><dd>Points into slab memory, do not free or mutate. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>i_static and i_name are QPACK static table indexes pre-resolved at add time. </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00241">241</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="a13188096a54c28b4550c5aa6176bcf80" name="a13188096a54c28b4550c5aa6176bcf80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a13188096a54c28b4550c5aa6176bcf80">&#9670;&#160;</a></span>name</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const char* YAWT_H3_Header_Field_t::name</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00242">242</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="adde63bbd0ac462f2f2238fda4e9fe6cb" name="adde63bbd0ac462f2f2238fda4e9fe6cb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adde63bbd0ac462f2f2238fda4e9fe6cb">&#9670;&#160;</a></span>value</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const char* YAWT_H3_Header_Field_t::value</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00243">243</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a66ea26348f4a711571b69943f8e05ac4" name="a66ea26348f4a711571b69943f8e05ac4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a66ea26348f4a711571b69943f8e05ac4">&#9670;&#160;</a></span>name_len</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_H3_Header_Field_t::name_len</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00244">244</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a796fe8fb5b0f4829440de79c57f602b7" name="a796fe8fb5b0f4829440de79c57f602b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a796fe8fb5b0f4829440de79c57f602b7">&#9670;&#160;</a></span>value_len</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_H3_Header_Field_t::value_len</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00245">245</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ac7723815bba8f980e668a02270772dac" name="ac7723815bba8f980e668a02270772dac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac7723815bba8f980e668a02270772dac">&#9670;&#160;</a></span>i_static</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_H3_Header_Field_t::i_static</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00246">246</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a92b694a737e26d55f42e4b91e52721d3" name="a92b694a737e26d55f42e4b91e52721d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a92b694a737e26d55f42e4b91e52721d3">&#9670;&#160;</a></span>i_name</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_H3_Header_Field_t::i_name</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00247">247</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li><a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

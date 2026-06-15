@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -88,7 +89,7 @@ $(function(){initNavTree('structYAWT__Q__MaintenanceConfig__t.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">YAWT_Q_MaintenanceConfig_t Struct Reference<div class="ingroups"><a class="el" href="group__Quic.html">Quic</a> &#124; <a class="el" href="group__Core.html">Core</a></div></div></div>
+  <div class="headertitle"><div class="title">YAWT_Q_MaintenanceConfig_t Struct Reference<div class="ingroups"><a class="el" href="group__Quic.html">Quic</a> &raquo; <a class="el" href="group__YAWT__Q__Core.html">YAWT_Q_Core</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -99,20 +100,83 @@ $(function(){initNavTree('structYAWT__Q__MaintenanceConfig__t.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a8c57cc106e3eee5b6759b1c58a65b1aa" id="r_a8c57cc106e3eee5b6759b1c58a65b1aa"><td class="memItemLeft" align="right" valign="top"><a id="a8c57cc106e3eee5b6759b1c58a65b1aa" name="a8c57cc106e3eee5b6759b1c58a65b1aa"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><b>retransmit_initial</b></td></tr>
-<tr class="memitem:aea1c0c3dd4bfd1fd67a1d23e6fb560e9" id="r_aea1c0c3dd4bfd1fd67a1d23e6fb560e9"><td class="memItemLeft" align="right" valign="top"><a id="aea1c0c3dd4bfd1fd67a1d23e6fb560e9" name="aea1c0c3dd4bfd1fd67a1d23e6fb560e9"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><b>retransmit_backoff</b></td></tr>
-<tr class="memitem:afb8913c8b909aaa1122f55521cb13fc3" id="r_afb8913c8b909aaa1122f55521cb13fc3"><td class="memItemLeft" align="right" valign="top"><a id="afb8913c8b909aaa1122f55521cb13fc3" name="afb8913c8b909aaa1122f55521cb13fc3"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>retransmit_max</b></td></tr>
-<tr class="memitem:accb9416c3ef799aae90e2da4821b080a" id="r_accb9416c3ef799aae90e2da4821b080a"><td class="memItemLeft" align="right" valign="top"><a id="accb9416c3ef799aae90e2da4821b080a" name="accb9416c3ef799aae90e2da4821b080a"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><b>min_maint_interval</b></td></tr>
+<tr class="memitem:a8c57cc106e3eee5b6759b1c58a65b1aa" id="r_a8c57cc106e3eee5b6759b1c58a65b1aa"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8c57cc106e3eee5b6759b1c58a65b1aa">retransmit_initial</a></td></tr>
+<tr class="memitem:aea1c0c3dd4bfd1fd67a1d23e6fb560e9" id="r_aea1c0c3dd4bfd1fd67a1d23e6fb560e9"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aea1c0c3dd4bfd1fd67a1d23e6fb560e9">retransmit_backoff</a></td></tr>
+<tr class="memitem:afb8913c8b909aaa1122f55521cb13fc3" id="r_afb8913c8b909aaa1122f55521cb13fc3"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afb8913c8b909aaa1122f55521cb13fc3">retransmit_max</a></td></tr>
+<tr class="memitem:accb9416c3ef799aae90e2da4821b080a" id="r_accb9416c3ef799aae90e2da4821b080a"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#accb9416c3ef799aae90e2da4821b080a">min_maint_interval</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Global maintenance configuration. </p>
 <dl class="section note"><dt>Note</dt><dd>Controls retransmit timing, idle timeout, and keepalive behavior across all connections. (Frame-level retransmit DOES use exponential backoff; this is distinct from the fixed ACK timer.) </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="quic__connection_8h_source.html">quic_connection.h</a></li>
+
+<p class="definition">Definition at line <a class="el" href="quic__connection_8h_source.html#l00078">78</a> of file <a class="el" href="quic__connection_8h_source.html">quic_connection.h</a>.</p>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="a8c57cc106e3eee5b6759b1c58a65b1aa" name="a8c57cc106e3eee5b6759b1c58a65b1aa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8c57cc106e3eee5b6759b1c58a65b1aa">&#9670;&#160;</a></span>retransmit_initial</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double YAWT_Q_MaintenanceConfig_t::retransmit_initial</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__connection_8h_source.html#l00079">79</a> of file <a class="el" href="quic__connection_8h_source.html">quic_connection.h</a>.</p>
+
+</div>
+</div>
+<a id="aea1c0c3dd4bfd1fd67a1d23e6fb560e9" name="aea1c0c3dd4bfd1fd67a1d23e6fb560e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea1c0c3dd4bfd1fd67a1d23e6fb560e9">&#9670;&#160;</a></span>retransmit_backoff</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double YAWT_Q_MaintenanceConfig_t::retransmit_backoff</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__connection_8h_source.html#l00080">80</a> of file <a class="el" href="quic__connection_8h_source.html">quic_connection.h</a>.</p>
+
+</div>
+</div>
+<a id="afb8913c8b909aaa1122f55521cb13fc3" name="afb8913c8b909aaa1122f55521cb13fc3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb8913c8b909aaa1122f55521cb13fc3">&#9670;&#160;</a></span>retransmit_max</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t YAWT_Q_MaintenanceConfig_t::retransmit_max</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__connection_8h_source.html#l00081">81</a> of file <a class="el" href="quic__connection_8h_source.html">quic_connection.h</a>.</p>
+
+</div>
+</div>
+<a id="accb9416c3ef799aae90e2da4821b080a" name="accb9416c3ef799aae90e2da4821b080a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#accb9416c3ef799aae90e2da4821b080a">&#9670;&#160;</a></span>min_maint_interval</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double YAWT_Q_MaintenanceConfig_t::min_maint_interval</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic__connection_8h_source.html#l00082">82</a> of file <a class="el" href="quic__connection_8h_source.html">quic_connection.h</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li><a class="el" href="quic__connection_8h_source.html">quic_connection.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

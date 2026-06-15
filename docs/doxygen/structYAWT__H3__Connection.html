@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -99,26 +100,134 @@ $(function(){initNavTree('structYAWT__H3__Connection.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a6eee35df27367d22f5c541abf2d20720" id="r_a6eee35df27367d22f5c541abf2d20720"><td class="memItemLeft" align="right" valign="top"><a id="a6eee35df27367d22f5c541abf2d20720" name="a6eee35df27367d22f5c541abf2d20720"></a>
-<a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>qcon</b></td></tr>
-<tr class="memitem:a667a63766f7f0c1f25ccaba14b496d3e" id="r_a667a63766f7f0c1f25ccaba14b496d3e"><td class="memItemLeft" align="right" valign="top"><a id="a667a63766f7f0c1f25ccaba14b496d3e" name="a667a63766f7f0c1f25ccaba14b496d3e"></a>
-<a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>app_handler</b></td></tr>
-<tr class="memitem:ab8306176e658169367f2e400f2b7be19" id="r_ab8306176e658169367f2e400f2b7be19"><td class="memItemLeft" align="right" valign="top"><a id="ab8306176e658169367f2e400f2b7be19" name="ab8306176e658169367f2e400f2b7be19"></a>
-<a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>local_settings</b></td></tr>
-<tr class="memitem:a34a2d781bc06551b3b65fb2eb9a86f5b" id="r_a34a2d781bc06551b3b65fb2eb9a86f5b"><td class="memItemLeft" align="right" valign="top"><a id="a34a2d781bc06551b3b65fb2eb9a86f5b" name="a34a2d781bc06551b3b65fb2eb9a86f5b"></a>
-<a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>peer_settings</b></td></tr>
-<tr class="memitem:aa3d6b4932194dce99c7b61b710a2b758" id="r_aa3d6b4932194dce99c7b61b710a2b758"><td class="memItemLeft" align="right" valign="top"><a id="aa3d6b4932194dce99c7b61b710a2b758" name="aa3d6b4932194dce99c7b61b710a2b758"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>nstreams</b></td></tr>
-<tr class="memitem:ae6b817a267b0b591412fd2f1504ed4e5" id="r_ae6b817a267b0b591412fd2f1504ed4e5"><td class="memItemLeft" align="right" valign="top"><a id="ae6b817a267b0b591412fd2f1504ed4e5" name="ae6b817a267b0b591412fd2f1504ed4e5"></a>
-<a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>streams</b></td></tr>
-<tr class="memitem:acd92fd995b7c5a938a4f788e3d7ea350" id="r_acd92fd995b7c5a938a4f788e3d7ea350"><td class="memItemLeft" align="right" valign="top"><a id="acd92fd995b7c5a938a4f788e3d7ea350" name="acd92fd995b7c5a938a4f788e3d7ea350"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>control_stream_id</b></td></tr>
+<tr class="memitem:a6eee35df27367d22f5c541abf2d20720" id="r_a6eee35df27367d22f5c541abf2d20720"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6eee35df27367d22f5c541abf2d20720">qcon</a></td></tr>
+<tr class="memitem:a667a63766f7f0c1f25ccaba14b496d3e" id="r_a667a63766f7f0c1f25ccaba14b496d3e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a667a63766f7f0c1f25ccaba14b496d3e">app_handler</a></td></tr>
+<tr class="memitem:ab8306176e658169367f2e400f2b7be19" id="r_ab8306176e658169367f2e400f2b7be19"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab8306176e658169367f2e400f2b7be19">local_settings</a></td></tr>
+<tr class="memitem:a34a2d781bc06551b3b65fb2eb9a86f5b" id="r_a34a2d781bc06551b3b65fb2eb9a86f5b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a34a2d781bc06551b3b65fb2eb9a86f5b">peer_settings</a></td></tr>
+<tr class="memitem:aa3d6b4932194dce99c7b61b710a2b758" id="r_aa3d6b4932194dce99c7b61b710a2b758"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa3d6b4932194dce99c7b61b710a2b758">nstreams</a></td></tr>
+<tr class="memitem:ae6b817a267b0b591412fd2f1504ed4e5" id="r_ae6b817a267b0b591412fd2f1504ed4e5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae6b817a267b0b591412fd2f1504ed4e5">streams</a></td></tr>
+<tr class="memitem:acd92fd995b7c5a938a4f788e3d7ea350" id="r_acd92fd995b7c5a938a4f788e3d7ea350"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acd92fd995b7c5a938a4f788e3d7ea350">control_stream_id</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>H3 connection object. </p>
 <dl class="section note"><dt>Note</dt><dd>Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once). </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00312">312</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="a6eee35df27367d22f5c541abf2d20720" name="a6eee35df27367d22f5c541abf2d20720"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6eee35df27367d22f5c541abf2d20720">&#9670;&#160;</a></span>qcon</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a>* YAWT_H3_Connection::qcon</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00313">313</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a667a63766f7f0c1f25ccaba14b496d3e" name="a667a63766f7f0c1f25ccaba14b496d3e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a667a63766f7f0c1f25ccaba14b496d3e">&#9670;&#160;</a></span>app_handler</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> YAWT_H3_Connection::app_handler</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00314">314</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ab8306176e658169367f2e400f2b7be19" name="ab8306176e658169367f2e400f2b7be19"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab8306176e658169367f2e400f2b7be19">&#9670;&#160;</a></span>local_settings</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a>* YAWT_H3_Connection::local_settings</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00315">315</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="a34a2d781bc06551b3b65fb2eb9a86f5b" name="a34a2d781bc06551b3b65fb2eb9a86f5b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a34a2d781bc06551b3b65fb2eb9a86f5b">&#9670;&#160;</a></span>peer_settings</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a>* YAWT_H3_Connection::peer_settings</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00316">316</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="aa3d6b4932194dce99c7b61b710a2b758" name="aa3d6b4932194dce99c7b61b710a2b758"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa3d6b4932194dce99c7b61b710a2b758">&#9670;&#160;</a></span>nstreams</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_H3_Connection::nstreams</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00317">317</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="ae6b817a267b0b591412fd2f1504ed4e5" name="ae6b817a267b0b591412fd2f1504ed4e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae6b817a267b0b591412fd2f1504ed4e5">&#9670;&#160;</a></span>streams</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a>* YAWT_H3_Connection::streams</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00318">318</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="acd92fd995b7c5a938a4f788e3d7ea350" name="acd92fd995b7c5a938a4f788e3d7ea350"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acd92fd995b7c5a938a4f788e3d7ea350">&#9670;&#160;</a></span>control_stream_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_H3_Connection::control_stream_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00319">319</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li><a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

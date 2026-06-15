@@ -1,14 +1,28 @@
+/**
+ * @file logger.h
+ * @brief Compile-time gated logging with level, file, line, and function context.
+ */
+
+/**
+ * @defgroup YAWT_Logging YAWT_Logging
+ * @brief Compile-time gated logging utilities.
+ *
+ * Enable logging by defining YAWT_ENABLE_LOGGING at compile time. Optionally set
+ * YAWT_LOG_LEVEL to filter messages (defaults to YAWT_LOG_DEBUG when enabled).
+ * When logging is disabled, YAWT_LOG() expands to a no-op.
+ */
+
 #pragma once
 
 /**
+ * @ingroup YAWT_Logging
  * @brief Log levels for diagnostic messages.
- * @ingroup logging
  */
 typedef enum {
   YAWT_LOG_DEBUG = 0, /**< Debug-level messages */
-  YAWT_LOG_INFO,  /**< Informational messages */
-  YAWT_LOG_WARN,  /**< Warning messages */
-  YAWT_LOG_ERROR  /**< Error messages */
+  YAWT_LOG_INFO,      /**< Informational messages */
+  YAWT_LOG_WARN,      /**< Warning messages */
+  YAWT_LOG_ERROR      /**< Error messages */
 } YAWT_log_level_t;
 
 #ifdef YAWT_ENABLE_LOGGING
@@ -18,8 +32,8 @@ typedef enum {
 #endif
 
 /**
+ * @ingroup YAWT_Logging
  * @brief Convert log level to string.
- * @ingroup yatl_logging
  * @param level Log level value
  * @return String representation of the log level
  */
@@ -39,11 +53,13 @@ static inline const char *YAWT_log_level_str(YAWT_log_level_t level) {
 }
 
 /**
+ * @ingroup YAWT_Logging
  * @brief Log a message with level, file, line, and function context.
- * @ingroup logging
  * @param level Log level 
  * @param fmt Printf-style format string
  * @param ... Format arguments
+ * @note When YAWT_ENABLE_LOGGING is not defined, this macro expands to a no-op.
+ *       When enabled, messages below YAWT_LOG_LEVEL are filtered out.
  */
 #ifdef YAWT_ENABLE_LOGGING
 #define YAWT_LOG(level, fmt, ...)                                               \

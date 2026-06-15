@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.15.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>YAWT: include/crypt.h Source File</title>
+<title>YAWT: crypt.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -91,130 +92,114 @@ $(function(){initNavTree('crypt_8h_source.html','',''); });
   <div class="headertitle"><div class="title">crypt.h</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="preprocessor">#pragma once</span></div>
-<div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
-<div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="preprocessor">#include &lt;stddef.h&gt;</span></div>
-<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="preprocessor">#include &lt;gnutls/gnutls.h&gt;</span></div>
-<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
-<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &quot;<a class="code" href="quic_8h.html">quic.h</a>&quot;</span></div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;security.h&quot;</span></div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span> </div>
-<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="keyword">typedef</span> <span class="keyword">struct </span>YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;</div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="keyword">typedef</span> <span class="keyword">struct </span>YAWT_Q_Crypto YAWT_Q_Crypto_t;</div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment">// QUIC encryption levels — index into level_keys[4] array.</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment">// These match gnutls_record_encryption_level_t values.</span></div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">//</span></div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">// Secret sources per level:</span></div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">//   INITIAL:     Derived from client&#39;s DCID + well-known salt (RFC 9001 §5.2).</span></div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">//                No TLS handshake needed — both sides compute independently.</span></div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment">//   EARLY:       0-RTT secrets from TLS (not implemented).</span></div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment">//   HANDSHAKE:   TLS handshake secrets, delivered by GnuTLS _on_secret callback.</span></div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">//   APPLICATION: TLS application traffic secrets, delivered by GnuTLS _on_secret callback.</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">//</span></div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">// For all levels, the same HKDF-Expand-Label step converts the traffic secret</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">// into usable key/iv/hp:</span></div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment">//   key = HKDF-Expand-Label(secret, &quot;quic key&quot;, &quot;&quot;, key_len)</span></div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="comment">//   iv  = HKDF-Expand-Label(secret, &quot;quic iv&quot;,  &quot;&quot;, 12)</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="comment">//   hp  = HKDF-Expand-Label(secret, &quot;quic hp&quot;,  &quot;&quot;, key_len)</span></div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>  YAWT_Q_LEVEL_INITIAL = 0,</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  YAWT_Q_LEVEL_EARLY = 1,</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>  YAWT_Q_LEVEL_HANDSHAKE = 2,</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>  YAWT_Q_LEVEL_APPLICATION = 3</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>} YAWT_Q_Encryption_Level_t;</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment">// Per-level key state — tracks lifecycle of encryption keys at each level.</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">// INACTIVE: no keys, can&#39;t encrypt/decrypt or accept CRYPTO frames.</span></div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment">// ACTIVE:   keys installed, can encrypt/decrypt, accepts CRYPTO frames.</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">// DONE:     keys installed, can still encrypt/decrypt (retransmits), rejects new CRYPTO frames.</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>  YAWT_Q_KEY_STATE_INACTIVE = 0,</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>  YAWT_Q_KEY_STATE_ACTIVE,</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>  YAWT_Q_KEY_STATE_DONE</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>} YAWT_Q_Key_State_t;</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(<span class="keyword">const</span> <span class="keywordtype">char</span> *cert_file,</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>                                              <span class="keyword">const</span> <span class="keywordtype">char</span> *key_file,</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>                                              <span class="keyword">const</span> <span class="keywordtype">char</span> *ca_file);</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="keywordtype">void</span> YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="comment">// Initialize crypto state. is_server=1 for server, 0 for client.</span></div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment">// original_dcid: client&#39;s random DCID from first Initial (for transport params).</span></div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment">// our_cid: our source connection ID (for transport params).</span></div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment">// Returns allocated crypto object, or NULL on error (err set if provided).</span></div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>YAWT_Q_Crypto_t *YAWT_q_crypto_init(<span class="keywordtype">int</span> is_server, YAWT_Q_Crypto_Cred_t *cred,</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>                    <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *original_dcid,</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>                    <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *our_cid,</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>                    <a class="code hl_struct" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *local_fc,</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>                    <a class="code hl_struct" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *peer_fc,</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>                    <a class="code hl_enumeration" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> *err);</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">// Cleanup / free GnuTLS resources</span></div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keywordtype">void</span> YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span> </div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">// Get outbound TLS data for a given level. Returns pointer and length.</span></div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">// Marks the data as consumed (resets length to 0). The pointer remains valid</span></div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">// until the next crypto_feed call or crypto_free.</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">// Returns NULL if no data available.</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="keyword">const</span> uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, <span class="keywordtype">int</span> level, <span class="keywordtype">size_t</span> *out_len);</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">// Feed a received CRYPTO frame. Determines encryption level from frame-&gt;pkt_type.</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment">// Handles offset-based reassembly internally. After calling, check</span></div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="comment">// crypto-&gt;out_buf[level] for handshake data to send back.</span></div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><a class="code hl_enumeration" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>                                    <span class="keyword">const</span> <a class="code hl_struct" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *frame);</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="comment">// Fill buf with len nonce-quality random bytes (not cryptographically secure).</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="keywordtype">int</span> YAWT_q_crypto_random_nonce(<span class="keywordtype">void</span> *buf, <span class="keywordtype">size_t</span> len);</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span> </div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">// Start the handshake (client calls this to produce initial ClientHello)</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="keywordtype">int</span> YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="comment">// Derive Initial encryption keys from client&#39;s Destination Connection ID (RFC 9001 §5.2).</span></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keywordtype">int</span> YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>                                       <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dcid);</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="comment">// Remove header protection in-place (RFC 9001 §5.4).</span></div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="keywordtype">int</span> YAWT_q_crypto_unprotect_header(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="comment">// AEAD decrypt payload (RFC 9001 §5.3).</span></div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="keywordtype">int</span> YAWT_q_crypto_decrypt_payload(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="comment">// Unprotect header + decrypt payload of a parsed packet in-place.</span></div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="comment">// After this call, the packet&#39;s PN and payload contain true values.</span></div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="comment">// Returns 0 on success, negative on error.</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="keywordtype">int</span> YAWT_q_crypto_unprotect_packet(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment">// Protect (encrypt + apply header protection) an outbound packet in-place.</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="comment">// Determines encryption level and selects keys from pkt-&gt;type.</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="comment">// buf must contain: unprotected header + plaintext payload + 16 bytes space for AEAD tag.</span></div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment">// Returns 0 on success, negative on error.</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="keywordtype">int</span> YAWT_q_crypto_protect_packet(uint8_t *buf, <span class="keywordtype">size_t</span> buf_len,</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>                                  <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt,</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>                                  YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span> </div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="keywordtype">int</span> YAWT_q_crypto_is_handshake_complete(<span class="keyword">const</span> YAWT_Q_Crypto_t *crypto);</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span> </div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="keywordtype">int</span> YAWT_q_crypto_key_level_available(<span class="keyword">const</span> YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level);</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
-<div class="ttc" id="agroup__Quic_html_ga2850b37ee3121eafdc74262c04bf59f2"><div class="ttname"><a href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a></div><div class="ttdeci">YAWT_Q_Error_t</div><div class="ttdoc">QUIC error codes.</div><div class="ttdef"><b>Definition</b> quic.h:55</div></div>
+<a href="crypt_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span></div>
+<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span> </div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="preprocessor">#pragma once</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="preprocessor">#include &lt;stddef.h&gt;</span></div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="preprocessor">#include &lt;gnutls/gnutls.h&gt;</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="preprocessor">#include &quot;<a class="code" href="quic_8h.html">quic.h</a>&quot;</span></div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="preprocessor">#include &quot;<a class="code" href="security_8h.html">security.h</a>&quot;</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span></div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">   35</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>YAWT_Q_Crypto_Cred <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a>;</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">   43</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>YAWT_Q_Crypto <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a>;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span></div>
+<div class="foldopen" id="foldopen00063" data-start="{" data-end="};">
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gad8dc02c9b7f257e748ebe6069b1171cf">   63</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>  YAWT_Q_LEVEL_INITIAL = 0,</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  YAWT_Q_LEVEL_EARLY = 1,</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  YAWT_Q_LEVEL_HANDSHAKE = 2,</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>  YAWT_Q_LEVEL_APPLICATION = 3</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>} <a class="code hl_enumeration" href="group__YAWT__Q__Crypto.html#gad8dc02c9b7f257e748ebe6069b1171cf">YAWT_Q_Encryption_Level_t</a>;</div>
+</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span></div>
+<div class="foldopen" id="foldopen00077" data-start="{" data-end="};">
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga48425992a747587ed8f2602c35e3aff0">   77</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  YAWT_Q_KEY_STATE_INACTIVE = 0,</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>  YAWT_Q_KEY_STATE_ACTIVE,</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>  YAWT_Q_KEY_STATE_DONE</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>} <a class="code hl_enumeration" href="group__YAWT__Q__Crypto.html#ga48425992a747587ed8f2602c35e3aff0">YAWT_Q_Key_State_t</a>;</div>
+</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga1845bc2cfcd2f2bc17d1a49aaaf64179">   94</a></span><a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> *<a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga1845bc2cfcd2f2bc17d1a49aaaf64179">YAWT_q_crypto_cred_new</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *cert_file,</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>                                              <span class="keyword">const</span> <span class="keywordtype">char</span> *key_file,</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>                                              <span class="keyword">const</span> <span class="keywordtype">char</span> *ca_file);</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span></div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gadb1cab0ad614d900062d780c10ee5eb1">  104</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#gadb1cab0ad614d900062d780c10ee5eb1">YAWT_q_crypto_cred_free</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> **cred);</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gab027e92a88c52e72e67fd76891125788">  119</a></span><a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *<a class="code hl_function" href="group__YAWT__Q__Crypto.html#gab027e92a88c52e72e67fd76891125788">YAWT_q_crypto_init</a>(<span class="keywordtype">int</span> is_server, <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> *cred,</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>                    <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *original_dcid,</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>                    <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *our_cid,</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>                    <a class="code hl_struct" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *local_fc,</div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>                    <a class="code hl_struct" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *peer_fc,</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>                    <a class="code hl_enumeration" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> *err);</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span></div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga1345856764f24b6db8651cedca3a51b1">  132</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga1345856764f24b6db8651cedca3a51b1">YAWT_q_crypto_free</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span></div>
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga75987bb8a52f40774d2e55bf5ce7700b">  145</a></span><span class="keyword">const</span> uint8_t *<a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga75987bb8a52f40774d2e55bf5ce7700b">YAWT_q_crypto_pop_tx</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, <span class="keywordtype">int</span> level, <span class="keywordtype">size_t</span> *out_len);</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span></div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga5eabc44f646520112c32b7a16d45497e">  157</a></span><a class="code hl_enumeration" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga5eabc44f646520112c32b7a16d45497e">YAWT_q_crypto_feed</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto,</div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>                                    <span class="keyword">const</span> <a class="code hl_struct" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *frame);</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span></div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gab7476ea1b12e1d840df1f8abc307bb26">  168</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#gab7476ea1b12e1d840df1f8abc307bb26">YAWT_q_crypto_random_nonce</a>(<span class="keywordtype">void</span> *buf, <span class="keywordtype">size_t</span> len);</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span></div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gab6e3bb0370b0b18223090b37e8aedc03">  177</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#gab6e3bb0370b0b18223090b37e8aedc03">YAWT_q_crypto_start</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span></div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga9293c9b3537627b5b247afa7c21e83c0">  187</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga9293c9b3537627b5b247afa7c21e83c0">YAWT_q_crypto_derive_initial_keys</a>(<a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto,</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>                                       <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dcid);</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span></div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#gaa9cfa49fe8c86e128a12661ecebb514b">  198</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#gaa9cfa49fe8c86e128a12661ecebb514b">YAWT_q_crypto_unprotect_header</a>(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span></div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga03f5a01dfdbaa58cfdb8588572e58a02">  208</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga03f5a01dfdbaa58cfdb8588572e58a02">YAWT_q_crypto_decrypt_payload</a>(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span></div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga1d03aff99fa9fc70ddce8153dcdc8fbf">  219</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga1d03aff99fa9fc70ddce8153dcdc8fbf">YAWT_q_crypto_unprotect_packet</a>(<a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt, <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga5f866a12a480098b7c8e9c7e1069ba3c">  231</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga5f866a12a480098b7c8e9c7e1069ba3c">YAWT_q_crypto_protect_packet</a>(uint8_t *buf, <span class="keywordtype">size_t</span> buf_len,</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>                                  <span class="keyword">const</span> <a class="code hl_typedef" href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a> *pkt,</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>                                  <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span></div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga9c60b1bc1924c409e706ee9cce0b9185">  242</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga9c60b1bc1924c409e706ee9cce0b9185">YAWT_q_crypto_is_handshake_complete</a>(<span class="keyword">const</span> <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto);</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span></div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno"><a class="line" href="group__YAWT__Q__Crypto.html#ga87a2f15d669b3d24a47c88d447aeaf36">  252</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="group__YAWT__Q__Crypto.html#ga87a2f15d669b3d24a47c88d447aeaf36">YAWT_q_crypto_key_level_available</a>(<span class="keyword">const</span> <a class="code hl_typedef" href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, <a class="code hl_enumeration" href="group__YAWT__Q__Crypto.html#gad8dc02c9b7f257e748ebe6069b1171cf">YAWT_Q_Encryption_Level_t</a> level);</div>
+<div class="ttc" id="agroup__Quic_html_ga2850b37ee3121eafdc74262c04bf59f2"><div class="ttname"><a href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a></div><div class="ttdeci">YAWT_Q_Error_t</div><div class="ttdoc">QUIC error codes.</div><div class="ttdef"><b>Definition</b> <a href="quic_8h_source.html#l00063">quic.h:63</a></div></div>
 <div class="ttc" id="agroup__Quic_html_ga758de3dadb790488cd27e55f9cf34a92"><div class="ttname"><a href="group__Quic.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></div><div class="ttdeci">struct YAWT_Q_Packet YAWT_Q_Packet_t</div><div class="ttdoc">Flat packet struct — all packet types collapsed into one.</div></div>
 <div class="ttc" id="agroup__Quic_html_gad46831779e0383b371d88542aeae9f27"><div class="ttname"><a href="group__Quic.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a></div><div class="ttdeci">struct YAWT_Q_Cid YAWT_Q_Cid_t</div><div class="ttdoc">QUIC Connection ID.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga03f5a01dfdbaa58cfdb8588572e58a02"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga03f5a01dfdbaa58cfdb8588572e58a02">YAWT_q_crypto_decrypt_payload</a></div><div class="ttdeci">int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">AEAD decrypt payload in-place (RFC 9001 §5.3).</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga1345856764f24b6db8651cedca3a51b1"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga1345856764f24b6db8651cedca3a51b1">YAWT_q_crypto_free</a></div><div class="ttdeci">void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Free GnuTLS resources and crypto state.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga1845bc2cfcd2f2bc17d1a49aaaf64179"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga1845bc2cfcd2f2bc17d1a49aaaf64179">YAWT_q_crypto_cred_new</a></div><div class="ttdeci">YAWT_Q_Crypto_Cred_t * YAWT_q_crypto_cred_new(const char *cert_file, const char *key_file, const char *ca_file)</div><div class="ttdoc">Create server or client credentials from certificate and key files.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga1d03aff99fa9fc70ddce8153dcdc8fbf"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga1d03aff99fa9fc70ddce8153dcdc8fbf">YAWT_q_crypto_unprotect_packet</a></div><div class="ttdeci">int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Unprotect header + decrypt payload of a parsed packet in-place.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga2e8365554dbb0891270f945e33174d77"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a></div><div class="ttdeci">struct YAWT_Q_Crypto YAWT_Q_Crypto_t</div><div class="ttdoc">Opaque per-connection cryptographic state.</div><div class="ttdef"><b>Definition</b> <a href="#l00043">crypt.h:43</a></div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga48425992a747587ed8f2602c35e3aff0"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga48425992a747587ed8f2602c35e3aff0">YAWT_Q_Key_State_t</a></div><div class="ttdeci">YAWT_Q_Key_State_t</div><div class="ttdoc">Per-level key state — tracks lifecycle of encryption keys at each level.</div><div class="ttdef"><b>Definition</b> <a href="#l00077">crypt.h:77</a></div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga5eabc44f646520112c32b7a16d45497e"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga5eabc44f646520112c32b7a16d45497e">YAWT_q_crypto_feed</a></div><div class="ttdeci">YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto, const YAWT_Q_Frame_t *frame)</div><div class="ttdoc">Feed a received CRYPTO frame to the TLS engine.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga5f866a12a480098b7c8e9c7e1069ba3c"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga5f866a12a480098b7c8e9c7e1069ba3c">YAWT_q_crypto_protect_packet</a></div><div class="ttdeci">int YAWT_q_crypto_protect_packet(uint8_t *buf, size_t buf_len, const YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Protect (encrypt + apply header protection) an outbound packet in-place.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga75987bb8a52f40774d2e55bf5ce7700b"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga75987bb8a52f40774d2e55bf5ce7700b">YAWT_q_crypto_pop_tx</a></div><div class="ttdeci">const uint8_t * YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *out_len)</div><div class="ttdoc">Get outbound TLS data for a given encryption level.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga87a2f15d669b3d24a47c88d447aeaf36"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga87a2f15d669b3d24a47c88d447aeaf36">YAWT_q_crypto_key_level_available</a></div><div class="ttdeci">int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level)</div><div class="ttdoc">Check if keys are available at a given encryption level.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga9293c9b3537627b5b247afa7c21e83c0"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga9293c9b3537627b5b247afa7c21e83c0">YAWT_q_crypto_derive_initial_keys</a></div><div class="ttdeci">int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto, const YAWT_Q_Cid_t *dcid)</div><div class="ttdoc">Derive Initial encryption keys from client&#39;s Destination Connection ID (RFC 9001 §5....</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_ga9c60b1bc1924c409e706ee9cce0b9185"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#ga9c60b1bc1924c409e706ee9cce0b9185">YAWT_q_crypto_is_handshake_complete</a></div><div class="ttdeci">int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Check if the TLS handshake has completed.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gaa9cfa49fe8c86e128a12661ecebb514b"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gaa9cfa49fe8c86e128a12661ecebb514b">YAWT_q_crypto_unprotect_header</a></div><div class="ttdeci">int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Remove header protection in-place (RFC 9001 §5.4).</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gab027e92a88c52e72e67fd76891125788"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gab027e92a88c52e72e67fd76891125788">YAWT_q_crypto_init</a></div><div class="ttdeci">YAWT_Q_Crypto_t * YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred, const YAWT_Q_Cid_t *original_dcid, const YAWT_Q_Cid_t *our_cid, YAWT_Q_FlowControl_t *local_fc, YAWT_Q_FlowControl_t *peer_fc, YAWT_Q_Error_t *err)</div><div class="ttdoc">Initialize per-connection crypto state.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gab6e3bb0370b0b18223090b37e8aedc03"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gab6e3bb0370b0b18223090b37e8aedc03">YAWT_q_crypto_start</a></div><div class="ttdeci">int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto)</div><div class="ttdoc">Start the TLS handshake (client calls this to produce ClientHello).</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gab7476ea1b12e1d840df1f8abc307bb26"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gab7476ea1b12e1d840df1f8abc307bb26">YAWT_q_crypto_random_nonce</a></div><div class="ttdeci">int YAWT_q_crypto_random_nonce(void *buf, size_t len)</div><div class="ttdoc">Fill a buffer with random bytes (not cryptographically secure).</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gad8dc02c9b7f257e748ebe6069b1171cf"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gad8dc02c9b7f257e748ebe6069b1171cf">YAWT_Q_Encryption_Level_t</a></div><div class="ttdeci">YAWT_Q_Encryption_Level_t</div><div class="ttdoc">QUIC encryption levels — index into level_keys[4] array.</div><div class="ttdef"><b>Definition</b> <a href="#l00063">crypt.h:63</a></div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gadb1cab0ad614d900062d780c10ee5eb1"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gadb1cab0ad614d900062d780c10ee5eb1">YAWT_q_crypto_cred_free</a></div><div class="ttdeci">void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred)</div><div class="ttdoc">Free credentials and associated GnuTLS resources.</div></div>
+<div class="ttc" id="agroup__YAWT__Q__Crypto_html_gae8d929ada6cc2f19721ae29ff9d48c03"><div class="ttname"><a href="group__YAWT__Q__Crypto.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a></div><div class="ttdeci">struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t</div><div class="ttdoc">Opaque cryptographic credential handle.</div><div class="ttdef"><b>Definition</b> <a href="#l00035">crypt.h:35</a></div></div>
 <div class="ttc" id="aquic_8h_html"><div class="ttname"><a href="quic_8h.html">quic.h</a></div><div class="ttdoc">QUIC low-level protocol operations, utilities, and event system.</div></div>
-<div class="ttc" id="astructYAWT__Q__FlowControl__t_html"><div class="ttname"><a href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a></div><div class="ttdef"><b>Definition</b> security.h:5</div></div>
-<div class="ttc" id="astructYAWT__Q__Frame__t_html"><div class="ttname"><a href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a></div><div class="ttdoc">Parsed frame — returned by YAWT_q_parse_frame.</div><div class="ttdef"><b>Definition</b> quic_types.h:440</div></div>
+<div class="ttc" id="asecurity_8h_html"><div class="ttname"><a href="security_8h.html">security.h</a></div><div class="ttdoc">Security policy and flow control configuration for QUIC and HTTP/3 layers.</div></div>
+<div class="ttc" id="astructYAWT__Q__FlowControl__t_html"><div class="ttname"><a href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a></div><div class="ttdoc">Flow control limits — populated from transport params, updated by MAX_* frames.</div><div class="ttdef"><b>Definition</b> <a href="security_8h_source.html#l00027">security.h:27</a></div></div>
+<div class="ttc" id="astructYAWT__Q__Frame__t_html"><div class="ttname"><a href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a></div><div class="ttdoc">Parsed frame — returned by YAWT_q_parse_frame.</div><div class="ttdef"><b>Definition</b> <a href="quic__types_8h_source.html#l00429">quic_types.h:429</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><b>include</b></li><li class="navelem"><b>crypt.h</b></li>
+    <li class="navelem"><b>include</b></li><li class="navelem"><a href="crypt_8h.html">crypt.h</a></li>
     <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.15.0 </li>
   </ul>
 </div>

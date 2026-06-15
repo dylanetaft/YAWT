@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.15.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>YAWT: include/qpack.h File Reference</title>
+<title>YAWT: qpack.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -111,11 +112,12 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:gab2107f015ba0870c58a076a0f8acbd64" id="r_gab2107f015ba0870c58a076a0f8acbd64"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gab2107f015ba0870c58a076a0f8acbd64">YAWT_QPACK_STATIC_TABLE_SIZE</a>&#160;&#160;&#160;99</td></tr>
-<tr class="memitem:gad1fca1fd12a365896cbda7424d7ed6f9" id="r_gad1fca1fd12a365896cbda7424d7ed6f9"><td class="memItemLeft" align="right" valign="top">
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_PREFIX_INT_MAX_BYTES</b>&#160;&#160;&#160;11</td></tr>
-<tr class="memitem:ga04205074ba5a63d603740d7027e009fc" id="r_ga04205074ba5a63d603740d7027e009fc"><td class="memItemLeft" align="right" valign="top">
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_HUFF_DEC_TREE_MAX</b>&#160;&#160;&#160;600</td></tr>
+<tr class="memitem:ab2107f015ba0870c58a076a0f8acbd64" id="r_ab2107f015ba0870c58a076a0f8acbd64"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab2107f015ba0870c58a076a0f8acbd64">YAWT_QPACK_STATIC_TABLE_SIZE</a>&#160;&#160;&#160;99</td></tr>
+<tr class="memdesc:ab2107f015ba0870c58a076a0f8acbd64"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK static table size (RFC 9204 Appendix A).  <br /></td></tr>
+<tr class="memitem:ad1fca1fd12a365896cbda7424d7ed6f9" id="r_ad1fca1fd12a365896cbda7424d7ed6f9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad1fca1fd12a365896cbda7424d7ed6f9">YAWT_QPACK_PREFIX_INT_MAX_BYTES</a>&#160;&#160;&#160;11</td></tr>
+<tr class="memdesc:ad1fca1fd12a365896cbda7424d7ed6f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum bytes a single prefix-encoded integer can occupy.  <br /></td></tr>
+<tr class="memitem:a04205074ba5a63d603740d7027e009fc" id="r_a04205074ba5a63d603740d7027e009fc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a04205074ba5a63d603740d7027e009fc">YAWT_QPACK_HUFF_DEC_TREE_MAX</a>&#160;&#160;&#160;600</td></tr>
+<tr class="memdesc:a04205074ba5a63d603740d7027e009fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum nodes in the Huffman decode tree.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -174,7 +176,64 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>QPACK compression/decompression utilities. </p>
-</div></div><!-- contents -->
+
+<p class="definition">Definition in file <a class="el" href="qpack_8h_source.html">qpack.h</a>.</p>
+</div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
+<a id="ab2107f015ba0870c58a076a0f8acbd64" name="ab2107f015ba0870c58a076a0f8acbd64"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab2107f015ba0870c58a076a0f8acbd64">&#9670;&#160;</a></span>YAWT_QPACK_STATIC_TABLE_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define YAWT_QPACK_STATIC_TABLE_SIZE&#160;&#160;&#160;99</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>QPACK static table size (RFC 9204 Appendix A). </p>
+
+<p class="definition">Definition at line <a class="el" href="qpack_8h_source.html#l00017">17</a> of file <a class="el" href="qpack_8h_source.html">qpack.h</a>.</p>
+
+</div>
+</div>
+<a id="ad1fca1fd12a365896cbda7424d7ed6f9" name="ad1fca1fd12a365896cbda7424d7ed6f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1fca1fd12a365896cbda7424d7ed6f9">&#9670;&#160;</a></span>YAWT_QPACK_PREFIX_INT_MAX_BYTES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define YAWT_QPACK_PREFIX_INT_MAX_BYTES&#160;&#160;&#160;11</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Maximum bytes a single prefix-encoded integer can occupy. </p>
+
+<p class="definition">Definition at line <a class="el" href="qpack_8h_source.html#l00018">18</a> of file <a class="el" href="qpack_8h_source.html">qpack.h</a>.</p>
+
+</div>
+</div>
+<a id="a04205074ba5a63d603740d7027e009fc" name="a04205074ba5a63d603740d7027e009fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a04205074ba5a63d603740d7027e009fc">&#9670;&#160;</a></span>YAWT_QPACK_HUFF_DEC_TREE_MAX</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define YAWT_QPACK_HUFF_DEC_TREE_MAX&#160;&#160;&#160;600</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Maximum nodes in the Huffman decode tree. </p>
+
+<p class="definition">Definition at line <a class="el" href="qpack_8h_source.html#l00152">152</a> of file <a class="el" href="qpack_8h_source.html">qpack.h</a>.</p>
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">
 <div id="page-nav-resize-handle"></div>

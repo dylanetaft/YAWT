@@ -5,6 +5,7 @@
 
 /**
  * @defgroup YAWT_QPACK YAWT_QPACK
+ * @ingroup HTTP3
  * @brief QPACK compression/decompression utilities.
  */
 
@@ -13,10 +14,8 @@
 #include <stddef.h>
 #include "h3_types.h"
 
-/** @ingroup HTTP3 QPACK static table size (RFC 9204 Appendix A) */
-#define YAWT_QPACK_STATIC_TABLE_SIZE 99
-/** @ingroup HTTP3 Maximum bytes a single prefix-encoded integer can occupy */
-#define YAWT_QPACK_PREFIX_INT_MAX_BYTES 11
+#define YAWT_QPACK_STATIC_TABLE_SIZE 99  /**< QPACK static table size (RFC 9204 Appendix A) */
+#define YAWT_QPACK_PREFIX_INT_MAX_BYTES 11  /**< Maximum bytes a single prefix-encoded integer can occupy */
 
 /**
  * @ingroup HTTP3
@@ -150,8 +149,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
     uint64_t value,
     uint64_t *bytes_consumed);
 
-/** @ingroup HTTP3 Maximum nodes in the Huffman decode tree */
-#define YAWT_QPACK_HUFF_DEC_TREE_MAX 600
+#define YAWT_QPACK_HUFF_DEC_TREE_MAX 600  /**< Maximum nodes in the Huffman decode tree */
 
 /**
  * @ingroup HTTP3

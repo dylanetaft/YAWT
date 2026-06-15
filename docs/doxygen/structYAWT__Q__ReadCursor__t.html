@@ -28,6 +28,7 @@
   <td id="projectalign">
    <div id="projectname">YAWT
    </div>
+   <div id="projectbrief">QUIC and HTTP/3 library for WebTransport</div>
   </td>
  </tr>
  </tbody>
@@ -99,20 +100,83 @@ $(function(){initNavTree('structYAWT__Q__ReadCursor__t.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:abd72a62e61c2555ec8e56ebcb28cea5f" id="r_abd72a62e61c2555ec8e56ebcb28cea5f"><td class="memItemLeft" align="right" valign="top"><a id="abd72a62e61c2555ec8e56ebcb28cea5f" name="abd72a62e61c2555ec8e56ebcb28cea5f"></a>
-uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><b>data</b></td></tr>
-<tr class="memitem:a586c3d994d5e21ebe5fd25266a6b8e0a" id="r_a586c3d994d5e21ebe5fd25266a6b8e0a"><td class="memItemLeft" align="right" valign="top"><a id="a586c3d994d5e21ebe5fd25266a6b8e0a" name="a586c3d994d5e21ebe5fd25266a6b8e0a"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>len</b></td></tr>
-<tr class="memitem:a5ac8d41a76c3a2b75118ffcb91e5effe" id="r_a5ac8d41a76c3a2b75118ffcb91e5effe"><td class="memItemLeft" align="right" valign="top"><a id="a5ac8d41a76c3a2b75118ffcb91e5effe" name="a5ac8d41a76c3a2b75118ffcb91e5effe"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><b>cursor</b></td></tr>
-<tr class="memitem:a6430962305566f46ca126693c4bcfd89" id="r_a6430962305566f46ca126693c4bcfd89"><td class="memItemLeft" align="right" valign="top"><a id="a6430962305566f46ca126693c4bcfd89" name="a6430962305566f46ca126693c4bcfd89"></a>
-<a class="el" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>err</b></td></tr>
+<tr class="memitem:abd72a62e61c2555ec8e56ebcb28cea5f" id="r_abd72a62e61c2555ec8e56ebcb28cea5f"><td class="memItemLeft" align="right" valign="top">uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abd72a62e61c2555ec8e56ebcb28cea5f">data</a></td></tr>
+<tr class="memitem:a586c3d994d5e21ebe5fd25266a6b8e0a" id="r_a586c3d994d5e21ebe5fd25266a6b8e0a"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a586c3d994d5e21ebe5fd25266a6b8e0a">len</a></td></tr>
+<tr class="memitem:a5ac8d41a76c3a2b75118ffcb91e5effe" id="r_a5ac8d41a76c3a2b75118ffcb91e5effe"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ac8d41a76c3a2b75118ffcb91e5effe">cursor</a></td></tr>
+<tr class="memitem:a6430962305566f46ca126693c4bcfd89" id="r_a6430962305566f46ca126693c4bcfd89"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6430962305566f46ca126693c4bcfd89">err</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Read cursor for zero-copy datagram parsing. </p>
 <dl class="section note"><dt>Note</dt><dd><span class="tt">cursor</span> advances as bytes are consumed; <span class="tt">data</span>/<span class="tt">len</span> are the input buffer. Errors are STICKY. Once <span class="tt">err</span> is non-OK, every later decode/parse on this cursor is a no-op. Transience: pointers handed back point INTO <span class="tt">data</span>. </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="quic_8h_source.html">quic.h</a></li>
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00103">103</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="abd72a62e61c2555ec8e56ebcb28cea5f" name="abd72a62e61c2555ec8e56ebcb28cea5f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd72a62e61c2555ec8e56ebcb28cea5f">&#9670;&#160;</a></span>data</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t* YAWT_Q_ReadCursor_t::data</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00104">104</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+
+</div>
+</div>
+<a id="a586c3d994d5e21ebe5fd25266a6b8e0a" name="a586c3d994d5e21ebe5fd25266a6b8e0a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a586c3d994d5e21ebe5fd25266a6b8e0a">&#9670;&#160;</a></span>len</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_Q_ReadCursor_t::len</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00105">105</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+
+</div>
+</div>
+<a id="a5ac8d41a76c3a2b75118ffcb91e5effe" name="a5ac8d41a76c3a2b75118ffcb91e5effe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ac8d41a76c3a2b75118ffcb91e5effe">&#9670;&#160;</a></span>cursor</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_Q_ReadCursor_t::cursor</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00106">106</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+
+</div>
+</div>
+<a id="a6430962305566f46ca126693c4bcfd89" name="a6430962305566f46ca126693c4bcfd89"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6430962305566f46ca126693c4bcfd89">&#9670;&#160;</a></span>err</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Quic.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_Q_ReadCursor_t::err</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00107">107</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li><a class="el" href="quic_8h_source.html">quic.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
