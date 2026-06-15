@@ -18,6 +18,14 @@
  * @ingroup QUIC
  * @brief Forward declaration for peer address.
  */
+
+
+/**
+ * @defgroup QUIC_FRAME_TYPES Frame Types
+ * @ingroup QUIC
+ * @brief QUIC frame types and their parsed representations.
+ */
+
 struct YAWT_Q_PeerAddr;
 typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
 
@@ -302,7 +310,7 @@ typedef struct YAWT_Q_IoVec {
 } YAWT_Q_IoVec_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief MAX_DATA frame (0x10).
  */
 typedef struct {
@@ -310,7 +318,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Data_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief MAX_STREAM_DATA frame (0x11).
  */
 typedef struct {
@@ -319,7 +327,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Stream_Data_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief MAX_STREAMS frame (0x12 bidi, 0x13 uni).
  */
 typedef struct {
@@ -327,7 +335,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Streams_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief DATA_BLOCKED frame (0x14).
  */
 typedef struct {
@@ -335,7 +343,7 @@ typedef struct {
 } YAWT_Q_Frame_Data_Blocked_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief STREAM_DATA_BLOCKED frame (0x15).
  */
 typedef struct {
@@ -344,7 +352,7 @@ typedef struct {
 } YAWT_Q_Frame_Stream_Data_Blocked_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief STREAMS_BLOCKED frame (0x16 bidi, 0x17 uni).
  */
 typedef struct {
@@ -352,7 +360,7 @@ typedef struct {
 } YAWT_Q_Frame_Streams_Blocked_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief NEW_CONNECTION_ID frame (0x18).
  */
 typedef struct {
@@ -363,7 +371,7 @@ typedef struct {
 } YAWT_Q_Frame_New_Connection_ID_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief RETIRE_CONNECTION_ID frame (0x19).
  */
 typedef struct {
@@ -371,7 +379,7 @@ typedef struct {
 } YAWT_Q_Frame_Retire_Connection_ID_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief PATH_CHALLENGE frame (0x1a).
  */
 typedef struct {
@@ -379,7 +387,7 @@ typedef struct {
 } YAWT_Q_Frame_Path_Challenge_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief PATH_RESPONSE frame (0x1b).
  */
 typedef struct {
@@ -387,7 +395,7 @@ typedef struct {
 } YAWT_Q_Frame_Path_Response_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief CONNECTION_CLOSE frame (0x1c, QUIC layer).
  */
 typedef struct {
@@ -399,7 +407,7 @@ typedef struct {
 } YAWT_Q_Frame_Connection_Close_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief CONNECTION_CLOSE frame (0x1d, application layer).
  */
 typedef struct {
@@ -410,7 +418,7 @@ typedef struct {
 } YAWT_Q_Frame_Connection_Close_App_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_FRAME_TYPES
  * @brief DATAGRAM frame (0x30-0x31, RFC 9221).
  * @note Low bit: LEN(0x01) — if set, length varint is present.
  */
