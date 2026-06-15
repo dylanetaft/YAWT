@@ -114,6 +114,7 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Clear the original DCID from a connection (used after handshake).
  * @param con The connection.
@@ -149,6 +150,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Update the peer's Connection ID.
  * @param con The QUIC connection.

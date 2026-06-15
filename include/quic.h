@@ -174,6 +174,7 @@ typedef struct {
 } YAWT_Q_ConnectionStats_t;
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode PADDING frames into buf.
  * @param buf Output buffer.
@@ -185,6 +186,7 @@ typedef struct {
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a CRYPTO frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -197,6 +199,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
                                              const YAWT_Q_Frame_Crypto_t *frame);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode an ACK frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -207,6 +210,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a STREAM frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -218,6 +222,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a PING frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -227,6 +232,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a CONNECTION_CLOSE frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -239,6 +245,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
                                                       uint64_t error_code, uint64_t frame_type);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a PATH_RESPONSE frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -248,6 +255,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
 YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a DATAGRAM frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -260,6 +268,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
                                                const uint8_t *data, size_t data_len);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode a HANDSHAKE_DONE frame and push to tx_buffer.
  * @param con The QUIC connection.
@@ -276,6 +285,7 @@ struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Encode + encrypt a packet.
  * @param pkt The packet to encode.
@@ -319,6 +329,7 @@ YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
 size_t YAWT_q_varint_size(uint64_t val);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Parse a QUIC packet from a read cursor.
  * @param rc The read cursor.
@@ -330,6 +341,7 @@ size_t YAWT_q_varint_size(uint64_t val);
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief Parse a single frame from the cursor.
  * @param rc The read cursor.

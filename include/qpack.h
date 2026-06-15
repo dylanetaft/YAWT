@@ -28,6 +28,7 @@ typedef struct {
 } YAWT_QPACK_StaticEntry_t;
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Get a static-table entry.
  * @param index The table index (0..98).
@@ -36,6 +37,7 @@ typedef struct {
 const YAWT_QPACK_StaticEntry_t *YAWT_qpack_static_get(uint64_t index);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Find the first static-table index whose name matches.
  * @param name The name to search for.
@@ -44,6 +46,7 @@ const YAWT_QPACK_StaticEntry_t *YAWT_qpack_static_get(uint64_t index);
 int YAWT_qpack_static_find_name(const char *name);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Find the first static-table index whose name AND value match.
  * @param name The name to search for.
@@ -83,6 +86,7 @@ typedef enum {
 } YAWT_QPACK_FieldLineRepType_t;
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode the leading byte of a field line representation.
  * @param byte The leading byte.
@@ -93,6 +97,7 @@ typedef enum {
 YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, uint8_t *out_prefix_bits);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode a single field line representation.
  * @param field The header field to encode.
@@ -109,6 +114,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
     YAWT_QPACK_FieldLineRepType_t *out_type);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Get the maximum number of bytes a single field line could occupy when encoded.
  * @param field The header field to measure.
@@ -118,6 +124,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
 size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *field);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode a prefixed integer (RFC 7541 §5.1 / RFC 9204 §4.1.1).
  * @param buffer The input buffer.
@@ -133,6 +140,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
     uint64_t *out_value, uint64_t *bytes_consumed);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode an unsigned integer with prefix encoding (RFC 7541 §5.1).
  * @param buffer Output buffer.
@@ -172,6 +180,7 @@ typedef struct {
 } YAWT_QPACK_HuffDecoder_t;
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode a single Huffman byte from a bitstream.
  * @param data The input bitstream.
@@ -189,6 +198,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
     uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode an entire Huffman-encoded string into `out` buffer.
  * @param data The input bitstream.
@@ -204,6 +214,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
     uint8_t *out, size_t out_size, size_t *out_len);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode a single byte into a Huffman bitstream.
  * @param in_byte The byte to encode.
@@ -221,6 +232,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
     uint8_t *bit_offset, size_t *advance_bytes);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode a raw byte string into Huffman-encoded form.
  * @param input The input string.
@@ -235,6 +247,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
     uint8_t *out, size_t out_size, size_t *out_len);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode QPACK header block prefix (RFC 9204 §4.5.1).
  * @param data The input data.

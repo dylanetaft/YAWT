@@ -16,6 +16,7 @@
 #include "quic.h"   // YAWT_q_varint_*, YAWT_Q_ReadCursor_t, YAWT_Q_EventType_t, YAWT_Q_EventParam_t
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Assembles a frame from located metadata.
  * @param stream The QUIC stream frame.
@@ -29,6 +30,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream,
                                     YAWT_H3_Frame_t *out);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode an H3 frame header (type varint + length varint) into buf.
  * @param frame_type The H3 frame type.
@@ -40,6 +42,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream,
 size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint8_t *buf);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Get the number of bytes needed for an H3 frame header.
  * @param payload_len The payload length that will follow.
@@ -64,6 +67,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
                                    YAWT_Q_EventParam_t param);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode a SETTINGS frame body.
  * @param rc Read cursor whose data/len cover exactly the SETTINGS payload.
@@ -76,6 +80,7 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
                                           YAWT_H3_Settings_t *out);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode a SETTINGS frame body (id/value varint pairs) into buf.
  * @param settings The settings to encode.

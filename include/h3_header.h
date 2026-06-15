@@ -154,6 +154,7 @@ static inline bool YAWT_h3_headers_is_set(const YAWT_H3_HeaderFields_t *headers)
 }
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Decode the entire encoded field section (HEADERS frame payload).
  * @param data The encoded data.
@@ -171,6 +172,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     YAWT_H3_HeaderFields_t *out);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Encode a header fields section into a QPACK header block.
  * @param headers The header fields to encode.
@@ -188,6 +190,7 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     uint8_t *buf, size_t len, size_t *written);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Calculate the encoded size of a header block without actually encoding it.
  * @param headers The header fields to measure.
@@ -196,6 +199,7 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
 size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers);
 
 /**
+ * @internal
  * @ingroup HTTP3
  * @brief Calculate an upper bound on the encoded size of a header block.
  * @param headers The header fields to measure.
