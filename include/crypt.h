@@ -5,8 +5,8 @@
  */
 
 /**
- * @defgroup YAWT_Q_Crypto YAWT_Q_Crypto
- * @ingroup Quic
+ * @defgroup Crypt 
+ * @ingroup QUIC
  * @brief QUIC cryptographic operations and credential management.
  *
  * The credential API (@ref YAWT_q_crypto_cred_new, @ref YAWT_q_crypto_cred_free)
@@ -27,7 +27,7 @@
 
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Opaque cryptographic credential handle.
  * @note Holds TLS certificate, private key, and GnuTLS session configuration.
  *       Created once at startup and shared across all connections.
@@ -35,7 +35,7 @@
 typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Opaque per-connection cryptographic state.
  * @note Holds GnuTLS session, key material at each encryption level, and
  *       CRYPTO frame reassembly buffers. Created by YAWT_q_crypto_init().
@@ -43,7 +43,7 @@ typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief QUIC encryption levels — index into level_keys[4] array.
  * @note These match gnutls_record_encryption_level_t values.
  *
@@ -68,7 +68,7 @@ typedef enum {
 } YAWT_Q_Encryption_Level_t;
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Per-level key state — tracks lifecycle of encryption keys at each level.
  * @note - INACTIVE: no keys, can't encrypt/decrypt or accept CRYPTO frames.
  *       - ACTIVE:   keys installed, can encrypt/decrypt, accepts CRYPTO frames.
@@ -82,7 +82,7 @@ typedef enum {
 
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Create server or client credentials from certificate and key files.
  * @param cert_file Path to the PEM-encoded certificate file.
  * @param key_file Path to the PEM-encoded private key file.
@@ -96,7 +96,7 @@ YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                               const char *ca_file);
 
 /**
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Free credentials and associated GnuTLS resources.
  * @param cred Pointer to the credential handle pointer. Sets *cred = NULL.
  * @note Idempotent against NULL (double-free safe).
@@ -105,7 +105,7 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Initialize per-connection crypto state.
  * @param is_server 1 for server, 0 for client.
  * @param cred The shared credential handle.
@@ -125,7 +125,7 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Free GnuTLS resources and crypto state.
  * @param crypto The crypto object to free.
  */
@@ -133,7 +133,7 @@ void YAWT_q_crypto_free(YAWT_Q_Crypto_t *crypto);
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Get outbound TLS data for a given encryption level.
  * @param crypto The crypto object.
  * @param level The encryption level.
@@ -146,7 +146,7 @@ const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Feed a received CRYPTO frame to the TLS engine.
  * @param crypto The crypto object.
  * @param frame The CRYPTO frame (determines encryption level from frame->pkt_type).
@@ -159,7 +159,7 @@ YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Fill a buffer with random bytes (not cryptographically secure).
  * @param buf Output buffer.
  * @param len Number of random bytes to generate.
@@ -169,7 +169,7 @@ int YAWT_q_crypto_random_nonce(void *buf, size_t len);
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Start the TLS handshake (client calls this to produce ClientHello).
  * @param crypto The crypto object.
  * @return 0 on success, negative on error.
@@ -178,7 +178,7 @@ int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto);
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Derive Initial encryption keys from client's Destination Connection ID (RFC 9001 §5.2).
  * @param crypto The crypto object.
  * @param dcid The client's Destination Connection ID.
@@ -189,7 +189,7 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Remove header protection in-place (RFC 9001 §5.4).
  * @param pkt The packet whose header protection will be removed.
  * @param crypto The crypto object with keys for the packet's encryption level.
@@ -199,7 +199,7 @@ int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief AEAD decrypt payload in-place (RFC 9001 §5.3).
  * @param pkt The packet whose payload will be decrypted.
  * @param crypto The crypto object with keys for the packet's encryption level.
@@ -209,7 +209,7 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Unprotect header + decrypt payload of a parsed packet in-place.
  * @param pkt The packet to unprotect.
  * @param crypto The crypto object.
@@ -220,7 +220,7 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Protect (encrypt + apply header protection) an outbound packet in-place.
  * @param buf Buffer containing unprotected header + plaintext payload + 16 bytes AEAD tag space.
  * @param buf_len Total buffer length.
@@ -234,7 +234,7 @@ int YAWT_q_crypto_protect_packet(uint8_t *buf, size_t buf_len,
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Check if the TLS handshake has completed.
  * @param crypto The crypto object.
  * @return Non-zero if handshake is complete, 0 otherwise.
@@ -243,7 +243,7 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto);
 
 /**
  * @internal
- * @ingroup YAWT_Q_Crypto
+ * @ingroup Crypt
  * @brief Check if keys are available at a given encryption level.
  * @param crypto The crypto object.
  * @param level The encryption level to check.

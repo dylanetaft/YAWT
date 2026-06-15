@@ -4,7 +4,6 @@
  */
 
 /**
- * @defgroup Quic Quic
  * @brief All QUIC protocol types, constants, and low-level operations.
  */
 
@@ -16,7 +15,7 @@
 #include "logger.h"
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Forward declaration for peer address.
  */
 struct YAWT_Q_PeerAddr;
@@ -32,7 +31,7 @@ typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
 #define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT (YAWT_Q_MAX_PKT_SIZE - YAWT_Q_SHORT_HDR_OVERHEAD)  /**< Max frame data that can safely fit in a short header packet */
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC Connection ID.
  */
 typedef struct YAWT_Q_Cid {
@@ -41,7 +40,7 @@ typedef struct YAWT_Q_Cid {
 } YAWT_Q_Cid_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Set a Connection ID.
  * @param dst Destination CID struct.
  * @param id Source byte array.
@@ -57,7 +56,7 @@ static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t 
 }
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Format a CID as a hex string.
  * @param cid The Connection ID to format.
  * @return Pointer to a static buffer containing the hex string (not thread-safe).
@@ -72,7 +71,7 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
 }
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC packet types (all 5 forms).
  * @note Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
  *       1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel.
@@ -86,7 +85,7 @@ typedef enum {
 } YAWT_Q_Packet_Type_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC stream types (RFC 9000).
  */
 typedef enum {
@@ -97,7 +96,7 @@ typedef enum {
 } YAWT_Q_Stream_Type_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC frame types.
  */
 typedef enum {
@@ -131,7 +130,7 @@ typedef enum {
 } YAWT_Q_Frame_Type_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC long packet types.
  */
 typedef enum {
@@ -142,7 +141,7 @@ typedef enum {
 } YAWT_Q_Long_Packet_Type_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Flat packet struct — all packet types collapsed into one.
  * @warning Transience: when produced by YAWT_q_parse_packet, the pointer fields below
  * (payload, raw, and extra.*.token) borrow INTO the input datagram buffer.
@@ -187,7 +186,7 @@ typedef struct YAWT_Q_Packet {
 } YAWT_Q_Packet_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief ACK frame (0x02).
  */
 typedef struct {
@@ -200,7 +199,7 @@ typedef struct {
 } YAWT_Q_Frame_ACK_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief ACK Range field.
  */
 typedef struct {
@@ -209,7 +208,7 @@ typedef struct {
 } YAWT_Q_ACK_Range_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief ACK with ECN Counts frame (0x03).
  */
 typedef struct {
@@ -223,7 +222,7 @@ typedef struct {
 } YAWT_Q_Frame_ACK_ECN_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief RESET_STREAM frame (0x04).
  */
 typedef struct {
@@ -233,7 +232,7 @@ typedef struct {
 } YAWT_Q_Frame_Reset_Stream_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief STOP_SENDING frame (0x05).
  */
 typedef struct {
@@ -242,7 +241,7 @@ typedef struct {
 } YAWT_Q_Frame_Stop_Sending_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief CRYPTO frame (0x06).
  */
 typedef struct {
@@ -253,7 +252,7 @@ typedef struct {
 } YAWT_Q_Frame_Crypto_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief NEW_TOKEN frame (0x07).
  */
 typedef struct {
@@ -263,7 +262,7 @@ typedef struct {
 } YAWT_Q_Frame_New_Token_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief STREAM frame (0x08-0x0f).
  * @note Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01).
  */
@@ -282,7 +281,7 @@ typedef struct YAWT_Q_Frame_Stream {
 } YAWT_Q_Frame_Stream_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief A STREAM frame plus the storage its .frame.data points at.
  * @note Used when a frame must outlive the input datagram (out-of-order RX buffering 
  * and TX queuing). bf->data is the OWNED inline copy. bf->frame.data is the borrowed 
@@ -294,7 +293,7 @@ typedef struct YAWT_Q_Frame_BufferedStream {
 } YAWT_Q_Frame_BufferedStream_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Scatter/gather buffer element for sending.
  */
 typedef struct YAWT_Q_IoVec {
@@ -303,7 +302,7 @@ typedef struct YAWT_Q_IoVec {
 } YAWT_Q_IoVec_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief MAX_DATA frame (0x10).
  */
 typedef struct {
@@ -311,7 +310,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Data_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief MAX_STREAM_DATA frame (0x11).
  */
 typedef struct {
@@ -320,7 +319,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Stream_Data_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief MAX_STREAMS frame (0x12 bidi, 0x13 uni).
  */
 typedef struct {
@@ -328,7 +327,7 @@ typedef struct {
 } YAWT_Q_Frame_Max_Streams_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief DATA_BLOCKED frame (0x14).
  */
 typedef struct {
@@ -336,7 +335,7 @@ typedef struct {
 } YAWT_Q_Frame_Data_Blocked_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief STREAM_DATA_BLOCKED frame (0x15).
  */
 typedef struct {
@@ -345,7 +344,7 @@ typedef struct {
 } YAWT_Q_Frame_Stream_Data_Blocked_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief STREAMS_BLOCKED frame (0x16 bidi, 0x17 uni).
  */
 typedef struct {
@@ -353,7 +352,7 @@ typedef struct {
 } YAWT_Q_Frame_Streams_Blocked_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief NEW_CONNECTION_ID frame (0x18).
  */
 typedef struct {
@@ -364,7 +363,7 @@ typedef struct {
 } YAWT_Q_Frame_New_Connection_ID_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief RETIRE_CONNECTION_ID frame (0x19).
  */
 typedef struct {
@@ -372,7 +371,7 @@ typedef struct {
 } YAWT_Q_Frame_Retire_Connection_ID_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief PATH_CHALLENGE frame (0x1a).
  */
 typedef struct {
@@ -380,7 +379,7 @@ typedef struct {
 } YAWT_Q_Frame_Path_Challenge_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief PATH_RESPONSE frame (0x1b).
  */
 typedef struct {
@@ -388,7 +387,7 @@ typedef struct {
 } YAWT_Q_Frame_Path_Response_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief CONNECTION_CLOSE frame (0x1c, QUIC layer).
  */
 typedef struct {
@@ -400,7 +399,7 @@ typedef struct {
 } YAWT_Q_Frame_Connection_Close_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief CONNECTION_CLOSE frame (0x1d, application layer).
  */
 typedef struct {
@@ -411,7 +410,7 @@ typedef struct {
 } YAWT_Q_Frame_Connection_Close_App_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief DATAGRAM frame (0x30-0x31, RFC 9221).
  * @note Low bit: LEN(0x01) — if set, length varint is present.
  */
@@ -423,7 +422,7 @@ typedef struct {
 } YAWT_Q_Frame_Datagram_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Parsed frame — returned by YAWT_q_parse_frame.
  */
 typedef struct {
@@ -446,7 +445,7 @@ typedef struct {
 } YAWT_Q_Frame_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC event taxonomy.
  * @note New events extend this enum AND add a matching `P_<eventtype>` substruct
  * to YAWT_Q_EventParam_t below. The 1:1 mapping between enum suffix and union
@@ -461,7 +460,7 @@ typedef enum {
 } YAWT_Q_EventType_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Per-event parameters.
  * @warning Transience: ALL pointers in this union are valid ONLY for the duration
  * of the handler call. They reference internal/transient storage (the input datagram

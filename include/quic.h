@@ -4,14 +4,13 @@
  */
 
 /**
- * @defgroup YAWT_Q_LowLevel YAWT_Q_LowLevel
- * @ingroup Quic
+ * @defgroup QUIC 
+ * @ingroup QUIC
  * @brief Low-level QUIC protocol operations and utilities.
  */
 
 /**
- * @defgroup YAWT_Q_Events YAWT_Q_Events
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC asynchronous event system contract.
  */
 
@@ -22,19 +21,19 @@
 #include "quic_types.h"
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Forward declaration — full type in crypt.h
  */
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Forward declaration — full type in quic_connection.h
  */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Process-wide event handler.
  * @note Lifetime: a single global, installed via YAWT_q_con_set_event_handler().
  *       Threading: the QUIC layer is single-threaded (one libev loop). The handler
@@ -57,7 +56,7 @@ typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
 //UNIMPLEMENTED: Packet coalescing
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC error codes.
  */
 typedef enum {
@@ -73,7 +72,7 @@ typedef enum {
 } YAWT_Q_Error_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Get a string representation of a QUIC error code.
  * @param err The error code.
  * @return A static string describing the error.
@@ -94,7 +93,7 @@ static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
 }
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Read cursor for zero-copy datagram parsing.
  * @note `cursor` advances as bytes are consumed; `data`/`len` are the input buffer.
  *       Errors are STICKY. Once `err` is non-OK, every later decode/parse on this
@@ -108,7 +107,7 @@ typedef struct {
 } YAWT_Q_ReadCursor_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Generic frame struct for tx_buffer — wire-ready, self-contained.
  * @note Lifetime: produced by the YAWT_q_enqueue_frame_* encoders, which push a
  *       copy into con->tx_buffer (a slab). con_maintain() coalesces these into
@@ -135,7 +134,7 @@ typedef struct {
 } YAWT_Q_WireFrame_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Result from processing frames in a packet.
  */
 typedef struct {
@@ -144,7 +143,7 @@ typedef struct {
 } YAWT_Q_FrameHandler_Res_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
  * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
  */
@@ -159,7 +158,7 @@ typedef struct {
 } YAWT_Q_StreamMeta_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Connection-level counters and packet number tracking.
  */
 typedef struct {
@@ -175,7 +174,7 @@ typedef struct {
 } YAWT_Q_ConnectionStats_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode PADDING frames into buf.
  * @param buf Output buffer.
  * @param buf_len Output buffer length.
@@ -186,7 +185,7 @@ typedef struct {
 int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a CRYPTO frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -198,7 +197,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
                                              const YAWT_Q_Frame_Crypto_t *frame);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode an ACK frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -208,7 +207,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a STREAM frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param frame The STREAM frame to encode.
@@ -219,7 +218,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a PING frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @return YAWT_Q_OK on success, or an error code.
@@ -228,7 +227,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
 YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a CONNECTION_CLOSE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -240,7 +239,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
                                                       uint64_t error_code, uint64_t frame_type);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a PATH_RESPONSE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param data The 8-byte data to echo back.
@@ -249,7 +248,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
 YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a DATAGRAM frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param data The datagram payload.
@@ -261,7 +260,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
                                                const uint8_t *data, size_t data_len);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a HANDSHAKE_DONE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @return YAWT_Q_OK on success, or an error code.
@@ -270,14 +269,14 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Forward declaration for crypto context
  */
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode + encrypt a packet.
  * @param pkt The packet to encode.
  * @param crypto The crypto context.
@@ -291,7 +290,7 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
                           const uint8_t **out_buf);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Decode a QUIC varint from cursor.
  * @param rc The read cursor.
  * @param out Output value. If NULL, skips the value (advance only).
@@ -300,7 +299,7 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
 void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Encode a QUIC varint into buf.
  * @param val The value to encode.
  * @param buf Output buffer.
@@ -312,7 +311,7 @@ YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
                                      uint64_t *written);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Get the number of bytes needed to encode val as a QUIC varint.
  * @param val The value to check.
  * @return Number of bytes needed, or 0 if val exceeds 62 bits.
@@ -320,7 +319,7 @@ YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
 size_t YAWT_q_varint_size(uint64_t val);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Parse a QUIC packet from a read cursor.
  * @param rc The read cursor.
  * @param out Output packet struct.
@@ -331,7 +330,7 @@ size_t YAWT_q_varint_size(uint64_t val);
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 /**
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief Parse a single frame from the cursor.
  * @param rc The read cursor.
  * @param pkt_type Source packet type (encryption level).

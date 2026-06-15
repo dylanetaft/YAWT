@@ -4,7 +4,7 @@
  */
 
 /**
- * @defgroup YAWT_Logging YAWT_Logging
+ * @defgroup Logging 
  * @brief Compile-time gated logging utilities.
  *
  * Enable logging by defining YAWT_ENABLE_LOGGING at compile time. Optionally set
@@ -15,7 +15,7 @@
 #pragma once
 
 /**
- * @ingroup YAWT_Logging
+ * @ingroup Logging
  * @brief Log levels for diagnostic messages.
  */
 typedef enum {
@@ -32,7 +32,7 @@ typedef enum {
 #endif
 
 /**
- * @ingroup YAWT_Logging
+ * @ingroup Logging
  * @brief Convert log level to string.
  * @param level Log level value
  * @return String representation of the log level
@@ -53,7 +53,7 @@ static inline const char *YAWT_log_level_str(YAWT_log_level_t level) {
 }
 
 /**
- * @ingroup YAWT_Logging
+ * @ingroup Logging
  * @brief Log a message with level, file, line, and function context.
  * @param level Log level 
  * @param fmt Printf-style format string

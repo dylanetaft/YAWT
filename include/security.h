@@ -4,13 +4,11 @@
  */
 
 /**
- * @defgroup YAWT_Q_Security YAWT_Q_Security
- * @ingroup Quic
+ * @ingroup QUIC
  * @brief QUIC security policy and flow control configuration.
  */
 
 /**
- * @defgroup YAWT_H3_Security YAWT_H3_Security
  * @ingroup HTTP3
  * @brief HTTP/3 security policy configuration.
  */
@@ -19,7 +17,7 @@
 #include <stdint.h>
 
 /**
- * @ingroup YAWT_Q_Security
+ * @ingroup QUIC
  * @brief Flow control limits — populated from transport params, updated by MAX_* frames.
  * @note These values are advertised to the peer and enforced locally. Zero values
  *       indicate the feature is disabled or unlimited.
@@ -36,7 +34,7 @@ typedef struct {
 } YAWT_Q_FlowControl_t;
 
 /**
- * @ingroup YAWT_Q_Security
+ * @ingroup QUIC
  * @brief QUIC layer security policy — tunable limits to prevent resource exhaustion.
  * @note These are process-wide settings, not per-connection. The getter returns a
  *       const pointer to a static global; do not free it.
@@ -47,7 +45,7 @@ typedef struct {
 } YAWT_Q_SecurityPolicy_t;
 
 /**
- * @ingroup YAWT_Q_Security
+ * @ingroup QUIC
  * @brief Get the current QUIC security policy.
  * @return Const pointer to the static global policy (valid for process lifetime).
  * @note The pointed-to values are a snapshot; re-get after a set() to observe changes.
@@ -55,7 +53,7 @@ typedef struct {
 const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void);
 
 /**
- * @ingroup YAWT_Q_Security
+ * @ingroup QUIC
  * @brief Set the QUIC security policy.
  * @param policy Pointer to the new policy values (copied into the global).
  * @note Replaces the global policy. Passing NULL is a no-op.
@@ -63,7 +61,7 @@ const YAWT_Q_SecurityPolicy_t *YAWT_q_security_get(void);
 void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy);
 
 /**
- * @ingroup YAWT_Q_Security
+ * @ingroup QUIC
  * @brief Get the default flow-control limits.
  * @return Const pointer to the static global default limits (valid for process lifetime).
  * @note Used when YAWT_Q_Con_Create_Info_t.local_fc is NULL.
@@ -71,7 +69,7 @@ void YAWT_q_security_set(const YAWT_Q_SecurityPolicy_t *policy);
 const YAWT_Q_FlowControl_t *YAWT_q_security_get_default_fc(void);
 
 /**
- * @ingroup YAWT_H3_Security
+ * @ingroup HTTP3
  * @brief HTTP/3 layer security policy — tunable limits to prevent resource exhaustion.
  * @note Separate struct from the QUIC policy. The security module is centralized but
  *       each layer keeps its own layer-named config.
@@ -83,7 +81,7 @@ typedef struct {
 } YAWT_H3_SecurityPolicy_t;
 
 /**
- * @ingroup YAWT_H3_Security
+ * @ingroup HTTP3
  * @brief Get the current HTTP/3 security policy.
  * @return Const pointer to the static global policy (valid for process lifetime).
  * @note Same static-global lifetime contract as the QUIC accessors.
@@ -91,7 +89,7 @@ typedef struct {
 const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void);
 
 /**
- * @ingroup YAWT_H3_Security
+ * @ingroup HTTP3
  * @brief Set the HTTP/3 security policy.
  * @param policy Pointer to the new policy values (copied into the global).
  * @note Replaces the global policy. Passing NULL is a no-op.

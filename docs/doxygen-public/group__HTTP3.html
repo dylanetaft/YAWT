@@ -93,18 +93,9 @@ $(function(){initNavTree('group__HTTP3.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>All HTTP/3 and QPACK protocol types, constants, and operations.  
+<p>Primary HTTP/3 API for connection management, frame parsing, and sending data/headers.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 id="header-groups" class="groupheader"><a id="groups" name="groups"></a>
-Topics</h2></td></tr>
-<tr class="memitem:YAWT_5FH3_5FCore" id="r_YAWT_5FH3_5FCore"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__H3__Core.html">YAWT_H3_Core </a></td></tr>
-<tr class="memdesc:group__YAWT__H3__Core"><td class="mdescLeft">&#160;</td><td class="mdescRight">Primary HTTP/3 API for connection management, frame parsing, and sending data/headers. <br /></td></tr>
-<tr class="memitem:YAWT_5FH3_5FHeaders" id="r_YAWT_5FH3_5FHeaders"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__H3__Headers.html">YAWT_H3_Headers </a></td></tr>
-<tr class="memdesc:group__YAWT__H3__Headers"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header field management and QPACK integration wrappers. <br /></td></tr>
-<tr class="memitem:YAWT_5FH3_5FSecurity" id="r_YAWT_5FH3_5FSecurity"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__YAWT__H3__Security.html">YAWT_H3_Security </a></td></tr>
-<tr class="memdesc:group__YAWT__H3__Security"><td class="mdescLeft">&#160;</td><td class="mdescRight">HTTP/3 security policy configuration. <br /></td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
 <tr class="memitem:YAWT_5FH3_5FFrame_5Ft" id="r_YAWT_5FH3_5FFrame_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a></td></tr>
@@ -125,12 +116,15 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters for H3.  <a href="unionYAWT__H3__EventParam.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FH3_5FConnection" id="r_YAWT_5FH3_5FConnection"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 connection object.  <a href="structYAWT__H3__Connection.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFlowControl_5Ft" id="r_YAWT_5FQ_5FFlowControl_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC security policy and flow control configuration.  <a href="structYAWT__Q__FlowControl__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FH3_5FSecurityPolicy_5Ft" id="r_YAWT_5FH3_5FSecurityPolicy_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__SecurityPolicy__t.html">YAWT_H3_SecurityPolicy_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">HTTP/3 layer security policy — tunable limits to prevent resource exhaustion.  <a href="structYAWT__H3__SecurityPolicy__t.html#details">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:ga48eeb291f8b1aa1867e90dbd40b71028" id="r_ga48eeb291f8b1aa1867e90dbd40b71028"><td class="memItemLeft" align="right" valign="top"><a id="ga48eeb291f8b1aa1867e90dbd40b71028" name="ga48eeb291f8b1aa1867e90dbd40b71028"></a>
-typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_Connection_t</b></td></tr>
-<tr class="memdesc:ga48eeb291f8b1aa1867e90dbd40b71028"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration — full type in quic.h. <br /></td></tr>
+<tr class="memitem:ga48eeb291f8b1aa1867e90dbd40b71028" id="r_ga48eeb291f8b1aa1867e90dbd40b71028"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></td></tr>
+<tr class="memdesc:ga48eeb291f8b1aa1867e90dbd40b71028"><td class="mdescLeft">&#160;</td><td class="mdescRight">A QUIC connection.  <br /></td></tr>
 <tr class="memitem:ga6d215eda629f858265a72c875a627458" id="r_ga6d215eda629f858265a72c875a627458"><td class="memItemLeft" align="right" valign="top"><a id="ga6d215eda629f858265a72c875a627458" name="ga6d215eda629f858265a72c875a627458"></a>
 typedef struct ANB_Slab&#160;</td><td class="memItemRight" valign="bottom"><b>ANB_Slab_t</b></td></tr>
 <tr class="memdesc:ga6d215eda629f858265a72c875a627458"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration for ANB_Slab. <br /></td></tr>
@@ -223,12 +217,89 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:gaaf0c4e46e7fa86af02e135ddb7d87b2e" id="r_gaaf0c4e46e7fa86af02e135ddb7d87b2e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaaf0c4e46e7fa86af02e135ddb7d87b2e">YAWT_h3_parse_frame</a> (<a class="el" href="quic__types_8h.html#aae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a> *stream, <a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *meta, <a class="el" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a> *out)</td></tr>
+<tr class="memdesc:gaaf0c4e46e7fa86af02e135ddb7d87b2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assembles a frame from located metadata.  <br /></td></tr>
+<tr class="memitem:ga44984d8090b72d58c0a8aa4353159ec2" id="r_ga44984d8090b72d58c0a8aa4353159ec2"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga44984d8090b72d58c0a8aa4353159ec2">YAWT_h3_encode_frame_header</a> (uint64_t frame_type, size_t payload_len, uint8_t *buf)</td></tr>
+<tr class="memdesc:ga44984d8090b72d58c0a8aa4353159ec2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode an H3 frame header (type varint + length varint) into buf.  <br /></td></tr>
+<tr class="memitem:ga22fa8a5d881270a119c606512b295b11" id="r_ga22fa8a5d881270a119c606512b295b11"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga22fa8a5d881270a119c606512b295b11">YAWT_h3_frame_header_size</a> (size_t payload_len)</td></tr>
+<tr class="memdesc:ga22fa8a5d881270a119c606512b295b11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of bytes needed for an H3 frame header.  <br /></td></tr>
+<tr class="memitem:gae00c0fb2e9c83bd2e67c2adb4ebcdd22" id="r_gae00c0fb2e9c83bd2e67c2adb4ebcdd22"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae00c0fb2e9c83bd2e67c2adb4ebcdd22">YAWT_h3_on_event</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="quic__types_8h.html#a8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="quic__types_8h.html#aba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td></tr>
+<tr class="memdesc:gae00c0fb2e9c83bd2e67c2adb4ebcdd22"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 event handler.  <br /></td></tr>
+<tr class="memitem:ga3ab91bf8f74c5abccb1664834bfc5609" id="r_ga3ab91bf8f74c5abccb1664834bfc5609"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3ab91bf8f74c5abccb1664834bfc5609">YAWT_h3_settings_decode</a> (YAWT_Q_ReadCursor_t *rc, <a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *out)</td></tr>
+<tr class="memdesc:ga3ab91bf8f74c5abccb1664834bfc5609"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode a SETTINGS frame body.  <br /></td></tr>
+<tr class="memitem:gab35da4558acfad803cd0851068582069" id="r_gab35da4558acfad803cd0851068582069"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab35da4558acfad803cd0851068582069">YAWT_h3_settings_encode</a> (const <a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *settings, uint8_t *buf, size_t len, size_t *written)</td></tr>
+<tr class="memdesc:gab35da4558acfad803cd0851068582069"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a SETTINGS frame body (id/value varint pairs) into buf.  <br /></td></tr>
+<tr class="memitem:ga3ce2ca55acefa9441b5170a329cf1e4e" id="r_ga3ce2ca55acefa9441b5170a329cf1e4e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3ce2ca55acefa9441b5170a329cf1e4e">YAWT_h3_set_event_handler</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con, <a class="el" href="#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> handler)</td></tr>
+<tr class="memdesc:ga3ce2ca55acefa9441b5170a329cf1e4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an app-level event handler on an H3 connection.  <br /></td></tr>
+<tr class="memitem:ga85a672843f372e0c3bba9882f81e5ff1" id="r_ga85a672843f372e0c3bba9882f81e5ff1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga85a672843f372e0c3bba9882f81e5ff1">YAWT_h3_get_qcon</a> (const <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con)</td></tr>
+<tr class="memdesc:ga85a672843f372e0c3bba9882f81e5ff1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying QUIC connection from an H3 connection.  <br /></td></tr>
+<tr class="memitem:ga0d77e7f0bbbbcfba39d415f25db9062e" id="r_ga0d77e7f0bbbbcfba39d415f25db9062e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga0d77e7f0bbbbcfba39d415f25db9062e">YAWT_h3_send_settings</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *h3)</td></tr>
+<tr class="memdesc:ga0d77e7f0bbbbcfba39d415f25db9062e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open the server control stream and send a SETTINGS frame.  <br /></td></tr>
+<tr class="memitem:gab8639b1a16c6e14e4825439fd0c6c385" id="r_gab8639b1a16c6e14e4825439fd0c6c385"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab8639b1a16c6e14e4825439fd0c6c385">YAWT_h3_send_headers</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *h3, uint64_t stream_id, const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers, int fin)</td></tr>
+<tr class="memdesc:gab8639b1a16c6e14e4825439fd0c6c385"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode headers as a QPACK header block, wrap in an H3 HEADERS frame, and send.  <br /></td></tr>
+<tr class="memitem:gad2d6c09c020c51bb1b7cce28a06d89b1" id="r_gad2d6c09c020c51bb1b7cce28a06d89b1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad2d6c09c020c51bb1b7cce28a06d89b1">YAWT_h3_send_data</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *h3, uint64_t stream_id, const uint8_t *data, size_t data_len, int fin)</td></tr>
+<tr class="memdesc:gad2d6c09c020c51bb1b7cce28a06d89b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wrap data in an H3 DATA frame and send on the given bidi stream.  <br /></td></tr>
 <tr class="memitem:ga90bac050129e3c4f3f9057b7d4ab8530" id="r_ga90bac050129e3c4f3f9057b7d4ab8530"><td class="memItemLeft" align="right" valign="top">static const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga90bac050129e3c4f3f9057b7d4ab8530">YAWT_h3_err_str</a> (<a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> err)</td></tr>
 <tr class="memdesc:ga90bac050129e3c4f3f9057b7d4ab8530"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a string representation of an H3 error code.  <br /></td></tr>
+<tr class="memitem:ga10b6f1c9fba1586c05b61a8cbc0dcbdb" id="r_ga10b6f1c9fba1586c05b61a8cbc0dcbdb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga10b6f1c9fba1586c05b61a8cbc0dcbdb">YAWT_h3_header_fields_create</a> (void)</td></tr>
+<tr class="memdesc:ga10b6f1c9fba1586c05b61a8cbc0dcbdb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header field management and QPACK integration wrappers.  <br /></td></tr>
+<tr class="memitem:ga9570c040e749c4299837072a408c760b" id="r_ga9570c040e749c4299837072a408c760b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9570c040e749c4299837072a408c760b">YAWT_h3_header_fields_destroy</a> (<a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section)</td></tr>
+<tr class="memdesc:ga9570c040e749c4299837072a408c760b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a header fields section.  <br /></td></tr>
+<tr class="memitem:ga64b02c3f0faf81d6eaf96456a421bba6" id="r_ga64b02c3f0faf81d6eaf96456a421bba6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga64b02c3f0faf81d6eaf96456a421bba6">YAWT_h3_header_add</a> (<a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name, size_t name_len, const char *value, size_t value_len)</td></tr>
+<tr class="memdesc:ga64b02c3f0faf81d6eaf96456a421bba6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a field — copies name and value into slab storage.  <br /></td></tr>
+<tr class="memitem:gab44ea5b27ae83d90dd08b88d2c5dc9af" id="r_gab44ea5b27ae83d90dd08b88d2c5dc9af"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab44ea5b27ae83d90dd08b88d2c5dc9af">YAWT_h3_header_add_str</a> (<a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name, const char *value)</td></tr>
+<tr class="memdesc:gab44ea5b27ae83d90dd08b88d2c5dc9af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a field using null-terminated strings.  <br /></td></tr>
+<tr class="memitem:ga68926a903bdb65eb50e279a1c002e52e" id="r_ga68926a903bdb65eb50e279a1c002e52e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga68926a903bdb65eb50e279a1c002e52e">YAWT_h3_header_add_static</a> (<a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name, size_t name_len, const char *value, size_t value_len, size_t i_static, size_t i_name)</td></tr>
+<tr class="memdesc:ga68926a903bdb65eb50e279a1c002e52e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a field with pre-resolved QPACK static table indexes.  <br /></td></tr>
+<tr class="memitem:gafd7fd687a14cd2855b6b0075bc10c11a" id="r_gafd7fd687a14cd2855b6b0075bc10c11a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gafd7fd687a14cd2855b6b0075bc10c11a">YAWT_h3_header_add_str_static</a> (<a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name, const char *value, size_t i_static, size_t i_name)</td></tr>
+<tr class="memdesc:gafd7fd687a14cd2855b6b0075bc10c11a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a field with pre-resolved indexes using null-terminated strings.  <br /></td></tr>
+<tr class="memitem:ga7a9f1a26bb35c8ac7305d1ebb73b5a86" id="r_ga7a9f1a26bb35c8ac7305d1ebb73b5a86"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga7a9f1a26bb35c8ac7305d1ebb73b5a86">YAWT_h3_header_resolve</a> (const char *name, size_t name_len, const char *value, size_t value_len)</td></tr>
+<tr class="memdesc:ga7a9f1a26bb35c8ac7305d1ebb73b5a86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Resolve QPACK static table indexes for a name/value pair.  <br /></td></tr>
+<tr class="memitem:gab00277019a41706ad3be3627ed292f25" id="r_gab00277019a41706ad3be3627ed292f25"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab00277019a41706ad3be3627ed292f25">YAWT_h3_header_resolve_str</a> (const char *name, const char *value)</td></tr>
+<tr class="memdesc:gab00277019a41706ad3be3627ed292f25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Resolve QPACK static table indexes using null-terminated strings.  <br /></td></tr>
+<tr class="memitem:gac81d486b4aeb195b480b3dedba9f981e" id="r_gac81d486b4aeb195b480b3dedba9f981e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gac81d486b4aeb195b480b3dedba9f981e">YAWT_h3_header_find</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name, size_t name_len)</td></tr>
+<tr class="memdesc:gac81d486b4aeb195b480b3dedba9f981e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up a field by name.  <br /></td></tr>
+<tr class="memitem:gae569cb0da504da64cced04931b6e0d36" id="r_gae569cb0da504da64cced04931b6e0d36"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae569cb0da504da64cced04931b6e0d36">YAWT_h3_header_find_str</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, const char *name)</td></tr>
+<tr class="memdesc:gae569cb0da504da64cced04931b6e0d36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up a field by name using a null-terminated string.  <br /></td></tr>
+<tr class="memitem:gaac4ed5babd9ad104bd2e4d9bc7155f8d" id="r_gaac4ed5babd9ad104bd2e4d9bc7155f8d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaac4ed5babd9ad104bd2e4d9bc7155f8d">YAWT_h3_header_iter</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, ANB_SlabIter_t *iter)</td></tr>
+<tr class="memdesc:gaac4ed5babd9ad104bd2e4d9bc7155f8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterate all fields.  <br /></td></tr>
+<tr class="memitem:ga4f0f4d24b0a68ed298982cfd60bbc61c" id="r_ga4f0f4d24b0a68ed298982cfd60bbc61c"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4f0f4d24b0a68ed298982cfd60bbc61c">YAWT_h3_headers_is_set</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers)</td></tr>
+<tr class="memdesc:ga4f0f4d24b0a68ed298982cfd60bbc61c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if header fields have been allocated.  <br /></td></tr>
+<tr class="memitem:ga4659b29846a4aec71fd0a429f4990f59" id="r_ga4659b29846a4aec71fd0a429f4990f59"><td class="memItemLeft" align="right" valign="top">YAWT_QPACK_Error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4659b29846a4aec71fd0a429f4990f59">YAWT_qpack_decode_header_block</a> (const uint8_t *data, size_t len, <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *out)</td></tr>
+<tr class="memdesc:ga4659b29846a4aec71fd0a429f4990f59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode the entire encoded field section (HEADERS frame payload).  <br /></td></tr>
+<tr class="memitem:gaefaf96fc9300e17f67a58af7a9954a3c" id="r_gaefaf96fc9300e17f67a58af7a9954a3c"><td class="memItemLeft" align="right" valign="top">YAWT_QPACK_Error_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaefaf96fc9300e17f67a58af7a9954a3c">YAWT_qpack_encode_header_block</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers, uint8_t *buf, size_t len, size_t *written)</td></tr>
+<tr class="memdesc:gaefaf96fc9300e17f67a58af7a9954a3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a header fields section into a QPACK header block.  <br /></td></tr>
+<tr class="memitem:ga4977d6237885e27cb4ca6c690047cb43" id="r_ga4977d6237885e27cb4ca6c690047cb43"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4977d6237885e27cb4ca6c690047cb43">YAWT_qpack_header_block_size</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers)</td></tr>
+<tr class="memdesc:ga4977d6237885e27cb4ca6c690047cb43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the encoded size of a header block without actually encoding it.  <br /></td></tr>
+<tr class="memitem:gad616dbd1401de130157851a837bec6a4" id="r_gad616dbd1401de130157851a837bec6a4"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad616dbd1401de130157851a837bec6a4">YAWT_qpack_header_block_max_size</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers)</td></tr>
+<tr class="memdesc:gad616dbd1401de130157851a837bec6a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate an upper bound on the encoded size of a header block.  <br /></td></tr>
+<tr class="memitem:ga44c0c872018f96e42c8c6952a242e494" id="r_ga44c0c872018f96e42c8c6952a242e494"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="structYAWT__H3__SecurityPolicy__t.html">YAWT_H3_SecurityPolicy_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga44c0c872018f96e42c8c6952a242e494">YAWT_h3_security_get</a> (void)</td></tr>
+<tr class="memdesc:ga44c0c872018f96e42c8c6952a242e494"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current HTTP/3 security policy.  <br /></td></tr>
+<tr class="memitem:ga3a3aa06036e2f6c12a857e97183dd4a0" id="r_ga3a3aa06036e2f6c12a857e97183dd4a0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3a3aa06036e2f6c12a857e97183dd4a0">YAWT_h3_security_set</a> (const <a class="el" href="structYAWT__H3__SecurityPolicy__t.html">YAWT_H3_SecurityPolicy_t</a> *policy)</td></tr>
+<tr class="memdesc:ga3a3aa06036e2f6c12a857e97183dd4a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the HTTP/3 security policy.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<p>All HTTP/3 and QPACK protocol types, constants, and operations. </p>
+<p>Primary HTTP/3 API for connection management, frame parsing, and sending data/headers. </p>
 <a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
+<a id="ga48eeb291f8b1aa1867e90dbd40b71028" name="ga48eeb291f8b1aa1867e90dbd40b71028"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga48eeb291f8b1aa1867e90dbd40b71028">&#9670;&#160;</a></span>YAWT_Q_Connection_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a> <a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A QUIC connection. </p>
+<p>All HTTP/3 and QPACK protocol types, constants, and operations.</p>
+<dl class="section note"><dt>Note</dt><dd>Owned by the QUIC layer (created in con_create, destroyed in con_free). Indexed in global CID hash tables; found via con_find_by_cid. Threading: NOT thread-safe — one libev loop drives all connections. All fields are mutated only on that thread, synchronously with con_rx / con_maintain. Most fields are QUIC-internal; <span class="tt">user_data</span> is the app's.</dd></dl>
+<p>Forward declaration — full type in quic.h </p>
+
+</div>
+</div>
 <a id="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" name="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">&#9670;&#160;</a></span>YAWT_H3_Connection_t</h2>
 
@@ -369,6 +440,398 @@ Functions</h2></td></tr>
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
+<a id="gaaf0c4e46e7fa86af02e135ddb7d87b2e" name="gaaf0c4e46e7fa86af02e135ddb7d87b2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaaf0c4e46e7fa86af02e135ddb7d87b2e">&#9670;&#160;</a></span>YAWT_h3_parse_frame()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_parse_frame </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="quic__types_8h.html#aae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>stream</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>meta</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Assembles a frame from located metadata. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stream</td><td>The QUIC stream frame. </td></tr>
+    <tr><td class="paramname">meta</td><td>The H3 stream metadata. </td></tr>
+    <tr><td class="paramname">out</td><td>Output H3 frame struct. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Will deliver partial frames but we can pull the header fields (Type, Length) out of metadata. </dd></dl>
+
+</div>
+</div>
+<a id="ga44984d8090b72d58c0a8aa4353159ec2" name="ga44984d8090b72d58c0a8aa4353159ec2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga44984d8090b72d58c0a8aa4353159ec2">&#9670;&#160;</a></span>YAWT_h3_encode_frame_header()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_h3_encode_frame_header </td>
+          <td>(</td>
+          <td class="paramtype">uint64_t</td>          <td class="paramname"><span class="paramname"><em>frame_type</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>payload_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *</td>          <td class="paramname"><span class="paramname"><em>buf</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode an H3 frame header (type varint + length varint) into buf. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">frame_type</td><td>The H3 frame type. </td></tr>
+    <tr><td class="paramname">payload_len</td><td>The payload length. </td></tr>
+    <tr><td class="paramname">buf</td><td>Output buffer. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Bytes written on success, 0 on error. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>buf must be at least H3_FRAME_MAX_HEADER_BYTES. Safe — minimum valid header is 2 bytes. </dd></dl>
+
+</div>
+</div>
+<a id="ga22fa8a5d881270a119c606512b295b11" name="ga22fa8a5d881270a119c606512b295b11"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga22fa8a5d881270a119c606512b295b11">&#9670;&#160;</a></span>YAWT_h3_frame_header_size()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_h3_frame_header_size </td>
+          <td>(</td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>payload_len</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the number of bytes needed for an H3 frame header. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">payload_len</td><td>The payload length that will follow. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Number of bytes needed for type + length varints. </dd></dl>
+
+</div>
+</div>
+<a id="gae00c0fb2e9c83bd2e67c2adb4ebcdd22" name="gae00c0fb2e9c83bd2e67c2adb4ebcdd22"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae00c0fb2e9c83bd2e67c2adb4ebcdd22">&#9670;&#160;</a></span>YAWT_h3_on_event()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_on_event </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="quic__types_8h.html#a8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a></td>          <td class="paramname"><span class="paramname"><em>event</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="quic__types_8h.html#aba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td>          <td class="paramname"><span class="paramname"><em>param</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>H3 event handler. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">con</td><td>The underlying QUIC connection. </td></tr>
+    <tr><td class="paramname">event</td><td>The QUIC event type. </td></tr>
+    <tr><td class="paramname">param</td><td>The QUIC event parameters. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK if processed successfully, YAWT_H3_IGNORED if not an H3 concern, or YAWT_H3_ERR_NO_APP_HANDLER if app handler not installed. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Register via YAWT_q_con_set_event_handler, or forward to it from the app's own handler. Manages the H3 connection object (allocated on CONNECTED, freed on CLOSE) and consumes stream events. Ignores TX (the app's concern). Connection state is stored in the QUIC connection's user_data. </dd></dl>
+
+</div>
+</div>
+<a id="ga3ab91bf8f74c5abccb1664834bfc5609" name="ga3ab91bf8f74c5abccb1664834bfc5609"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3ab91bf8f74c5abccb1664834bfc5609">&#9670;&#160;</a></span>YAWT_h3_settings_decode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_settings_decode </td>
+          <td>(</td>
+          <td class="paramtype">YAWT_Q_ReadCursor_t *</td>          <td class="paramname"><span class="paramname"><em>rc</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Decode a SETTINGS frame body. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rc</td><td>Read cursor whose data/len cover exactly the SETTINGS payload. </td></tr>
+    <tr><td class="paramname">out</td><td>Output settings struct. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>The cursor advances as (id, value) pairs are consumed. Enforces: SETTINGS must appear first on the control stream and only once per connection (RFC 9114 §7.2.4). </dd></dl>
+
+</div>
+</div>
+<a id="gab35da4558acfad803cd0851068582069" name="gab35da4558acfad803cd0851068582069"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab35da4558acfad803cd0851068582069">&#9670;&#160;</a></span>YAWT_h3_settings_encode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_settings_encode </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *</td>          <td class="paramname"><span class="paramname"><em>settings</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *</td>          <td class="paramname"><span class="paramname"><em>buf</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *</td>          <td class="paramname"><span class="paramname"><em>written</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode a SETTINGS frame body (id/value varint pairs) into buf. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">settings</td><td>The settings to encode. </td></tr>
+    <tr><td class="paramname">buf</td><td>Output buffer. </td></tr>
+    <tr><td class="paramname">len</td><td>Output buffer length. </td></tr>
+    <tr><td class="paramname">written</td><td>Pointer to receive the number of bytes written. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Skips settings with value 0. </dd></dl>
+
+</div>
+</div>
+<a id="ga3ce2ca55acefa9441b5170a329cf1e4e" name="ga3ce2ca55acefa9441b5170a329cf1e4e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3ce2ca55acefa9441b5170a329cf1e4e">&#9670;&#160;</a></span>YAWT_h3_set_event_handler()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_h3_set_event_handler </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a></td>          <td class="paramname"><span class="paramname"><em>handler</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Install an app-level event handler on an H3 connection. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">con</td><td>The H3 connection. </td></tr>
+    <tr><td class="paramname">handler</td><td>The event handler function. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>The handler receives H3-level events (HEADERS decoded, DATA chunks, SETTINGS, errors). Passing NULL clears any previously installed handler. </dd></dl>
+
+</div>
+</div>
+<a id="ga85a672843f372e0c3bba9882f81e5ff1" name="ga85a672843f372e0c3bba9882f81e5ff1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga85a672843f372e0c3bba9882f81e5ff1">&#9670;&#160;</a></span>YAWT_h3_get_qcon()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> * YAWT_h3_get_qcon </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the underlying QUIC connection from an H3 connection. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">con</td><td>The H3 connection. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the underlying QUIC connection. </dd></dl>
+
+</div>
+</div>
+<a id="ga0d77e7f0bbbbcfba39d415f25db9062e" name="ga0d77e7f0bbbbcfba39d415f25db9062e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0d77e7f0bbbbcfba39d415f25db9062e">&#9670;&#160;</a></span>YAWT_h3_send_settings()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_send_settings </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>h3</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Open the server control stream and send a SETTINGS frame. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">h3</td><td>The H3 connection. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Must be called after the QUIC connection is established (typically from the EVT_CONNECTED handler). No-op if already opened. </dd></dl>
+
+</div>
+</div>
+<a id="gab8639b1a16c6e14e4825439fd0c6c385" name="gab8639b1a16c6e14e4825439fd0c6c385"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab8639b1a16c6e14e4825439fd0c6c385">&#9670;&#160;</a></span>YAWT_h3_send_headers()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_send_headers </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>h3</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t</td>          <td class="paramname"><span class="paramname"><em>stream_id</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>fin</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode headers as a QPACK header block, wrap in an H3 HEADERS frame, and send. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">h3</td><td>The H3 connection. </td></tr>
+    <tr><td class="paramname">stream_id</td><td>The target bidi stream ID. </td></tr>
+    <tr><td class="paramname">headers</td><td>The header fields to send. </td></tr>
+    <tr><td class="paramname">fin</td><td>If true, the QUIC stream is closed after this frame (no DATA follows). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
+<a id="gad2d6c09c020c51bb1b7cce28a06d89b1" name="gad2d6c09c020c51bb1b7cce28a06d89b1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad2d6c09c020c51bb1b7cce28a06d89b1">&#9670;&#160;</a></span>YAWT_h3_send_data()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_send_data </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>h3</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t</td>          <td class="paramname"><span class="paramname"><em>stream_id</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>data</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>data_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>fin</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Wrap data in an H3 DATA frame and send on the given bidi stream. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">h3</td><td>The H3 connection. </td></tr>
+    <tr><td class="paramname">stream_id</td><td>The target bidi stream ID. </td></tr>
+    <tr><td class="paramname">data</td><td>The data payload. </td></tr>
+    <tr><td class="paramname">data_len</td><td>The data payload length. </td></tr>
+    <tr><td class="paramname">fin</td><td>If true, the QUIC stream is closed after this frame. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
 <a id="ga90bac050129e3c4f3f9057b7d4ab8530" name="ga90bac050129e3c4f3f9057b7d4ab8530"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga90bac050129e3c4f3f9057b7d4ab8530">&#9670;&#160;</a></span>YAWT_h3_err_str()</h2>
 
@@ -400,6 +863,639 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A static string describing the error. </dd></dl>
+
+</div>
+</div>
+<a id="ga10b6f1c9fba1586c05b61a8cbc0dcbdb" name="ga10b6f1c9fba1586c05b61a8cbc0dcbdb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga10b6f1c9fba1586c05b61a8cbc0dcbdb">&#9670;&#160;</a></span>YAWT_h3_header_fields_create()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> * YAWT_h3_header_fields_create </td>
+          <td>(</td>
+          <td class="paramtype">void</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Header field management and QPACK integration wrappers. </p>
+<p>Create a new header fields backed by an ANB_Slab. </p><dl class="section return"><dt>Returns</dt><dd>A heap-allocated YAWT_H3_HeaderFields_t*, or NULL on failure. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Optionally includes a scratch blob for decode. The pointer itself may be null-checked (non-NULL means resources were allocated and destroy should be called later). </dd></dl>
+
+</div>
+</div>
+<a id="ga9570c040e749c4299837072a408c760b" name="ga9570c040e749c4299837072a408c760b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9570c040e749c4299837072a408c760b">&#9670;&#160;</a></span>YAWT_h3_header_fields_destroy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_h3_header_fields_destroy </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Destroy a header fields section. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields to destroy. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Destroys its slab (and any huff_scratch blob) and frees the <a class="el" href="structYAWT__H3__HeaderFields__t.html" title="Header fields — backed by ANB_Slab internally.">YAWT_H3_HeaderFields_t</a> struct itself. </dd></dl>
+
+</div>
+</div>
+<a id="ga64b02c3f0faf81d6eaf96456a421bba6" name="ga64b02c3f0faf81d6eaf96456a421bba6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga64b02c3f0faf81d6eaf96456a421bba6">&#9670;&#160;</a></span>YAWT_h3_header_add()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_header_add </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>name_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>value_len</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add a field — copies name and value into slab storage. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">name_len</td><td>The field name length. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+    <tr><td class="paramname">value_len</td><td>The field value length. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Does not resolve QPACK indexes (i_static=0, i_name=0). </dd></dl>
+
+</div>
+</div>
+<a id="gab44ea5b27ae83d90dd08b88d2c5dc9af" name="gab44ea5b27ae83d90dd08b88d2c5dc9af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab44ea5b27ae83d90dd08b88d2c5dc9af">&#9670;&#160;</a></span>YAWT_h3_header_add_str()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_header_add_str </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add a field using null-terminated strings. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
+<a id="ga68926a903bdb65eb50e279a1c002e52e" name="ga68926a903bdb65eb50e279a1c002e52e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga68926a903bdb65eb50e279a1c002e52e">&#9670;&#160;</a></span>YAWT_h3_header_add_static()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_header_add_static </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>name_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>value_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>i_static</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>i_name</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add a field with pre-resolved QPACK static table indexes. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">name_len</td><td>The field name length. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+    <tr><td class="paramname">value_len</td><td>The field value length. </td></tr>
+    <tr><td class="paramname">i_static</td><td>Full name-value match in QPACK static table. </td></tr>
+    <tr><td class="paramname">i_name</td><td>Name-only match in QPACK static table. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
+<a id="gafd7fd687a14cd2855b6b0075bc10c11a" name="gafd7fd687a14cd2855b6b0075bc10c11a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gafd7fd687a14cd2855b6b0075bc10c11a">&#9670;&#160;</a></span>YAWT_h3_header_add_str_static()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_header_add_str_static </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>i_static</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>i_name</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add a field with pre-resolved indexes using null-terminated strings. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+    <tr><td class="paramname">i_static</td><td>Full name-value match in QPACK static table. </td></tr>
+    <tr><td class="paramname">i_name</td><td>Name-only match in QPACK static table. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_H3_OK on success, or an error code. </dd></dl>
+
+</div>
+</div>
+<a id="ga7a9f1a26bb35c8ac7305d1ebb73b5a86" name="ga7a9f1a26bb35c8ac7305d1ebb73b5a86"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7a9f1a26bb35c8ac7305d1ebb73b5a86">&#9670;&#160;</a></span>YAWT_h3_header_resolve()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> YAWT_h3_header_resolve </td>
+          <td>(</td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>name_len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>value_len</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Resolve QPACK static table indexes for a name/value pair. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">name_len</td><td>The field name length. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+    <tr><td class="paramname">value_len</td><td>The field value length. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A populated <a class="el" href="structYAWT__H3__Header__Field__t.html" title="Public view of a header field.">YAWT_H3_Header_Field_t</a>; pass to add_static or use directly. </dd></dl>
+
+</div>
+</div>
+<a id="gab00277019a41706ad3be3627ed292f25" name="gab00277019a41706ad3be3627ed292f25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab00277019a41706ad3be3627ed292f25">&#9670;&#160;</a></span>YAWT_h3_header_resolve_str()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> YAWT_h3_header_resolve_str </td>
+          <td>(</td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Resolve QPACK static table indexes using null-terminated strings. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>The field name. </td></tr>
+    <tr><td class="paramname">value</td><td>The field value. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A populated <a class="el" href="structYAWT__H3__Header__Field__t.html" title="Public view of a header field.">YAWT_H3_Header_Field_t</a>. </dd></dl>
+
+</div>
+</div>
+<a id="gac81d486b4aeb195b480b3dedba9f981e" name="gac81d486b4aeb195b480b3dedba9f981e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac81d486b4aeb195b480b3dedba9f981e">&#9670;&#160;</a></span>YAWT_h3_header_find()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> YAWT_h3_header_find </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>name_len</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Look up a field by name. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name to find. </td></tr>
+    <tr><td class="paramname">name_len</td><td>The field name length. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A const view into slab memory. Returns a struct with NULL name if not found. </dd></dl>
+
+</div>
+</div>
+<a id="gae569cb0da504da64cced04931b6e0d36" name="gae569cb0da504da64cced04931b6e0d36"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae569cb0da504da64cced04931b6e0d36">&#9670;&#160;</a></span>YAWT_h3_header_find_str()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> YAWT_h3_header_find_str </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>name</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Look up a field by name using a null-terminated string. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">name</td><td>The field name to find. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A const view into slab memory. Returns a struct with NULL name if not found. </dd></dl>
+
+</div>
+</div>
+<a id="gaac4ed5babd9ad104bd2e4d9bc7155f8d" name="gaac4ed5babd9ad104bd2e4d9bc7155f8d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaac4ed5babd9ad104bd2e4d9bc7155f8d">&#9670;&#160;</a></span>YAWT_h3_header_iter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> YAWT_h3_header_iter </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>section</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ANB_SlabIter_t *</td>          <td class="paramname"><span class="paramname"><em>iter</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Iterate all fields. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">section</td><td>The header fields section. </td></tr>
+    <tr><td class="paramname">iter</td><td>The slab iterator. Pass NULL to start. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A struct with the current field, or a struct with NULL name when done. </dd></dl>
+
+</div>
+</div>
+<a id="ga4f0f4d24b0a68ed298982cfd60bbc61c" name="ga4f0f4d24b0a68ed298982cfd60bbc61c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4f0f4d24b0a68ed298982cfd60bbc61c">&#9670;&#160;</a></span>YAWT_h3_headers_is_set()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool YAWT_h3_headers_is_set </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Check if header fields have been allocated. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">headers</td><td>The header fields section. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if the slab is not NULL. </dd></dl>
+
+</div>
+</div>
+<a id="ga4659b29846a4aec71fd0a429f4990f59" name="ga4659b29846a4aec71fd0a429f4990f59"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4659b29846a4aec71fd0a429f4990f59">&#9670;&#160;</a></span>YAWT_qpack_decode_header_block()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">YAWT_QPACK_Error_t YAWT_qpack_decode_header_block </td>
+          <td>(</td>
+          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>data</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>out</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Decode the entire encoded field section (HEADERS frame payload). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data</td><td>The encoded data. </td></tr>
+    <tr><td class="paramname">len</td><td>The encoded data length. </td></tr>
+    <tr><td class="paramname">out</td><td>The output header fields section. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_QPACK_OK on success, or an error code. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Only static table entries and literal representations are supported. Huffman-encoded strings are decoded into out-&gt;huff_scratch (<a class="el" href="#ga62c274fcc5cdb7f30bdcca7f45caf15e" title="Forward declaration for ANB_Blob.">ANB_Blob_t</a>). Name/value pairs are copied into out-&gt;slab using the existing header field storage. On error the section may be left partially populated; caller (h3 layer) typically destroys it. </dd></dl>
+
+</div>
+</div>
+<a id="gaefaf96fc9300e17f67a58af7a9954a3c" name="gaefaf96fc9300e17f67a58af7a9954a3c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaefaf96fc9300e17f67a58af7a9954a3c">&#9670;&#160;</a></span>YAWT_qpack_encode_header_block()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">YAWT_QPACK_Error_t YAWT_qpack_encode_header_block </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *</td>          <td class="paramname"><span class="paramname"><em>buf</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *</td>          <td class="paramname"><span class="paramname"><em>written</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Encode a header fields section into a QPACK header block. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">headers</td><td>The header fields to encode. </td></tr>
+    <tr><td class="paramname">buf</td><td>Output buffer. </td></tr>
+    <tr><td class="paramname">len</td><td>Output buffer length. </td></tr>
+    <tr><td class="paramname">written</td><td>Pointer to receive the number of bytes written. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>YAWT_QPACK_OK on success, YAWT_QPACK_ERR_SHORT_BUFFER if buf is too small. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Static table only, no Huffman. Writes the 2-byte header block prefix (RIC=0, Base=0) followed by encoded field lines. Uses Indexed representation for full name+value matches, Literal with Name Reference for name-only matches, and Literal with Literal Name for everything else. </dd></dl>
+
+</div>
+</div>
+<a id="ga4977d6237885e27cb4ca6c690047cb43" name="ga4977d6237885e27cb4ca6c690047cb43"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4977d6237885e27cb4ca6c690047cb43">&#9670;&#160;</a></span>YAWT_qpack_header_block_size()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_qpack_header_block_size </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Calculate the encoded size of a header block without actually encoding it. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">headers</td><td>The header fields to measure. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes that would be written by YAWT_qpack_encode_header_block. </dd></dl>
+
+</div>
+</div>
+<a id="gad616dbd1401de130157851a837bec6a4" name="gad616dbd1401de130157851a837bec6a4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad616dbd1401de130157851a837bec6a4">&#9670;&#160;</a></span>YAWT_qpack_header_block_max_size()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t YAWT_qpack_header_block_max_size </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Calculate an upper bound on the encoded size of a header block. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">headers</td><td>The header fields to measure. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The maximum number of bytes, assuming worst-case prefix integer sizes. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Useful for right-sizing a buffer before calling YAWT_qpack_encode_header_block. </dd></dl>
+
+</div>
+</div>
+<a id="ga44c0c872018f96e42c8c6952a242e494" name="ga44c0c872018f96e42c8c6952a242e494"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga44c0c872018f96e42c8c6952a242e494">&#9670;&#160;</a></span>YAWT_h3_security_get()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="el" href="structYAWT__H3__SecurityPolicy__t.html">YAWT_H3_SecurityPolicy_t</a> * YAWT_h3_security_get </td>
+          <td>(</td>
+          <td class="paramtype">void</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the current HTTP/3 security policy. </p>
+<dl class="section return"><dt>Returns</dt><dd>Const pointer to the static global policy (valid for process lifetime). </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Same static-global lifetime contract as the QUIC accessors. </dd></dl>
+
+</div>
+</div>
+<a id="ga3a3aa06036e2f6c12a857e97183dd4a0" name="ga3a3aa06036e2f6c12a857e97183dd4a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3a3aa06036e2f6c12a857e97183dd4a0">&#9670;&#160;</a></span>YAWT_h3_security_set()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_h3_security_set </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__H3__SecurityPolicy__t.html">YAWT_H3_SecurityPolicy_t</a> *</td>          <td class="paramname"><span class="paramname"><em>policy</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the HTTP/3 security policy. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">policy</td><td>Pointer to the new policy values (copied into the global). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Replaces the global policy. Passing NULL is a no-op. </dd></dl>
 
 </div>
 </div>

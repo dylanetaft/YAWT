@@ -1,6 +1,6 @@
 var topics =
 [
+    [ "Crypt", "group__Crypt.html", "group__Crypt" ],
     [ "HTTP3", "group__HTTP3.html", "group__HTTP3" ],
-    [ "Quic", "group__Quic.html", "group__Quic" ],
-    [ "YAWT_Logging", "group__YAWT__Logging.html", "group__YAWT__Logging" ]
+    [ "Logging", "group__Logging.html", "group__Logging" ]
 ];

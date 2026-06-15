@@ -1,4 +1,4 @@
-var logger_8h =
+var group__Logging =
 [
     [ "YAWT_LOG", "group__Logging.html#gacc2630470980bf8ee566aec1adea3602", null ],
     [ "YAWT_log_level_t", "group__Logging.html#ga521369fb39c5dbfe6c60f82705a9db70", [

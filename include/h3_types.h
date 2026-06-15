@@ -4,7 +4,7 @@
  */
 
 /**
- * @defgroup HTTP3 HTTP3
+ * @ingroup HTTP3
  * @brief All HTTP/3 and QPACK protocol types, constants, and operations.
  */
 

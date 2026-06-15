@@ -4,7 +4,6 @@
  */
 
 /**
- * @defgroup YAWT_QPACK YAWT_QPACK
  * @ingroup HTTP3
  * @brief QPACK compression/decompression utilities.
  */
