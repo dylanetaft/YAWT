@@ -89,7 +89,7 @@ $(function(){initNavTree('group__Crypt.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">Crypt </div></div>
+  <div class="headertitle"><div class="title">Crypt <div class="ingroups"><a class="el" href="group__QUIC.html">QUIC</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -213,6 +213,32 @@ Functions</h2></td></tr>
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
+<a id="gadb1cab0ad614d900062d780c10ee5eb1" name="gadb1cab0ad614d900062d780c10ee5eb1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadb1cab0ad614d900062d780c10ee5eb1">&#9670;&#160;</a></span>YAWT_q_crypto_cred_free()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void YAWT_q_crypto_cred_free </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> **</td>          <td class="paramname"><span class="paramname"><em>cred</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free credentials and associated GnuTLS resources. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">cred</td><td>Pointer to the credential handle pointer. Sets *cred = NULL. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Idempotent against NULL (double-free safe). </dd></dl>
+
+</div>
+</div>
 <a id="ga1845bc2cfcd2f2bc17d1a49aaaf64179" name="ga1845bc2cfcd2f2bc17d1a49aaaf64179"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga1845bc2cfcd2f2bc17d1a49aaaf64179">&#9670;&#160;</a></span>YAWT_q_crypto_cred_new()</h2>
 
@@ -248,32 +274,6 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Allocated credential handle, or NULL on error. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>The credential handle is shared across all connections and must outlive them. Free with <a class="el" href="#gadb1cab0ad614d900062d780c10ee5eb1" title="Free credentials and associated GnuTLS resources.">YAWT_q_crypto_cred_free()</a> when no longer needed. </dd></dl>
-
-</div>
-</div>
-<a id="gadb1cab0ad614d900062d780c10ee5eb1" name="gadb1cab0ad614d900062d780c10ee5eb1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gadb1cab0ad614d900062d780c10ee5eb1">&#9670;&#160;</a></span>YAWT_q_crypto_cred_free()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_crypto_cred_free </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> **</td>          <td class="paramname"><span class="paramname"><em>cred</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Free credentials and associated GnuTLS resources. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">cred</td><td>Pointer to the credential handle pointer. Sets *cred = NULL. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section note"><dt>Note</dt><dd>Idempotent against NULL (double-free safe). </dd></dl>
 
 </div>
 </div>

@@ -121,7 +121,7 @@ uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>accumulated</b></
 <div class="textblock"><p>Per-stream H3 parse state. </p>
 <dl class="section note"><dt>Note</dt><dd>Lives in a preallocated slot pool on the H3 connection (slot index is NOT the stream id — ids are sparse and grow unbounded, so we store stream_id and linear-scan, like QUIC's stream_meta). A slot is claimed (in_use=true) when assigned to a stream id. A stream outlives any single frame and carries many of them, so the current frame is a union member, reset when advancing to the next frame. </dd></dl>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li><a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
+<li>include/<a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

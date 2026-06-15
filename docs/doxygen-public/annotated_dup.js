@@ -14,6 +14,7 @@ var annotated_dup =
     [ "YAWT_Q_Cid", "structYAWT__Q__Cid.html", null ],
     [ "YAWT_Q_Con_Create_Info", "structYAWT__Q__Con__Create__Info.html", null ],
     [ "YAWT_Q_Connection", "structYAWT__Q__Connection.html", null ],
+    [ "YAWT_Q_ConnectionStats_t", "structYAWT__Q__ConnectionStats__t.html", null ],
     [ "YAWT_Q_EventParam", "unionYAWT__Q__EventParam.html", null ],
     [ "YAWT_Q_FlowControl_t", "structYAWT__Q__FlowControl__t.html", "structYAWT__Q__FlowControl__t" ],
     [ "YAWT_Q_Frame_ACK_ECN_t", "structYAWT__Q__Frame__ACK__ECN__t.html", null ],
@@ -38,9 +39,16 @@ var annotated_dup =
     [ "YAWT_Q_Frame_Stream_Data_Blocked_t", "structYAWT__Q__Frame__Stream__Data__Blocked__t.html", null ],
     [ "YAWT_Q_Frame_Streams_Blocked_t", "structYAWT__Q__Frame__Streams__Blocked__t.html", null ],
     [ "YAWT_Q_Frame_t", "structYAWT__Q__Frame__t.html", null ],
+    [ "YAWT_Q_FrameHandler_Res_t", "structYAWT__Q__FrameHandler__Res__t.html", null ],
     [ "YAWT_Q_IoVec", "structYAWT__Q__IoVec.html", null ],
     [ "YAWT_Q_MaintenanceConfig_t", "structYAWT__Q__MaintenanceConfig__t.html", null ],
     [ "YAWT_Q_Packet", "structYAWT__Q__Packet.html", "structYAWT__Q__Packet" ],
     [ "YAWT_Q_PeerAddr", "structYAWT__Q__PeerAddr.html", null ],
-    [ "YAWT_Q_SecurityPolicy_t", "structYAWT__Q__SecurityPolicy__t.html", "structYAWT__Q__SecurityPolicy__t" ]
+    [ "YAWT_Q_ReadCursor_t", "structYAWT__Q__ReadCursor__t.html", null ],
+    [ "YAWT_Q_SecurityPolicy_t", "structYAWT__Q__SecurityPolicy__t.html", "structYAWT__Q__SecurityPolicy__t" ],
+    [ "YAWT_Q_StreamMeta_t", "structYAWT__Q__StreamMeta__t.html", null ],
+    [ "YAWT_Q_WireFrame_t", "structYAWT__Q__WireFrame__t.html", null ],
+    [ "YAWT_QPACK_HuffDecoder_t", "structYAWT__QPACK__HuffDecoder__t.html", null ],
+    [ "YAWT_QPACK_HuffNode_t", "structYAWT__QPACK__HuffNode__t.html", null ],
+    [ "YAWT_QPACK_StaticEntry_t", "structYAWT__QPACK__StaticEntry__t.html", null ]
 ];

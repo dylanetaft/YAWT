@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.15.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>YAWT: quic_types.h File Reference</title>
+<title>YAWT: include/quic_types.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -162,45 +162,33 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:aaab832e4b378244a75b5ecc3695b1bd7" id="r_aaab832e4b378244a75b5ecc3695b1bd7"><td class="memItemLeft" align="right" valign="top"><a id="aaab832e4b378244a75b5ecc3695b1bd7" name="aaab832e4b378244a75b5ecc3695b1bd7"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_PKT_SIZE</b>&#160;&#160;&#160;1350</td></tr>
-<tr class="memdesc:aaab832e4b378244a75b5ecc3695b1bd7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum QUIC packet size. <br /></td></tr>
-<tr class="memitem:a47c7294ff90faafc25689aa1a106fe40" id="r_a47c7294ff90faafc25689aa1a106fe40"><td class="memItemLeft" align="right" valign="top"><a id="a47c7294ff90faafc25689aa1a106fe40" name="a47c7294ff90faafc25689aa1a106fe40"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_CID_LEN</b>&#160;&#160;&#160;20</td></tr>
-<tr class="memdesc:a47c7294ff90faafc25689aa1a106fe40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum Connection ID length. <br /></td></tr>
-<tr class="memitem:ab263e38160f6f685bb4b0544caf965b2" id="r_ab263e38160f6f685bb4b0544caf965b2"><td class="memItemLeft" align="right" valign="top"><a id="ab263e38160f6f685bb4b0544caf965b2" name="ab263e38160f6f685bb4b0544caf965b2"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_LONG_HDR_OVERHEAD</b>&#160;&#160;&#160;69</td></tr>
-<tr class="memdesc:ab263e38160f6f685bb4b0544caf965b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Worst-case long header overhead (header + PN + AEAD tag). <br /></td></tr>
-<tr class="memitem:a82c4656639707ecf232c87d029f000ce" id="r_a82c4656639707ecf232c87d029f000ce"><td class="memItemLeft" align="right" valign="top"><a id="a82c4656639707ecf232c87d029f000ce" name="a82c4656639707ecf232c87d029f000ce"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_SHORT_HDR_OVERHEAD</b>&#160;&#160;&#160;41</td></tr>
-<tr class="memdesc:a82c4656639707ecf232c87d029f000ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Worst-case short header overhead (header + PN + AEAD tag). <br /></td></tr>
-<tr class="memitem:a8b4af4e102b58ca4eb4163cf2a0eb6d4" id="r_a8b4af4e102b58ca4eb4163cf2a0eb6d4"><td class="memItemLeft" align="right" valign="top"><a id="a8b4af4e102b58ca4eb4163cf2a0eb6d4" name="a8b4af4e102b58ca4eb4163cf2a0eb6d4"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_FRAME_PAYLOAD_LONG</b>&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#ab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>)</td></tr>
-<tr class="memdesc:a8b4af4e102b58ca4eb4163cf2a0eb6d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max frame data that can safely fit in a long header packet. <br /></td></tr>
-<tr class="memitem:a67ae20777dbc1c5a086872d451806818" id="r_a67ae20777dbc1c5a086872d451806818"><td class="memItemLeft" align="right" valign="top"><a id="a67ae20777dbc1c5a086872d451806818" name="a67ae20777dbc1c5a086872d451806818"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_MAX_FRAME_PAYLOAD_SHORT</b>&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#a82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>)</td></tr>
-<tr class="memdesc:a67ae20777dbc1c5a086872d451806818"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max frame data that can safely fit in a short header packet. <br /></td></tr>
+<tr class="memitem:aaab832e4b378244a75b5ecc3695b1bd7" id="r_aaab832e4b378244a75b5ecc3695b1bd7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a>&#160;&#160;&#160;1350</td></tr>
+<tr class="memitem:a47c7294ff90faafc25689aa1a106fe40" id="r_a47c7294ff90faafc25689aa1a106fe40"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a47c7294ff90faafc25689aa1a106fe40">YAWT_Q_CID_LEN</a>&#160;&#160;&#160;20</td></tr>
+<tr class="memitem:ab263e38160f6f685bb4b0544caf965b2" id="r_ab263e38160f6f685bb4b0544caf965b2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>&#160;&#160;&#160;69</td></tr>
+<tr class="memitem:a82c4656639707ecf232c87d029f000ce" id="r_a82c4656639707ecf232c87d029f000ce"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>&#160;&#160;&#160;41</td></tr>
+<tr class="memitem:a8b4af4e102b58ca4eb4163cf2a0eb6d4" id="r_a8b4af4e102b58ca4eb4163cf2a0eb6d4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8b4af4e102b58ca4eb4163cf2a0eb6d4">YAWT_Q_MAX_FRAME_PAYLOAD_LONG</a>&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#ab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>)</td></tr>
+<tr class="memitem:a67ae20777dbc1c5a086872d451806818" id="r_a67ae20777dbc1c5a086872d451806818"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a67ae20777dbc1c5a086872d451806818">YAWT_Q_MAX_FRAME_PAYLOAD_SHORT</a>&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#a82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:ad46831779e0383b371d88542aeae9f27" id="r_ad46831779e0383b371d88542aeae9f27"><td class="memItemLeft" align="right" valign="top"><a id="ad46831779e0383b371d88542aeae9f27" name="ad46831779e0383b371d88542aeae9f27"></a>
+<tr class="memitem:gad46831779e0383b371d88542aeae9f27" id="r_gad46831779e0383b371d88542aeae9f27"><td class="memItemLeft" align="right" valign="top">
 typedef struct <a class="el" href="structYAWT__Q__Cid.html">YAWT_Q_Cid</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_Cid_t</b></td></tr>
-<tr class="memdesc:ad46831779e0383b371d88542aeae9f27"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC Connection ID. <br /></td></tr>
-<tr class="memitem:a758de3dadb790488cd27e55f9cf34a92" id="r_a758de3dadb790488cd27e55f9cf34a92"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></td></tr>
-<tr class="memdesc:a758de3dadb790488cd27e55f9cf34a92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flat packet struct — all packet types collapsed into one.  <br /></td></tr>
-<tr class="memitem:aae6e88026a73c2efeae1eb6777d6034c" id="r_aae6e88026a73c2efeae1eb6777d6034c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td></tr>
-<tr class="memdesc:aae6e88026a73c2efeae1eb6777d6034c"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <br /></td></tr>
-<tr class="memitem:ade8ac1df5770886c672261a83d40e3ea" id="r_ade8ac1df5770886c672261a83d40e3ea"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td></tr>
-<tr class="memdesc:ade8ac1df5770886c672261a83d40e3ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">A STREAM frame plus the storage its .frame.data points at.  <br /></td></tr>
-<tr class="memitem:acce07d550c2b0c63614d19dfbdafca38" id="r_acce07d550c2b0c63614d19dfbdafca38"><td class="memItemLeft" align="right" valign="top"><a id="acce07d550c2b0c63614d19dfbdafca38" name="acce07d550c2b0c63614d19dfbdafca38"></a>
+<tr class="memdesc:gad46831779e0383b371d88542aeae9f27"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC Connection ID. <br /></td></tr>
+<tr class="memitem:ga758de3dadb790488cd27e55f9cf34a92" id="r_ga758de3dadb790488cd27e55f9cf34a92"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></td></tr>
+<tr class="memdesc:ga758de3dadb790488cd27e55f9cf34a92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flat packet struct — all packet types collapsed into one.  <br /></td></tr>
+<tr class="memitem:gaae6e88026a73c2efeae1eb6777d6034c" id="r_gaae6e88026a73c2efeae1eb6777d6034c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td></tr>
+<tr class="memdesc:gaae6e88026a73c2efeae1eb6777d6034c"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <br /></td></tr>
+<tr class="memitem:gade8ac1df5770886c672261a83d40e3ea" id="r_gade8ac1df5770886c672261a83d40e3ea"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td></tr>
+<tr class="memdesc:gade8ac1df5770886c672261a83d40e3ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">A STREAM frame plus the storage its .frame.data points at.  <br /></td></tr>
+<tr class="memitem:gacce07d550c2b0c63614d19dfbdafca38" id="r_gacce07d550c2b0c63614d19dfbdafca38"><td class="memItemLeft" align="right" valign="top">
 typedef struct <a class="el" href="structYAWT__Q__IoVec.html">YAWT_Q_IoVec</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_IoVec_t</b></td></tr>
-<tr class="memdesc:acce07d550c2b0c63614d19dfbdafca38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scatter/gather buffer element for sending. <br /></td></tr>
-<tr class="memitem:aba54d7c0f161bc3e7f3efab411968712" id="r_aba54d7c0f161bc3e7f3efab411968712"><td class="memItemLeft" align="right" valign="top">typedef union <a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td></tr>
-<tr class="memdesc:aba54d7c0f161bc3e7f3efab411968712"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters.  <br /></td></tr>
+<tr class="memdesc:gacce07d550c2b0c63614d19dfbdafca38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scatter/gather buffer element for sending. <br /></td></tr>
+<tr class="memitem:gaba54d7c0f161bc3e7f3efab411968712" id="r_gaba54d7c0f161bc3e7f3efab411968712"><td class="memItemLeft" align="right" valign="top">typedef union <a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td></tr>
+<tr class="memdesc:gaba54d7c0f161bc3e7f3efab411968712"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:a7f26dad2b0638cc66f8ef1cc1423a481" id="r_a7f26dad2b0638cc66f8ef1cc1423a481"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> { <br />
+<tr class="memitem:ga7f26dad2b0638cc66f8ef1cc1423a481" id="r_ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_PKT_TYPE_INITIAL</b> = 0x00
 , <b>YAWT_Q_PKT_TYPE_0RTT</b> = 0x01
 , <b>YAWT_Q_PKT_TYPE_HANDSHAKE</b> = 0x02
@@ -209,14 +197,14 @@ Enumerations</h2></td></tr>
 &#160;&#160;<b>YAWT_Q_PKT_TYPE_1RTT</b> = 0xFF
 <br />
  }</td></tr>
-<tr class="memdesc:a7f26dad2b0638cc66f8ef1cc1423a481"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC packet types (all 5 forms).  <a href="#a7f26dad2b0638cc66f8ef1cc1423a481">More...</a><br /></td></tr>
-<tr class="memitem:a18527349c2d3f9f52c1600abc554b8b6" id="r_a18527349c2d3f9f52c1600abc554b8b6"><td class="memItemLeft" align="right" valign="top"><a id="a18527349c2d3f9f52c1600abc554b8b6" name="a18527349c2d3f9f52c1600abc554b8b6"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a> { <b>YAWT_Q_C_BIDI</b> = 0x00
+<tr class="memdesc:ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC packet types (all 5 forms).  <a href="group__QUIC.html#ga7f26dad2b0638cc66f8ef1cc1423a481">More...</a><br /></td></tr>
+<tr class="memitem:ga18527349c2d3f9f52c1600abc554b8b6" id="r_ga18527349c2d3f9f52c1600abc554b8b6"><td class="memItemLeft" align="right" valign="top"><a id="ga18527349c2d3f9f52c1600abc554b8b6" name="ga18527349c2d3f9f52c1600abc554b8b6"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a> { <b>YAWT_Q_C_BIDI</b> = 0x00
 , <b>YAWT_Q_S_BIDI</b> = 0x01
 , <b>YAWT_Q_C_UNI</b> = 0x02
 , <b>YAWT_Q_S_UNI</b> = 0x03
  }</td></tr>
-<tr class="memdesc:a18527349c2d3f9f52c1600abc554b8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC stream types (RFC 9000). <br /></td></tr>
-<tr class="memitem:a57a79159b86da14e34eb450d26fe6072" id="r_a57a79159b86da14e34eb450d26fe6072"><td class="memItemLeft" align="right" valign="top"><a id="a57a79159b86da14e34eb450d26fe6072" name="a57a79159b86da14e34eb450d26fe6072"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a57a79159b86da14e34eb450d26fe6072">YAWT_Q_Frame_Type_t</a> { <br />
+<tr class="memdesc:ga18527349c2d3f9f52c1600abc554b8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC stream types (RFC 9000). <br /></td></tr>
+<tr class="memitem:ga57a79159b86da14e34eb450d26fe6072" id="r_ga57a79159b86da14e34eb450d26fe6072"><td class="memItemLeft" align="right" valign="top"><a id="ga57a79159b86da14e34eb450d26fe6072" name="ga57a79159b86da14e34eb450d26fe6072"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga57a79159b86da14e34eb450d26fe6072">YAWT_Q_Frame_Type_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_FRAME_PADDING</b> = 0x00
 , <b>YAWT_Q_FRAME_PING</b> = 0x01
 , <b>YAWT_Q_FRAME_ACK</b> = 0x02
@@ -251,14 +239,14 @@ Enumerations</h2></td></tr>
 , <b>YAWT_Q_FRAME_DATAGRAM_LEN</b> = 0x31
 <br />
  }</td></tr>
-<tr class="memdesc:a57a79159b86da14e34eb450d26fe6072"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types. <br /></td></tr>
-<tr class="memitem:a84c95fc076cafaaed9f9f8997703e454" id="r_a84c95fc076cafaaed9f9f8997703e454"><td class="memItemLeft" align="right" valign="top"><a id="a84c95fc076cafaaed9f9f8997703e454" name="a84c95fc076cafaaed9f9f8997703e454"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a> { <b>YAWT_Q_PKT_INITIAL</b> = 0x00
+<tr class="memdesc:ga57a79159b86da14e34eb450d26fe6072"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types. <br /></td></tr>
+<tr class="memitem:ga84c95fc076cafaaed9f9f8997703e454" id="r_ga84c95fc076cafaaed9f9f8997703e454"><td class="memItemLeft" align="right" valign="top"><a id="ga84c95fc076cafaaed9f9f8997703e454" name="ga84c95fc076cafaaed9f9f8997703e454"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a> { <b>YAWT_Q_PKT_INITIAL</b> = 0x00
 , <b>YAWT_Q_PKT_0RTT</b> = 0x01
 , <b>YAWT_Q_PKT_HANDSHAKE</b> = 0x02
 , <b>YAWT_Q_PKT_RETRY</b> = 0x03
  }</td></tr>
-<tr class="memdesc:a84c95fc076cafaaed9f9f8997703e454"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC long packet types. <br /></td></tr>
-<tr class="memitem:a8f207db1067de78b254ce521377215dd" id="r_a8f207db1067de78b254ce521377215dd"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> { <br />
+<tr class="memdesc:ga84c95fc076cafaaed9f9f8997703e454"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC long packet types. <br /></td></tr>
+<tr class="memitem:ga8f207db1067de78b254ce521377215dd" id="r_ga8f207db1067de78b254ce521377215dd"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_EVT_CONNECTED</b>
 , <b>YAWT_Q_EVT_STREAM</b>
 , <b>YAWT_Q_EVT_DATAGRAM</b>
@@ -267,199 +255,105 @@ Enumerations</h2></td></tr>
 &#160;&#160;<b>YAWT_Q_EVT_TX</b>
 <br />
  }</td></tr>
-<tr class="memdesc:a8f207db1067de78b254ce521377215dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC event taxonomy.  <a href="#a8f207db1067de78b254ce521377215dd">More...</a><br /></td></tr>
+<tr class="memdesc:ga8f207db1067de78b254ce521377215dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC event taxonomy.  <a href="group__QUIC.html#ga8f207db1067de78b254ce521377215dd">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a6aacddb761627c8e9ace2cc1e9ec323c" id="r_a6aacddb761627c8e9ace2cc1e9ec323c"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6aacddb761627c8e9ace2cc1e9ec323c">YAWT_q_cid_set</a> (<a class="el" href="#ad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dst, const uint8_t *id, uint8_t len)</td></tr>
-<tr class="memdesc:a6aacddb761627c8e9ace2cc1e9ec323c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a Connection ID.  <br /></td></tr>
-<tr class="memitem:a579789bdc3d3a5f8796fd450ec756d3c" id="r_a579789bdc3d3a5f8796fd450ec756d3c"><td class="memItemLeft" align="right" valign="top">static const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a579789bdc3d3a5f8796fd450ec756d3c">YAWT_q_cid_to_hex</a> (const <a class="el" href="#ad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *cid)</td></tr>
-<tr class="memdesc:a579789bdc3d3a5f8796fd450ec756d3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Format a CID as a hex string.  <br /></td></tr>
+<tr class="memitem:ga6aacddb761627c8e9ace2cc1e9ec323c" id="r_ga6aacddb761627c8e9ace2cc1e9ec323c"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga6aacddb761627c8e9ace2cc1e9ec323c">YAWT_q_cid_set</a> (<a class="el" href="group__QUIC.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dst, const uint8_t *id, uint8_t len)</td></tr>
+<tr class="memdesc:ga6aacddb761627c8e9ace2cc1e9ec323c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a Connection ID.  <br /></td></tr>
+<tr class="memitem:ga579789bdc3d3a5f8796fd450ec756d3c" id="r_ga579789bdc3d3a5f8796fd450ec756d3c"><td class="memItemLeft" align="right" valign="top">static const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC.html#ga579789bdc3d3a5f8796fd450ec756d3c">YAWT_q_cid_to_hex</a> (const <a class="el" href="group__QUIC.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *cid)</td></tr>
+<tr class="memdesc:ga579789bdc3d3a5f8796fd450ec756d3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Format a CID as a hex string.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Core QUIC data structures, constants, and enums. </p>
-</div><a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
-<a id="a758de3dadb790488cd27e55f9cf34a92" name="a758de3dadb790488cd27e55f9cf34a92"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a758de3dadb790488cd27e55f9cf34a92">&#9670;&#160;</a></span>YAWT_Q_Packet_t</h2>
+</div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
+<a id="a47c7294ff90faafc25689aa1a106fe40" name="a47c7294ff90faafc25689aa1a106fe40"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a47c7294ff90faafc25689aa1a106fe40">&#9670;&#160;</a></span>YAWT_Q_CID_LEN</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a> <a class="el" href="#a758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></td>
+          <td class="memname">#define YAWT_Q_CID_LEN&#160;&#160;&#160;20</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Flat packet struct — all packet types collapsed into one. </p>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: when produced by YAWT_q_parse_packet, the pointer fields below (payload, raw, and extra.*.token) borrow INTO the input datagram buffer. They are valid only while that buffer is. Decrypt happens in-place on those bytes. Do not retain these pointers beyond the current parse scope. </dd></dl>
+<p>Maximum Connection ID length </p>
 
 </div>
 </div>
-<a id="aae6e88026a73c2efeae1eb6777d6034c" name="aae6e88026a73c2efeae1eb6777d6034c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aae6e88026a73c2efeae1eb6777d6034c">&#9670;&#160;</a></span>YAWT_Q_Frame_Stream_t</h2>
+<a id="ab263e38160f6f685bb4b0544caf965b2" name="ab263e38160f6f685bb4b0544caf965b2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab263e38160f6f685bb4b0544caf965b2">&#9670;&#160;</a></span>YAWT_Q_LONG_HDR_OVERHEAD</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a> <a class="el" href="#aae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td>
+          <td class="memname">#define YAWT_Q_LONG_HDR_OVERHEAD&#160;&#160;&#160;69</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>STREAM frame (0x08-0x0f). </p>
-<dl class="section note"><dt>Note</dt><dd>Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01). </dd></dl>
+<p>Worst-case long header overhead (header + PN + AEAD tag) </p>
 
 </div>
 </div>
-<a id="ade8ac1df5770886c672261a83d40e3ea" name="ade8ac1df5770886c672261a83d40e3ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ade8ac1df5770886c672261a83d40e3ea">&#9670;&#160;</a></span>YAWT_Q_Frame_BufferedStream_t</h2>
+<a id="a8b4af4e102b58ca4eb4163cf2a0eb6d4" name="a8b4af4e102b58ca4eb4163cf2a0eb6d4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8b4af4e102b58ca4eb4163cf2a0eb6d4">&#9670;&#160;</a></span>YAWT_Q_MAX_FRAME_PAYLOAD_LONG</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a> <a class="el" href="#ade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td>
+          <td class="memname">#define YAWT_Q_MAX_FRAME_PAYLOAD_LONG&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#ab263e38160f6f685bb4b0544caf965b2">YAWT_Q_LONG_HDR_OVERHEAD</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>A STREAM frame plus the storage its .frame.data points at. </p>
-<dl class="section note"><dt>Note</dt><dd>Used when a frame must outlive the input datagram (out-of-order RX buffering and TX queuing). bf-&gt;data is the OWNED inline copy. bf-&gt;frame.data is the borrowed pointer, set to point at bf-&gt;data when buffered. </dd></dl>
+<p>Max frame data that can safely fit in a long header packet </p>
 
 </div>
 </div>
-<a id="aba54d7c0f161bc3e7f3efab411968712" name="aba54d7c0f161bc3e7f3efab411968712"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aba54d7c0f161bc3e7f3efab411968712">&#9670;&#160;</a></span>YAWT_Q_EventParam_t</h2>
+<a id="a67ae20777dbc1c5a086872d451806818" name="a67ae20777dbc1c5a086872d451806818"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67ae20777dbc1c5a086872d451806818">&#9670;&#160;</a></span>YAWT_Q_MAX_FRAME_PAYLOAD_SHORT</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef union <a class="el" href="unionYAWT__Q__EventParam.html">YAWT_Q_EventParam</a> <a class="el" href="#aba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a></td>
+          <td class="memname">#define YAWT_Q_MAX_FRAME_PAYLOAD_SHORT&#160;&#160;&#160;(<a class="el" href="#aaab832e4b378244a75b5ecc3695b1bd7">YAWT_Q_MAX_PKT_SIZE</a> - <a class="el" href="#a82c4656639707ecf232c87d029f000ce">YAWT_Q_SHORT_HDR_OVERHEAD</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Per-event parameters. </p>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: ALL pointers in this union are valid ONLY for the duration of the handler call. They reference internal/transient storage (the input datagram buffer, a slab item, or an encode scratch buffer) that the QUIC layer reuses immediately after the handler returns. Copy anything you need to retain. </dd></dl>
+<p>Max frame data that can safely fit in a short header packet </p>
 
 </div>
 </div>
-<a name="doc-enum-members" id="doc-enum-members"></a><h2 id="header-doc-enum-members" class="groupheader">Enumeration Type Documentation</h2>
-<a id="a7f26dad2b0638cc66f8ef1cc1423a481" name="a7f26dad2b0638cc66f8ef1cc1423a481"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7f26dad2b0638cc66f8ef1cc1423a481">&#9670;&#160;</a></span>YAWT_Q_Packet_Type_t</h2>
+<a id="aaab832e4b378244a75b5ecc3695b1bd7" name="aaab832e4b378244a75b5ecc3695b1bd7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaab832e4b378244a75b5ecc3695b1bd7">&#9670;&#160;</a></span>YAWT_Q_MAX_PKT_SIZE</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="#a7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a></td>
+          <td class="memname">#define YAWT_Q_MAX_PKT_SIZE&#160;&#160;&#160;1350</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>QUIC packet types (all 5 forms). </p>
-<dl class="section note"><dt>Note</dt><dd>Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2). 1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel. </dd></dl>
+<p>Maximum QUIC packet size </p>
 
 </div>
 </div>
-<a id="a8f207db1067de78b254ce521377215dd" name="a8f207db1067de78b254ce521377215dd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8f207db1067de78b254ce521377215dd">&#9670;&#160;</a></span>YAWT_Q_EventType_t</h2>
+<a id="a82c4656639707ecf232c87d029f000ce" name="a82c4656639707ecf232c87d029f000ce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a82c4656639707ecf232c87d029f000ce">&#9670;&#160;</a></span>YAWT_Q_SHORT_HDR_OVERHEAD</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="#a8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a></td>
+          <td class="memname">#define YAWT_Q_SHORT_HDR_OVERHEAD&#160;&#160;&#160;41</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>QUIC event taxonomy. </p>
-<dl class="section note"><dt>Note</dt><dd>New events extend this enum AND add a matching <span class="tt">P_&lt;eventtype&gt;</span> substruct to <a class="el" href="#aba54d7c0f161bc3e7f3efab411968712" title="Per-event parameters.">YAWT_Q_EventParam_t</a> below. The 1:1 mapping between enum suffix and union member name is part of the contract. </dd></dl>
-
-</div>
-</div>
-<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
-<a id="a6aacddb761627c8e9ace2cc1e9ec323c" name="a6aacddb761627c8e9ace2cc1e9ec323c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6aacddb761627c8e9ace2cc1e9ec323c">&#9670;&#160;</a></span>YAWT_q_cid_set()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_cid_set </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#ad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dst</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>id</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Set a Connection ID. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">dst</td><td>Destination CID struct. </td></tr>
-    <tr><td class="paramname">id</td><td>Source byte array. </td></tr>
-    <tr><td class="paramname">len</td><td>Length of the source byte array. Truncated to 20 if &gt; 20. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="reference">References <a class="el" href="group__Logging.html#gacc2630470980bf8ee566aec1adea3602">YAWT_LOG</a>, and <a class="el" href="group__Logging.html#gga521369fb39c5dbfe6c60f82705a9db70a9207f0d7f7835e9c32fa3875e503b647">YAWT_LOG_ERROR</a>.</p>
-
-</div>
-</div>
-<a id="a579789bdc3d3a5f8796fd450ec756d3c" name="a579789bdc3d3a5f8796fd450ec756d3c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a579789bdc3d3a5f8796fd450ec756d3c">&#9670;&#160;</a></span>YAWT_q_cid_to_hex()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">const char * YAWT_q_cid_to_hex </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="#ad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cid</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Format a CID as a hex string. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">cid</td><td>The Connection ID to format. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to a static buffer containing the hex string (not thread-safe). </dd></dl>
+<p>Worst-case short header overhead (header + PN + AEAD tag) </p>
 
 </div>
 </div>

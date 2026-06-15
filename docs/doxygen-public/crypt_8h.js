@@ -4,6 +4,6 @@ var crypt_8h =
     [ "YAWT_Q_Crypto_t", "group__Crypt.html#ga2e8365554dbb0891270f945e33174d77", null ],
     [ "YAWT_Q_Encryption_Level_t", "group__Crypt.html#gad8dc02c9b7f257e748ebe6069b1171cf", null ],
     [ "YAWT_Q_Key_State_t", "group__Crypt.html#ga48425992a747587ed8f2602c35e3aff0", null ],
-    [ "YAWT_q_crypto_cred_new", "group__Crypt.html#ga1845bc2cfcd2f2bc17d1a49aaaf64179", null ],
-    [ "YAWT_q_crypto_cred_free", "group__Crypt.html#gadb1cab0ad614d900062d780c10ee5eb1", null ]
+    [ "YAWT_q_crypto_cred_free", "group__Crypt.html#gadb1cab0ad614d900062d780c10ee5eb1", null ],
+    [ "YAWT_q_crypto_cred_new", "group__Crypt.html#ga1845bc2cfcd2f2bc17d1a49aaaf64179", null ]
 ];
