@@ -100,245 +100,248 @@ $(function(){initNavTree('h3__types_8h_source.html','',''); });
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;stddef.h&gt;</span></div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span></div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">   20</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a> <a class="code hl_typedef" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a>;</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno"><a class="line" href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">   22</a></span><span class="preprocessor">#define H3_FRAME_MAX_HEADER_BYTES 16  </span><span class="preprocessor"></span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno"><a class="line" href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">   23</a></span><span class="preprocessor">#define H3_STREAM_TYPE_MAX_BYTES   8  </span><span class="preprocessor"></span></div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span></div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span></div>
-<div class="foldopen" id="foldopen00043" data-start="{" data-end="};">
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gae58b0f409d56ccaa0d5b8ff01ee45975">   43</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>  YAWT_H3_FRAME_DATA         = 0x00,</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>  YAWT_H3_FRAME_HEADERS      = 0x01,</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>  YAWT_H3_FRAME_CANCEL_PUSH  = 0x03,</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>  YAWT_H3_FRAME_SETTINGS     = 0x04,</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>  YAWT_H3_FRAME_PUSH_PROMISE = 0x05,</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>  YAWT_H3_FRAME_GOAWAY       = 0x07,</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d,</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>} <a class="code hl_enumeration" href="group__HTTP3.html#gae58b0f409d56ccaa0d5b8ff01ee45975">YAWT_H3_FrameType_t</a>;</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span></div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span></div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">   38</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a> <a class="code hl_typedef" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a>;</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno"><a class="line" href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">   40</a></span><span class="preprocessor">#define H3_FRAME_MAX_HEADER_BYTES 16  </span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno"><a class="line" href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">   41</a></span><span class="preprocessor">#define H3_STREAM_TYPE_MAX_BYTES   8  </span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span></div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span></div>
+<div class="foldopen" id="foldopen00061" data-start="{" data-end="};">
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno"><a class="line" href="group__H3__Types.html#gae58b0f409d56ccaa0d5b8ff01ee45975">   61</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>  YAWT_H3_FRAME_DATA         = 0x00,</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>  YAWT_H3_FRAME_HEADERS      = 0x01,</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>  YAWT_H3_FRAME_CANCEL_PUSH  = 0x03,</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  YAWT_H3_FRAME_SETTINGS     = 0x04,</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  YAWT_H3_FRAME_PUSH_PROMISE = 0x05,</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>  YAWT_H3_FRAME_GOAWAY       = 0x07,</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>  YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d,</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>} <a class="code hl_enumeration" href="group__H3__Types.html#gae58b0f409d56ccaa0d5b8ff01ee45975">YAWT_H3_FrameType_t</a>;</div>
 </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span></div>
-<div class="foldopen" id="foldopen00060" data-start="{" data-end="};">
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga1feb87ab2d5c3769763990325a4c89bb">   60</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>  YAWT_H3_STREAM_WIRE_CONTROL      = 0x00,</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>  YAWT_H3_STREAM_WIRE_PUSH         = 0x01,</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>  YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02,</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>  YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03,</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54,</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>} <a class="code hl_enumeration" href="group__HTTP3.html#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a>;</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span></div>
+<div class="foldopen" id="foldopen00078" data-start="{" data-end="};">
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga1feb87ab2d5c3769763990325a4c89bb">   78</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>  YAWT_H3_STREAM_WIRE_CONTROL      = 0x00,</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>  YAWT_H3_STREAM_WIRE_PUSH         = 0x01,</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>  YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02,</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03,</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54,</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>} <a class="code hl_enumeration" href="group__H3__Types.html#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a>;</div>
 </div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span></div>
-<div class="foldopen" id="foldopen00072" data-start="{" data-end="};">
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">   72</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>  YAWT_H3_STREAM_UNASSIGNED = 0, <span class="comment">// not yet assigned</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>  YAWT_H3_STREAM_FRAME,      <span class="comment">// bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) </span></div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>  YAWT_H3_STREAM_PUSH,       <span class="comment">// push stream (RFC 9114 §6.2.2)</span></div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>  YAWT_H3_STREAM_CONTROL,    <span class="comment">// control stream (RFC 9114 §6.2.1)</span></div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  YAWT_H3_STREAM_QPACK,</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  YAWT_H3_STREAM_WEBTRANSPORT</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>} <a class="code hl_enumeration" href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a>;</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span></div>
+<div class="foldopen" id="foldopen00090" data-start="{" data-end="};">
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">   90</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  YAWT_H3_STREAM_UNASSIGNED = 0, <span class="comment">// not yet assigned</span></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  YAWT_H3_STREAM_FRAME,      <span class="comment">// bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) </span></div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>  YAWT_H3_STREAM_PUSH,       <span class="comment">// push stream (RFC 9114 §6.2.2)</span></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>  YAWT_H3_STREAM_CONTROL,    <span class="comment">// control stream (RFC 9114 §6.2.1)</span></div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>  YAWT_H3_STREAM_QPACK,</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>  YAWT_H3_STREAM_WEBTRANSPORT</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>} <a class="code hl_enumeration" href="group__H3__Types.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a>;</div>
 </div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span></div>
-<div class="foldopen" id="foldopen00087" data-start="{" data-end="};">
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gac275e05e4bbc28952cc885859ac5767a">   87</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>  YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01,</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06,</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07,</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08,</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  YAWT_H3_SETTING_H3_DATAGRAM              = 0x33,</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000,</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>} <a class="code hl_enumeration" href="group__HTTP3.html#gac275e05e4bbc28952cc885859ac5767a">YAWT_H3_SettingId_t</a>;</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span></div>
+<div class="foldopen" id="foldopen00105" data-start="{" data-end="};">
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno"><a class="line" href="group__H3__Types.html#gac275e05e4bbc28952cc885859ac5767a">  105</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>  YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01,</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>  YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06,</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>  YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07,</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>  YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08,</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>  YAWT_H3_SETTING_H3_DATAGRAM              = 0x33,</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000,</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>} <a class="code hl_enumeration" href="group__H3__Types.html#gac275e05e4bbc28952cc885859ac5767a">YAWT_H3_SettingId_t</a>;</div>
 </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span></div>
-<div class="foldopen" id="foldopen00102" data-start="{" data-end="};">
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gaee3588bbd1d2ab017fac2184d2424e1d">  102</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>  YAWT_H3_OK = 0,</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>  YAWT_H3_ERR_SHORT_BUFFER,   <span class="comment">// output buffer too small to encode</span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>  YAWT_H3_ERR_INCOMPLETE,     <span class="comment">// not enough stream bytes yet — retry with more</span></div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>  YAWT_H3_ERR_MALFORMED,      <span class="comment">// structurally invalid (e.g. odd SETTINGS pairs)</span></div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>  YAWT_H3_ERR_TOO_LARGE,      <span class="comment">// frame exceeds the H3 buffer cap (security policy)</span></div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>  YAWT_H3_ERR_INVALID_PARAM,</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>  YAWT_H3_ERR_NO_APP_HANDLER, <span class="comment">// app handler not set via YAWT_h3_set_event_handler()</span></div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>  YAWT_H3_IGNORED,            <span class="comment">// event was not handled (e.g. DATAGRAM, unknown QUIC event)</span></div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>} <a class="code hl_enumeration" href="group__HTTP3.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>;</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span></div>
+<div class="foldopen" id="foldopen00120" data-start="{" data-end="};">
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno"><a class="line" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">  120</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>  YAWT_H3_OK = 0,</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>  YAWT_H3_ERR_SHORT_BUFFER,   <span class="comment">// output buffer too small to encode</span></div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>  YAWT_H3_ERR_INCOMPLETE,     <span class="comment">// not enough stream bytes yet — retry with more</span></div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>  YAWT_H3_ERR_MALFORMED,      <span class="comment">// structurally invalid (e.g. odd SETTINGS pairs)</span></div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>  YAWT_H3_ERR_TOO_LARGE,      <span class="comment">// frame exceeds the H3 buffer cap (security policy)</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>  YAWT_H3_ERR_INVALID_PARAM,</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>  YAWT_H3_ERR_NO_APP_HANDLER, <span class="comment">// app handler not set via YAWT_h3_set_event_handler()</span></div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>  YAWT_H3_IGNORED,            <span class="comment">// event was not handled (e.g. DATAGRAM, unknown QUIC event)</span></div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>} <a class="code hl_enumeration" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>;</div>
 </div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span></div>
-<div class="foldopen" id="foldopen00119" data-start="{" data-end="}">
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga90bac050129e3c4f3f9057b7d4ab8530">  119</a></span><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">const</span> <span class="keywordtype">char</span> *<a class="code hl_function" href="group__HTTP3.html#ga90bac050129e3c4f3f9057b7d4ab8530">YAWT_h3_err_str</a>(<a class="code hl_enumeration" href="group__HTTP3.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> err) {</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>  <span class="keywordflow">switch</span> (err) {</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    <span class="keywordflow">case</span> YAWT_H3_OK:                <span class="keywordflow">return</span> <span class="stringliteral">&quot;OK&quot;</span>;</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_SHORT_BUFFER:  <span class="keywordflow">return</span> <span class="stringliteral">&quot;SHORT_BUFFER&quot;</span>;</div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_INCOMPLETE:    <span class="keywordflow">return</span> <span class="stringliteral">&quot;INCOMPLETE&quot;</span>;</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_MALFORMED:     <span class="keywordflow">return</span> <span class="stringliteral">&quot;MALFORMED&quot;</span>;</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_TOO_LARGE:     <span class="keywordflow">return</span> <span class="stringliteral">&quot;TOO_LARGE&quot;</span>;</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_INVALID_PARAM: <span class="keywordflow">return</span> <span class="stringliteral">&quot;INVALID_PARAM&quot;</span>;</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_NO_APP_HANDLER:<span class="keywordflow">return</span> <span class="stringliteral">&quot;NO_APP_HANDLER&quot;</span>;</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    <span class="keywordflow">case</span> YAWT_H3_IGNORED:           <span class="keywordflow">return</span> <span class="stringliteral">&quot;IGNORED&quot;</span>;</div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>    <span class="keywordflow">default</span>:                        <span class="keywordflow">return</span> <span class="stringliteral">&quot;UNKNOWN&quot;</span>;</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>  }</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>}</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span></div>
+<div class="foldopen" id="foldopen00137" data-start="{" data-end="}">
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga90bac050129e3c4f3f9057b7d4ab8530">  137</a></span><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">const</span> <span class="keywordtype">char</span> *<a class="code hl_function" href="group__H3__Types.html#ga90bac050129e3c4f3f9057b7d4ab8530">YAWT_h3_err_str</a>(<a class="code hl_enumeration" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> err) {</div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>  <span class="keywordflow">switch</span> (err) {</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>    <span class="keywordflow">case</span> YAWT_H3_OK:                <span class="keywordflow">return</span> <span class="stringliteral">&quot;OK&quot;</span>;</div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_SHORT_BUFFER:  <span class="keywordflow">return</span> <span class="stringliteral">&quot;SHORT_BUFFER&quot;</span>;</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_INCOMPLETE:    <span class="keywordflow">return</span> <span class="stringliteral">&quot;INCOMPLETE&quot;</span>;</div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_MALFORMED:     <span class="keywordflow">return</span> <span class="stringliteral">&quot;MALFORMED&quot;</span>;</div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_TOO_LARGE:     <span class="keywordflow">return</span> <span class="stringliteral">&quot;TOO_LARGE&quot;</span>;</div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_INVALID_PARAM: <span class="keywordflow">return</span> <span class="stringliteral">&quot;INVALID_PARAM&quot;</span>;</div>
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>    <span class="keywordflow">case</span> YAWT_H3_ERR_NO_APP_HANDLER:<span class="keywordflow">return</span> <span class="stringliteral">&quot;NO_APP_HANDLER&quot;</span>;</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>    <span class="keywordflow">case</span> YAWT_H3_IGNORED:           <span class="keywordflow">return</span> <span class="stringliteral">&quot;IGNORED&quot;</span>;</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keywordflow">default</span>:                        <span class="keywordflow">return</span> <span class="stringliteral">&quot;UNKNOWN&quot;</span>;</div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>  }</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>}</div>
 </div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span></div>
-<div class="foldopen" id="foldopen00143" data-start="{" data-end="};">
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno"><a class="line" href="structYAWT__H3__Frame__t.html">  143</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>  uint64_t type;          <span class="comment">// decoded frame type (raw varint; unknown types survive)</span></div>
-<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>  uint64_t payload_len;   <span class="comment">// decoded Length</span></div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>  uint8_t *payload;       <span class="comment">// Either malloced or pointing into the current stream chunk; caller must not mutate or retain</span></div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span> </div>
-<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>  uint8_t  hdr[<a class="code hl_define" href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a>]; <span class="comment">// header (type+len) decode scratch; dead once decoded</span></div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>  uint8_t  hdr_size;      <span class="comment">// bytes of header consumed; 0 == header not yet read</span></div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>  uint64_t accumulated;   <span class="comment">// raw stream bytes accumulated for the current frame (INCOMPLETE)</span></div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>} <a class="code hl_struct" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a>;</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span></div>
+<div class="foldopen" id="foldopen00161" data-start="{" data-end="};">
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno"><a class="line" href="structYAWT__H3__Frame__t.html">  161</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>  uint64_t type;          <span class="comment">// decoded frame type (raw varint; unknown types survive)</span></div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>  uint64_t payload_len;   <span class="comment">// decoded Length</span></div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>  uint8_t *payload;       <span class="comment">// Either malloced or pointing into the current stream chunk; caller must not mutate or retain</span></div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span> </div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>  uint8_t  hdr[<a class="code hl_define" href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a>]; <span class="comment">// header (type+len) decode scratch; dead once decoded</span></div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>  uint8_t  hdr_size;      <span class="comment">// bytes of header consumed; 0 == header not yet read</span></div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>  uint64_t accumulated;   <span class="comment">// raw stream bytes accumulated for the current frame (INCOMPLETE)</span></div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>} <a class="code hl_struct" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a>;</div>
 </div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span></div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga6d215eda629f858265a72c875a627458">  157</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>ANB_Slab <a class="code hl_typedef" href="group__HTTP3.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a>;</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">  162</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>ANB_Blob <a class="code hl_typedef" href="group__HTTP3.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a>;</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span></div>
-<div class="foldopen" id="foldopen00171" data-start="{" data-end="};">
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno"><a class="line" href="structYAWT__H3__HeaderFields__t.html">  171</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>  <a class="code hl_typedef" href="group__HTTP3.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a> *slab;        <span class="comment">// stores _YAWT_H3_BufferedField_t entries</span></div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>  <a class="code hl_typedef" href="group__HTTP3.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a> *huff_scratch; <span class="comment">// huffman decode scratch space, as far as I know only headers use huffman</span></div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>} <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a>;</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span></div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga6d215eda629f858265a72c875a627458">  175</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>ANB_Slab <a class="code hl_typedef" href="group__H3__Types.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a>;</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno"><a class="line" href="group__H3__Types.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">  180</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>ANB_Blob <a class="code hl_typedef" href="group__H3__Types.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a>;</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span></div>
+<div class="foldopen" id="foldopen00189" data-start="{" data-end="};">
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno"><a class="line" href="structYAWT__H3__HeaderFields__t.html">  189</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>  <a class="code hl_typedef" href="group__H3__Types.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a> *slab;        <span class="comment">// stores _YAWT_H3_BufferedField_t entries</span></div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>  <a class="code hl_typedef" href="group__H3__Types.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a> *huff_scratch; <span class="comment">// huffman decode scratch space, as far as I know only headers use huffman</span></div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>} <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a>;</div>
 </div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span></div>
-<div class="foldopen" id="foldopen00182" data-start="{" data-end="};">
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno"><a class="line" href="structYAWT__H3__Request__t.html">  182</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>  <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>} <a class="code hl_struct" href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a>;</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span></div>
+<div class="foldopen" id="foldopen00200" data-start="{" data-end="};">
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno"><a class="line" href="structYAWT__H3__Request__t.html">  200</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>  <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>} <a class="code hl_struct" href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a>;</div>
 </div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span></div>
-<div class="foldopen" id="foldopen00191" data-start="{" data-end="};">
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno"><a class="line" href="structYAWT__H3__Response__t.html">  191</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>  <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>} <a class="code hl_struct" href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a>;</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span></div>
+<div class="foldopen" id="foldopen00209" data-start="{" data-end="};">
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno"><a class="line" href="structYAWT__H3__Response__t.html">  209</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>} <a class="code hl_struct" href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a>;</div>
 </div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span></div>
-<div class="foldopen" id="foldopen00205" data-start="{" data-end="};">
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno"><a class="line" href="structYAWT__H3__Stream__t.html">  205</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>  <span class="keywordtype">bool</span>     in_use;</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>  uint64_t id;</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>  <a class="code hl_enumeration" href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a> type;  <span class="comment">// ie frame, qpack, etc; UNASSIGNED until resolved</span></div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>  <span class="comment">// Uni streams begin with a stream-type varint (RFC 9114 §6.2). It may be split</span></div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  <span class="comment">// across QUIC chunks, so accumulate it here until decoded. Bidi (request)</span></div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>  <span class="comment">// streams have no prefix and resolve straight to STREAM_FRAME; type ==</span></div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>  <span class="comment">// UNASSIGNED is the &quot;prefix not yet read&quot; signal. Unused once type is set.</span></div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>  uint8_t  hdr[<a class="code hl_define" href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a>];</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>  uint64_t accumulated;</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>  <span class="comment">// Semantic request/response state — .headers is NULL until headers parsed.</span></div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>  <a class="code hl_struct" href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a>  request;</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  <a class="code hl_struct" href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a> response;</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>  <a class="code hl_struct" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a> frame;</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>} <a class="code hl_struct" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a>;</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span></div>
+<div class="foldopen" id="foldopen00223" data-start="{" data-end="};">
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno"><a class="line" href="structYAWT__H3__Stream__t.html">  223</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>  <span class="keywordtype">bool</span>     in_use;</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>  uint64_t id;</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>  <a class="code hl_enumeration" href="group__H3__Types.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a> type;  <span class="comment">// ie frame, qpack, etc; UNASSIGNED until resolved</span></div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>  <span class="comment">// Uni streams begin with a stream-type varint (RFC 9114 §6.2). It may be split</span></div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>  <span class="comment">// across QUIC chunks, so accumulate it here until decoded. Bidi (request)</span></div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>  <span class="comment">// streams have no prefix and resolve straight to STREAM_FRAME; type ==</span></div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>  <span class="comment">// UNASSIGNED is the &quot;prefix not yet read&quot; signal. Unused once type is set.</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>  uint8_t  hdr[<a class="code hl_define" href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a>];</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>  uint64_t accumulated;</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>  <span class="comment">// Semantic request/response state — .headers is NULL until headers parsed.</span></div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>  <a class="code hl_struct" href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a>  request;</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>  <a class="code hl_struct" href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a> response;</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>  <a class="code hl_struct" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a> frame;</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>} <a class="code hl_struct" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a>;</div>
 </div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span></div>
-<div class="foldopen" id="foldopen00226" data-start="{" data-end="};">
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno"><a class="line" href="structYAWT__H3__Settings__t.html">  226</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>  uint64_t qpack_max_table_capacity;   <span class="comment">// we send 0 (static-table-only QPACK)</span></div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>  uint64_t qpack_blocked_streams;      <span class="comment">// we send 0</span></div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>  uint64_t max_field_section_size;     <span class="comment">// inbound header cap; 0 = unset (omitted)</span></div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>  uint8_t  enable_connect_protocol;    <span class="comment">// 0/1 — extended CONNECT (RFC 9220)</span></div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>  uint8_t  h3_datagram;                <span class="comment">// 0/1 — HTTP datagrams (RFC 9297)</span></div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>  uint8_t  wt_enabled;                 <span class="comment">// 0/1 — WebTransport (draft-15)</span></div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>} <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a>;</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span></div>
+<div class="foldopen" id="foldopen00244" data-start="{" data-end="};">
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno"><a class="line" href="structYAWT__H3__Settings__t.html">  244</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>  uint64_t qpack_max_table_capacity;   <span class="comment">// we send 0 (static-table-only QPACK)</span></div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>  uint64_t qpack_blocked_streams;      <span class="comment">// we send 0</span></div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  uint64_t max_field_section_size;     <span class="comment">// inbound header cap; 0 = unset (omitted)</span></div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>  uint8_t  enable_connect_protocol;    <span class="comment">// 0/1 — extended CONNECT (RFC 9220)</span></div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>  uint8_t  h3_datagram;                <span class="comment">// 0/1 — HTTP datagrams (RFC 9297)</span></div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>  uint8_t  wt_enabled;                 <span class="comment">// 0/1 — WebTransport (draft-15)</span></div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>} <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a>;</div>
 </div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span></div>
-<div class="foldopen" id="foldopen00241" data-start="{" data-end="};">
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno"><a class="line" href="structYAWT__H3__Header__Field__t.html">  241</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>  <span class="keyword">const</span> <span class="keywordtype">char</span> *name;</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>  <span class="keyword">const</span> <span class="keywordtype">char</span> *value;</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>  <span class="keywordtype">size_t</span>      name_len;</div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>  <span class="keywordtype">size_t</span>      value_len;</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>  <span class="keywordtype">size_t</span>      i_static;  <span class="comment">// full name-value match in QPACK static table (0 = none)</span></div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  <span class="keywordtype">size_t</span>      i_name;    <span class="comment">// name-only match in QPACK static table (0 = none)</span></div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>} <a class="code hl_struct" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>;</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span></div>
+<div class="foldopen" id="foldopen00259" data-start="{" data-end="};">
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno"><a class="line" href="structYAWT__H3__Header__Field__t.html">  259</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>  <span class="keyword">const</span> <span class="keywordtype">char</span> *name;</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>  <span class="keyword">const</span> <span class="keywordtype">char</span> *value;</div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>  <span class="keywordtype">size_t</span>      name_len;</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>  <span class="keywordtype">size_t</span>      value_len;</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>  <span class="keywordtype">size_t</span>      i_static;  <span class="comment">// full name-value match in QPACK static table (0 = none)</span></div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>  <span class="keywordtype">size_t</span>      i_name;    <span class="comment">// name-only match in QPACK static table (0 = none)</span></div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>} <a class="code hl_struct" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>;</div>
 </div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span></div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">  254</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> <a class="code hl_typedef" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a>;</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span></div>
-<div class="foldopen" id="foldopen00262" data-start="{" data-end="};">
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">  262</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>  YAWT_H3_EVT_HEADERS,    <span class="comment">// HEADERS frame fully decoded; param has stream_id + headers</span></div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>  YAWT_H3_EVT_DATA,       <span class="comment">// DATA frame payload chunk; stream_id + data/len + fin</span></div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>  YAWT_H3_EVT_SETTINGS,   <span class="comment">// SETTINGS frame decoded; param has stream_id + settings ptr</span></div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>  YAWT_H3_EVT_CLOSE,      <span class="comment">// H3-level error/close; param has error_code + reason</span></div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>} <a class="code hl_enumeration" href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a>;</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span></div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno"><a class="line" href="group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">  272</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> <a class="code hl_typedef" href="group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a>;</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span></div>
+<div class="foldopen" id="foldopen00280" data-start="{" data-end="};">
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno"><a class="line" href="group__H3__Connection.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">  280</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>  YAWT_H3_EVT_HEADERS,    <span class="comment">// HEADERS frame fully decoded; param has stream_id + headers</span></div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>  YAWT_H3_EVT_DATA,       <span class="comment">// DATA frame payload chunk; stream_id + data/len + fin</span></div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>  YAWT_H3_EVT_SETTINGS,   <span class="comment">// SETTINGS frame decoded; param has stream_id + settings ptr</span></div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>  YAWT_H3_EVT_CLOSE,      <span class="comment">// H3-level error/close; param has error_code + reason</span></div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>} <a class="code hl_enumeration" href="group__H3__Connection.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a>;</div>
 </div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span></div>
-<div class="foldopen" id="foldopen00277" data-start="{" data-end="};">
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno"><a class="line" href="unionYAWT__H3__EventParam.html">  277</a></span><span class="keyword">typedef</span> <span class="keyword">union </span><a class="code hl_union" href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a> {</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>  <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    uint64_t stream_id;</div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>  } P_EVT_HEADERS;</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>  <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    uint64_t stream_id;</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keyword">const</span> uint8_t *data;</div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    <span class="keywordtype">size_t</span> len;</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>    <span class="keywordtype">int</span> fin;</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>  } P_EVT_DATA;</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>  <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>    uint64_t stream_id;</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *settings;</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>  } P_EVT_SETTINGS;</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>  <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>    uint64_t error_code;</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="keyword">const</span> <span class="keywordtype">char</span> *reason;</div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>  } P_EVT_CLOSE;</div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">  296</a></span>} <a class="code hl_typedef" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a>;</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span></div>
+<div class="foldopen" id="foldopen00295" data-start="{" data-end="};">
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno"><a class="line" href="unionYAWT__H3__EventParam.html">  295</a></span><span class="keyword">typedef</span> <span class="keyword">union </span><a class="code hl_union" href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a> {</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>  <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    uint64_t stream_id;</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    <a class="code hl_struct" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers;</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>  } P_EVT_HEADERS;</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>  <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    uint64_t stream_id;</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    <span class="keyword">const</span> uint8_t *data;</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>    <span class="keywordtype">size_t</span> len;</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    <span class="keywordtype">int</span> fin;</div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>  } P_EVT_DATA;</div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>  <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>    uint64_t stream_id;</div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *settings;</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>  } P_EVT_SETTINGS;</div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>  <span class="keyword">struct </span>{</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>    uint64_t error_code;</div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    <span class="keyword">const</span> <span class="keywordtype">char</span> *reason;</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>  } P_EVT_CLOSE;</div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno"><a class="line" href="group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30">  314</a></span>} <a class="code hl_typedef" href="group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a>;</div>
 </div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span></div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno"><a class="line" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">  302</a></span><span class="keyword">typedef</span> void (*<a class="code hl_typedef" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>)(<a class="code hl_typedef" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con,</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>                                        <a class="code hl_enumeration" href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> event,</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>                                        <a class="code hl_typedef" href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a> param);</div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span></div>
-<div class="foldopen" id="foldopen00312" data-start="{" data-end="};">
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno"><a class="line" href="structYAWT__H3__Connection.html">  312</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> {</div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>  <a class="code hl_typedef" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *qcon;            <span class="comment">// back-reference to the QUIC layer</span></div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>  <a class="code hl_typedef" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> app_handler;   <span class="comment">// app-level event callback</span></div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>  <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *local_settings;   <span class="comment">// NULL until populated</span></div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>  <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *peer_settings;    <span class="comment">// NULL until decoded from peer</span></div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>  uint64_t nstreams;                    <span class="comment">// slot pool size (concurrent stream cap)</span></div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>  <a class="code hl_struct" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *streams;            <span class="comment">// preallocated slot pool, linear-scan by id</span></div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>  uint64_t control_stream_id;           <span class="comment">// server&#39;s control stream (UINT64_MAX = not opened)</span></div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>} <a class="code hl_typedef" href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a>;</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span></div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno"><a class="line" href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">  320</a></span><span class="keyword">typedef</span> void (*<a class="code hl_typedef" href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>)(<a class="code hl_typedef" href="group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con,</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>                                        <a class="code hl_enumeration" href="group__H3__Connection.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> event,</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>                                        <a class="code hl_typedef" href="group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a> param);</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span></div>
+<div class="foldopen" id="foldopen00330" data-start="{" data-end="};">
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno"><a class="line" href="structYAWT__H3__Connection.html">  330</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> {</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>  <a class="code hl_typedef" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *qcon;            <span class="comment">// back-reference to the QUIC layer</span></div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>  <a class="code hl_typedef" href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> app_handler;   <span class="comment">// app-level event callback</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>  <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *local_settings;   <span class="comment">// NULL until populated</span></div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>  <a class="code hl_struct" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *peer_settings;    <span class="comment">// NULL until decoded from peer</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>  uint64_t nstreams;                    <span class="comment">// slot pool size (concurrent stream cap)</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>  <a class="code hl_struct" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a> *streams;            <span class="comment">// preallocated slot pool, linear-scan by id</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>  uint64_t control_stream_id;           <span class="comment">// server&#39;s control stream (UINT64_MAX = not opened)</span></div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>} <a class="code hl_typedef" href="group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a>;</div>
 </div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span></div>
-<div class="foldopen" id="foldopen00327" data-start="{" data-end="};">
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno"><a class="line" href="group__HTTP3.html#gab4fc52971ca76db3180d7f826b019bc1">  327</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    INSERT_WITH_NAME_REF,</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    INSERT_WITH_LITERAL_NAME,</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    SET_CAPACITY,</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    DUPLICATE,</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    UNKNOWN</div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>} <a class="code hl_enumeration" href="group__HTTP3.html#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a>;</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span></div>
+<div class="foldopen" id="foldopen00345" data-start="{" data-end="};">
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno"><a class="line" href="group__H3__Types.html#gab4fc52971ca76db3180d7f826b019bc1">  345</a></span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    INSERT_WITH_NAME_REF,</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    INSERT_WITH_LITERAL_NAME,</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    SET_CAPACITY,</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    DUPLICATE,</div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    UNKNOWN</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>} <a class="code hl_enumeration" href="group__H3__Types.html#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a>;</div>
 </div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span> </div>
-<div class="ttc" id="agroup__HTTP3_html_ga1feb87ab2d5c3769763990325a4c89bb"><div class="ttname"><a href="group__HTTP3.html#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a></div><div class="ttdeci">YAWT_H3_WireStreamType_t</div><div class="ttdoc">Unidirectional wire format stream types.</div><div class="ttdef"><b>Definition</b> h3_types.h:60</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga2b447d0a9609cf9651dd797c0fcd9f30"><div class="ttname"><a href="group__HTTP3.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a></div><div class="ttdeci">union YAWT_H3_EventParam YAWT_H3_EventParam_t</div><div class="ttdoc">Per-event parameters for H3.</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga4138fe0cf8509aa0f5cf95c57041ceb0"><div class="ttname"><a href="group__HTTP3.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a></div><div class="ttdeci">YAWT_H3_StreamType_t</div><div class="ttdoc">Logical HTTP/3 stream types.</div><div class="ttdef"><b>Definition</b> h3_types.h:72</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga48eeb291f8b1aa1867e90dbd40b71028"><div class="ttname"><a href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></div><div class="ttdeci">struct YAWT_Q_Connection YAWT_Q_Connection_t</div><div class="ttdoc">All HTTP/3 and QPACK protocol types, constants, and operations.</div><div class="ttdef"><b>Definition</b> h3_types.h:20</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga5d1d694f8c2f154003d76a186db6385b"><div class="ttname"><a href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a></div><div class="ttdeci">void(* YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con, YAWT_H3_EventType_t event, YAWT_H3_EventParam_t param)</div><div class="ttdoc">App-level event callback for H3.</div><div class="ttdef"><b>Definition</b> h3_types.h:302</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga62c274fcc5cdb7f30bdcca7f45caf15e"><div class="ttname"><a href="group__HTTP3.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a></div><div class="ttdeci">struct ANB_Blob ANB_Blob_t</div><div class="ttdoc">Forward declaration for ANB_Blob.</div><div class="ttdef"><b>Definition</b> h3_types.h:162</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga6d215eda629f858265a72c875a627458"><div class="ttname"><a href="group__HTTP3.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a></div><div class="ttdeci">struct ANB_Slab ANB_Slab_t</div><div class="ttdoc">Forward declaration for ANB_Slab.</div><div class="ttdef"><b>Definition</b> h3_types.h:157</div></div>
-<div class="ttc" id="agroup__HTTP3_html_ga90bac050129e3c4f3f9057b7d4ab8530"><div class="ttname"><a href="group__HTTP3.html#ga90bac050129e3c4f3f9057b7d4ab8530">YAWT_h3_err_str</a></div><div class="ttdeci">static const char * YAWT_h3_err_str(YAWT_H3_Error_t err)</div><div class="ttdoc">Get a string representation of an H3 error code.</div><div class="ttdef"><b>Definition</b> h3_types.h:119</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gab4fc52971ca76db3180d7f826b019bc1"><div class="ttname"><a href="group__HTTP3.html#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a></div><div class="ttdeci">YAWT_H3_QPACK_EncoderInstructionType_t</div><div class="ttdoc">Dynamic encoder instructions (RFC 9204 §4.3).</div><div class="ttdef"><b>Definition</b> h3_types.h:327</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gac275e05e4bbc28952cc885859ac5767a"><div class="ttname"><a href="group__HTTP3.html#gac275e05e4bbc28952cc885859ac5767a">YAWT_H3_SettingId_t</a></div><div class="ttdeci">YAWT_H3_SettingId_t</div><div class="ttdoc">SETTINGS identifiers.</div><div class="ttdef"><b>Definition</b> h3_types.h:87</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><div class="ttname"><a href="group__HTTP3.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></div><div class="ttdeci">struct YAWT_H3_Connection YAWT_H3_Connection_t</div><div class="ttdoc">Forward declaration for H3 connection object.</div><div class="ttdef"><b>Definition</b> h3_types.h:254</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gae58b0f409d56ccaa0d5b8ff01ee45975"><div class="ttname"><a href="group__HTTP3.html#gae58b0f409d56ccaa0d5b8ff01ee45975">YAWT_H3_FrameType_t</a></div><div class="ttdeci">YAWT_H3_FrameType_t</div><div class="ttdoc">HTTP/3 frame types (RFC 9114 §7.2).</div><div class="ttdef"><b>Definition</b> h3_types.h:43</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gaee3588bbd1d2ab017fac2184d2424e1d"><div class="ttname"><a href="group__HTTP3.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a></div><div class="ttdeci">YAWT_H3_Error_t</div><div class="ttdoc">Internal return status for H3 functions.</div><div class="ttdef"><b>Definition</b> h3_types.h:102</div></div>
-<div class="ttc" id="agroup__HTTP3_html_gaf251a0d5a0aa9d92bfe8c345f35f1e1c"><div class="ttname"><a href="group__HTTP3.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a></div><div class="ttdeci">YAWT_H3_EventType_t</div><div class="ttdoc">H3 event taxonomy.</div><div class="ttdef"><b>Definition</b> h3_types.h:262</div></div>
-<div class="ttc" id="ah3__types_8h_html_a051c31e35ec6425ff9b056561feb558b"><div class="ttname"><a href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a></div><div class="ttdeci">#define H3_STREAM_TYPE_MAX_BYTES</div><div class="ttdef"><b>Definition</b> h3_types.h:23</div></div>
-<div class="ttc" id="ah3__types_8h_html_aa1c74dcfce021ef9dc7e936bd7c2e56d"><div class="ttname"><a href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a></div><div class="ttdeci">#define H3_FRAME_MAX_HEADER_BYTES</div><div class="ttdef"><b>Definition</b> h3_types.h:22</div></div>
-<div class="ttc" id="astructYAWT__H3__Connection_html"><div class="ttname"><a href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a></div><div class="ttdoc">H3 connection object.</div><div class="ttdef"><b>Definition</b> h3_types.h:312</div></div>
-<div class="ttc" id="astructYAWT__H3__Frame__t_html"><div class="ttname"><a href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a></div><div class="ttdoc">The one H3 frame currently in flight on a stream.</div><div class="ttdef"><b>Definition</b> h3_types.h:143</div></div>
-<div class="ttc" id="astructYAWT__H3__HeaderFields__t_html"><div class="ttname"><a href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a></div><div class="ttdoc">Header fields — backed by ANB_Slab internally.</div><div class="ttdef"><b>Definition</b> h3_types.h:171</div></div>
-<div class="ttc" id="astructYAWT__H3__Header__Field__t_html"><div class="ttname"><a href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a></div><div class="ttdoc">Public view of a header field.</div><div class="ttdef"><b>Definition</b> h3_types.h:241</div></div>
-<div class="ttc" id="astructYAWT__H3__Request__t_html"><div class="ttname"><a href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a></div><div class="ttdoc">Semantic HTTP request.</div><div class="ttdef"><b>Definition</b> h3_types.h:182</div></div>
-<div class="ttc" id="astructYAWT__H3__Response__t_html"><div class="ttname"><a href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a></div><div class="ttdoc">Semantic HTTP response.</div><div class="ttdef"><b>Definition</b> h3_types.h:191</div></div>
-<div class="ttc" id="astructYAWT__H3__Settings__t_html"><div class="ttname"><a href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a></div><div class="ttdoc">Negotiated HTTP/3 settings.</div><div class="ttdef"><b>Definition</b> h3_types.h:226</div></div>
-<div class="ttc" id="astructYAWT__H3__Stream__t_html"><div class="ttname"><a href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a></div><div class="ttdoc">Per-stream H3 parse state.</div><div class="ttdef"><b>Definition</b> h3_types.h:205</div></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span> </div>
+<div class="ttc" id="agroup__H3__Connection_html_ga2b447d0a9609cf9651dd797c0fcd9f30"><div class="ttname"><a href="group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a></div><div class="ttdeci">union YAWT_H3_EventParam YAWT_H3_EventParam_t</div><div class="ttdoc">Per-event parameters for H3.</div></div>
+<div class="ttc" id="agroup__H3__Connection_html_ga5d1d694f8c2f154003d76a186db6385b"><div class="ttname"><a href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a></div><div class="ttdeci">void(* YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con, YAWT_H3_EventType_t event, YAWT_H3_EventParam_t param)</div><div class="ttdoc">App-level event callback for H3.</div><div class="ttdef"><b>Definition</b> h3_types.h:320</div></div>
+<div class="ttc" id="agroup__H3__Connection_html_gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><div class="ttname"><a href="group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></div><div class="ttdeci">struct YAWT_H3_Connection YAWT_H3_Connection_t</div><div class="ttdoc">Forward declaration for H3 connection object.</div><div class="ttdef"><b>Definition</b> h3_types.h:272</div></div>
+<div class="ttc" id="agroup__H3__Connection_html_gaf251a0d5a0aa9d92bfe8c345f35f1e1c"><div class="ttname"><a href="group__H3__Connection.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a></div><div class="ttdeci">YAWT_H3_EventType_t</div><div class="ttdoc">H3 event taxonomy.</div><div class="ttdef"><b>Definition</b> h3_types.h:280</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga1feb87ab2d5c3769763990325a4c89bb"><div class="ttname"><a href="group__H3__Types.html#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a></div><div class="ttdeci">YAWT_H3_WireStreamType_t</div><div class="ttdoc">Unidirectional wire format stream types.</div><div class="ttdef"><b>Definition</b> h3_types.h:78</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga4138fe0cf8509aa0f5cf95c57041ceb0"><div class="ttname"><a href="group__H3__Types.html#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a></div><div class="ttdeci">YAWT_H3_StreamType_t</div><div class="ttdoc">Logical HTTP/3 stream types.</div><div class="ttdef"><b>Definition</b> h3_types.h:90</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga48eeb291f8b1aa1867e90dbd40b71028"><div class="ttname"><a href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></div><div class="ttdeci">struct YAWT_Q_Connection YAWT_Q_Connection_t</div><div class="ttdoc">Forward declaration — full type in quic.h.</div><div class="ttdef"><b>Definition</b> h3_types.h:38</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga62c274fcc5cdb7f30bdcca7f45caf15e"><div class="ttname"><a href="group__H3__Types.html#ga62c274fcc5cdb7f30bdcca7f45caf15e">ANB_Blob_t</a></div><div class="ttdeci">struct ANB_Blob ANB_Blob_t</div><div class="ttdoc">Forward declaration for ANB_Blob.</div><div class="ttdef"><b>Definition</b> h3_types.h:180</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga6d215eda629f858265a72c875a627458"><div class="ttname"><a href="group__H3__Types.html#ga6d215eda629f858265a72c875a627458">ANB_Slab_t</a></div><div class="ttdeci">struct ANB_Slab ANB_Slab_t</div><div class="ttdoc">Forward declaration for ANB_Slab.</div><div class="ttdef"><b>Definition</b> h3_types.h:175</div></div>
+<div class="ttc" id="agroup__H3__Types_html_ga90bac050129e3c4f3f9057b7d4ab8530"><div class="ttname"><a href="group__H3__Types.html#ga90bac050129e3c4f3f9057b7d4ab8530">YAWT_h3_err_str</a></div><div class="ttdeci">static const char * YAWT_h3_err_str(YAWT_H3_Error_t err)</div><div class="ttdoc">Get a string representation of an H3 error code.</div><div class="ttdef"><b>Definition</b> h3_types.h:137</div></div>
+<div class="ttc" id="agroup__H3__Types_html_gab4fc52971ca76db3180d7f826b019bc1"><div class="ttname"><a href="group__H3__Types.html#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a></div><div class="ttdeci">YAWT_H3_QPACK_EncoderInstructionType_t</div><div class="ttdoc">Dynamic encoder instructions (RFC 9204 §4.3).</div><div class="ttdef"><b>Definition</b> h3_types.h:345</div></div>
+<div class="ttc" id="agroup__H3__Types_html_gac275e05e4bbc28952cc885859ac5767a"><div class="ttname"><a href="group__H3__Types.html#gac275e05e4bbc28952cc885859ac5767a">YAWT_H3_SettingId_t</a></div><div class="ttdeci">YAWT_H3_SettingId_t</div><div class="ttdoc">SETTINGS identifiers.</div><div class="ttdef"><b>Definition</b> h3_types.h:105</div></div>
+<div class="ttc" id="agroup__H3__Types_html_gae58b0f409d56ccaa0d5b8ff01ee45975"><div class="ttname"><a href="group__H3__Types.html#gae58b0f409d56ccaa0d5b8ff01ee45975">YAWT_H3_FrameType_t</a></div><div class="ttdeci">YAWT_H3_FrameType_t</div><div class="ttdoc">HTTP/3 frame types (RFC 9114 §7.2).</div><div class="ttdef"><b>Definition</b> h3_types.h:61</div></div>
+<div class="ttc" id="agroup__H3__Types_html_gaee3588bbd1d2ab017fac2184d2424e1d"><div class="ttname"><a href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a></div><div class="ttdeci">YAWT_H3_Error_t</div><div class="ttdoc">Internal return status for H3 functions.</div><div class="ttdef"><b>Definition</b> h3_types.h:120</div></div>
+<div class="ttc" id="ah3__types_8h_html_a051c31e35ec6425ff9b056561feb558b"><div class="ttname"><a href="h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b">H3_STREAM_TYPE_MAX_BYTES</a></div><div class="ttdeci">#define H3_STREAM_TYPE_MAX_BYTES</div><div class="ttdef"><b>Definition</b> h3_types.h:41</div></div>
+<div class="ttc" id="ah3__types_8h_html_aa1c74dcfce021ef9dc7e936bd7c2e56d"><div class="ttname"><a href="h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d">H3_FRAME_MAX_HEADER_BYTES</a></div><div class="ttdeci">#define H3_FRAME_MAX_HEADER_BYTES</div><div class="ttdef"><b>Definition</b> h3_types.h:40</div></div>
+<div class="ttc" id="astructYAWT__H3__Connection_html"><div class="ttname"><a href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a></div><div class="ttdoc">H3 connection object.</div><div class="ttdef"><b>Definition</b> h3_types.h:330</div></div>
+<div class="ttc" id="astructYAWT__H3__Frame__t_html"><div class="ttname"><a href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a></div><div class="ttdoc">The one H3 frame currently in flight on a stream.</div><div class="ttdef"><b>Definition</b> h3_types.h:161</div></div>
+<div class="ttc" id="astructYAWT__H3__HeaderFields__t_html"><div class="ttname"><a href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a></div><div class="ttdoc">Header fields — backed by ANB_Slab internally.</div><div class="ttdef"><b>Definition</b> h3_types.h:189</div></div>
+<div class="ttc" id="astructYAWT__H3__Header__Field__t_html"><div class="ttname"><a href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a></div><div class="ttdoc">Public view of a header field.</div><div class="ttdef"><b>Definition</b> h3_types.h:259</div></div>
+<div class="ttc" id="astructYAWT__H3__Request__t_html"><div class="ttname"><a href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a></div><div class="ttdoc">Semantic HTTP request.</div><div class="ttdef"><b>Definition</b> h3_types.h:200</div></div>
+<div class="ttc" id="astructYAWT__H3__Response__t_html"><div class="ttname"><a href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a></div><div class="ttdoc">Semantic HTTP response.</div><div class="ttdef"><b>Definition</b> h3_types.h:209</div></div>
+<div class="ttc" id="astructYAWT__H3__Settings__t_html"><div class="ttname"><a href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a></div><div class="ttdoc">Negotiated HTTP/3 settings.</div><div class="ttdef"><b>Definition</b> h3_types.h:244</div></div>
+<div class="ttc" id="astructYAWT__H3__Stream__t_html"><div class="ttname"><a href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a></div><div class="ttdoc">Per-stream H3 parse state.</div><div class="ttdef"><b>Definition</b> h3_types.h:223</div></div>
 <div class="ttc" id="astructYAWT__Q__Connection_html"><div class="ttname"><a href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a></div><div class="ttdoc">A QUIC connection.</div><div class="ttdef"><b>Definition</b> quic_connection.h:37</div></div>
-<div class="ttc" id="aunionYAWT__H3__EventParam_html"><div class="ttname"><a href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a></div><div class="ttdoc">Per-event parameters for H3.</div><div class="ttdef"><b>Definition</b> h3_types.h:277</div></div>
+<div class="ttc" id="aunionYAWT__H3__EventParam_html"><div class="ttname"><a href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a></div><div class="ttdoc">Per-event parameters for H3.</div><div class="ttdef"><b>Definition</b> h3_types.h:295</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->

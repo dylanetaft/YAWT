@@ -112,14 +112,13 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:gab2107f015ba0870c58a076a0f8acbd64" id="r_gab2107f015ba0870c58a076a0f8acbd64"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gab2107f015ba0870c58a076a0f8acbd64">YAWT_QPACK_STATIC_TABLE_SIZE</a>&#160;&#160;&#160;99</td></tr>
-<tr class="memdesc:gab2107f015ba0870c58a076a0f8acbd64"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK compression/decompression utilities.  <br /></td></tr>
+<tr class="memitem:ab2107f015ba0870c58a076a0f8acbd64" id="r_ab2107f015ba0870c58a076a0f8acbd64"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab2107f015ba0870c58a076a0f8acbd64">YAWT_QPACK_STATIC_TABLE_SIZE</a>&#160;&#160;&#160;99</td></tr>
 <tr class="memitem:ad1fca1fd12a365896cbda7424d7ed6f9" id="r_ad1fca1fd12a365896cbda7424d7ed6f9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad1fca1fd12a365896cbda7424d7ed6f9">YAWT_QPACK_PREFIX_INT_MAX_BYTES</a>&#160;&#160;&#160;11</td></tr>
 <tr class="memitem:a04205074ba5a63d603740d7027e009fc" id="r_a04205074ba5a63d603740d7027e009fc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a04205074ba5a63d603740d7027e009fc">YAWT_QPACK_HUFF_DEC_TREE_MAX</a>&#160;&#160;&#160;600</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:gaa448f7106436f267aefc54638cdf5938" id="r_gaa448f7106436f267aefc54638cdf5938"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a> { <br />
+<tr class="memitem:gaa448f7106436f267aefc54638cdf5938" id="r_gaa448f7106436f267aefc54638cdf5938"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a> { <br />
 &#160;&#160;<b>YAWT_QPACK_OK</b> = 0
 , <b>YAWT_QPACK_ERR_MALFORMED</b>
 , <b>YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED</b>
@@ -130,8 +129,8 @@ Enumerations</h2></td></tr>
 , <b>YAWT_QPACK_DONE</b>
 <br />
  }</td></tr>
-<tr class="memdesc:gaa448f7106436f267aefc54638cdf5938"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK decoder return status.  <a href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">More...</a><br /></td></tr>
-<tr class="memitem:ga97a706f643bc583a45449dc90aca0983" id="r_ga97a706f643bc583a45449dc90aca0983"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__HTTP3.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a> { <br />
+<tr class="memdesc:gaa448f7106436f267aefc54638cdf5938"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK decoder return status.  <a href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">More...</a><br /></td></tr>
+<tr class="memitem:ga97a706f643bc583a45449dc90aca0983" id="r_ga97a706f643bc583a45449dc90aca0983"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a> { <br />
 &#160;&#160;<b>YAWT_QPACK_FIELD_LINE_INDEXED</b>
 , <b>YAWT_QPACK_FIELD_LINE_INDEXED_POST_BASE</b>
 , <b>YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF</b>
@@ -141,7 +140,7 @@ Enumerations</h2></td></tr>
 , <b>YAWT_QPACK_FIELD_LINE_UNKNOWN</b>
 <br />
  }</td></tr>
-<tr class="memdesc:ga97a706f643bc583a45449dc90aca0983"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK field line representations (RFC 9204 §4.5).  <a href="group__HTTP3.html#ga97a706f643bc583a45449dc90aca0983">More...</a><br /></td></tr>
+<tr class="memdesc:ga97a706f643bc583a45449dc90aca0983"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK field line representations (RFC 9204 §4.5).  <a href="group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -152,25 +151,25 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_qpack_static_find
 <tr class="memitem:a32d7d2d680b426a0a1c7e03e9491ee89" id="r_a32d7d2d680b426a0a1c7e03e9491ee89"><td class="memItemLeft" align="right" valign="top"><a id="a32d7d2d680b426a0a1c7e03e9491ee89" name="a32d7d2d680b426a0a1c7e03e9491ee89"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_qpack_static_find_entry</b> (const char *name, const char *value)</td></tr>
 <tr class="memitem:ae79ac087c8d5c047c8dcb7326b936cf7" id="r_ae79ac087c8d5c047c8dcb7326b936cf7"><td class="memItemLeft" align="right" valign="top"><a id="ae79ac087c8d5c047c8dcb7326b936cf7" name="ae79ac087c8d5c047c8dcb7326b936cf7"></a>
-<a class="el" href="group__HTTP3.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_field_line_msb</b> (uint8_t byte, uint8_t *out_prefix_bits)</td></tr>
+<a class="el" href="group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_field_line_msb</b> (uint8_t byte, uint8_t *out_prefix_bits)</td></tr>
 <tr class="memitem:aac3724103ebc04688f2862126f9f5dd7" id="r_aac3724103ebc04688f2862126f9f5dd7"><td class="memItemLeft" align="right" valign="top"><a id="aac3724103ebc04688f2862126f9f5dd7" name="aac3724103ebc04688f2862126f9f5dd7"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encode_field_line</b> (const <a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> *field, uint8_t *buf, size_t len, size_t *written, <a class="el" href="group__HTTP3.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a> *out_type)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encode_field_line</b> (const <a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> *field, uint8_t *buf, size_t len, size_t *written, <a class="el" href="group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a> *out_type)</td></tr>
 <tr class="memitem:ac74540c8abbfbe58c371364601693c7b" id="r_ac74540c8abbfbe58c371364601693c7b"><td class="memItemLeft" align="right" valign="top"><a id="ac74540c8abbfbe58c371364601693c7b" name="ac74540c8abbfbe58c371364601693c7b"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encode_field_line_max_size</b> (const <a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a> *field)</td></tr>
 <tr class="memitem:ae586e121e1da6ef3f52af88174adea0f" id="r_ae586e121e1da6ef3f52af88174adea0f"><td class="memItemLeft" align="right" valign="top"><a id="ae586e121e1da6ef3f52af88174adea0f" name="ae586e121e1da6ef3f52af88174adea0f"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_prefix_int</b> (const uint8_t *buffer, size_t buffer_size, uint8_t offset_bits, uint64_t *out_value, uint64_t *bytes_consumed)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_prefix_int</b> (const uint8_t *buffer, size_t buffer_size, uint8_t offset_bits, uint64_t *out_value, uint64_t *bytes_consumed)</td></tr>
 <tr class="memitem:ae5861d18a46daaa65fe0eefcbaeeb2ac" id="r_ae5861d18a46daaa65fe0eefcbaeeb2ac"><td class="memItemLeft" align="right" valign="top"><a id="ae5861d18a46daaa65fe0eefcbaeeb2ac" name="ae5861d18a46daaa65fe0eefcbaeeb2ac"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encode_prefix_int</b> (uint8_t *buffer, size_t buffer_size, uint8_t offset_bits, uint64_t value, uint64_t *bytes_consumed)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encode_prefix_int</b> (uint8_t *buffer, size_t buffer_size, uint8_t offset_bits, uint64_t value, uint64_t *bytes_consumed)</td></tr>
 <tr class="memitem:a7a25230e499b36dd2ad91685dd186e81" id="r_a7a25230e499b36dd2ad91685dd186e81"><td class="memItemLeft" align="right" valign="top"><a id="a7a25230e499b36dd2ad91685dd186e81" name="a7a25230e499b36dd2ad91685dd186e81"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_decode_byte</b> (const uint8_t *data, size_t data_len, uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_decode_byte</b> (const uint8_t *data, size_t data_len, uint8_t *bit_offset, uint8_t *out_byte, size_t *advance_bytes)</td></tr>
 <tr class="memitem:ad90789f04a4cbaeb71de5a8bfa87493d" id="r_ad90789f04a4cbaeb71de5a8bfa87493d"><td class="memItemLeft" align="right" valign="top"><a id="ad90789f04a4cbaeb71de5a8bfa87493d" name="ad90789f04a4cbaeb71de5a8bfa87493d"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_decode_string</b> (const uint8_t *data, size_t data_len, uint8_t *out, size_t out_size, size_t *out_len)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_decode_string</b> (const uint8_t *data, size_t data_len, uint8_t *out, size_t out_size, size_t *out_len)</td></tr>
 <tr class="memitem:ad739ddd2918f1074be3f85683c89029f" id="r_ad739ddd2918f1074be3f85683c89029f"><td class="memItemLeft" align="right" valign="top"><a id="ad739ddd2918f1074be3f85683c89029f" name="ad739ddd2918f1074be3f85683c89029f"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_encode_byte</b> (uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset, size_t *advance_bytes)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_encode_byte</b> (uint8_t in_byte, uint8_t *out, size_t out_size, uint8_t *bit_offset, size_t *advance_bytes)</td></tr>
 <tr class="memitem:a11e594efcb87abfb33c8f8985428aeef" id="r_a11e594efcb87abfb33c8f8985428aeef"><td class="memItemLeft" align="right" valign="top"><a id="a11e594efcb87abfb33c8f8985428aeef" name="a11e594efcb87abfb33c8f8985428aeef"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_encode_string</b> (const uint8_t *input, size_t input_len, uint8_t *out, size_t out_size, size_t *out_len)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_QPACK_huff_encode_string</b> (const uint8_t *input, size_t input_len, uint8_t *out, size_t out_size, size_t *out_len)</td></tr>
 <tr class="memitem:aee437d7a8e77d6f4a393cd2e44f9319a" id="r_aee437d7a8e77d6f4a393cd2e44f9319a"><td class="memItemLeft" align="right" valign="top"><a id="aee437d7a8e77d6f4a393cd2e44f9319a" name="aee437d7a8e77d6f4a393cd2e44f9319a"></a>
-<a class="el" href="group__HTTP3.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_header_block_prefix</b> (const uint8_t *data, size_t data_len, uint64_t *out_required_insert_count, uint64_t *out_base, size_t *bytes_consumed)</td></tr>
+<a class="el" href="group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_decode_header_block_prefix</b> (const uint8_t *data, size_t data_len, uint64_t *out_required_insert_count, uint64_t *out_base, size_t *bytes_consumed)</td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>QPACK compression/decompression utilities. </p>
@@ -202,6 +201,21 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_QPACK_encod
       </table>
 </div><div class="memdoc">
 <p>Maximum bytes a single prefix-encoded integer can occupy </p>
+
+</div>
+</div>
+<a id="ab2107f015ba0870c58a076a0f8acbd64" name="ab2107f015ba0870c58a076a0f8acbd64"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab2107f015ba0870c58a076a0f8acbd64">&#9670;&#160;</a></span>YAWT_QPACK_STATIC_TABLE_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define YAWT_QPACK_STATIC_TABLE_SIZE&#160;&#160;&#160;99</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>QPACK static table size (RFC 9204 Appendix A) </p>
 
 </div>
 </div>

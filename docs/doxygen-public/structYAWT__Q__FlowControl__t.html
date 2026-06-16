@@ -89,11 +89,11 @@ $(function(){initNavTree('structYAWT__Q__FlowControl__t.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">YAWT_Q_FlowControl_t Struct Reference<div class="ingroups"><a class="el" href="group__QUIC.html">QUIC</a> &#124; <a class="el" href="group__HTTP3.html">HTTP3</a></div></div></div>
+  <div class="headertitle"><div class="title">YAWT_Q_FlowControl_t Struct Reference<div class="ingroups"><a class="el" href="group__Security.html">Security</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>QUIC security policy and flow control configuration.  
+<p>Flow control limits — populated from transport params, updated by MAX_* frames.  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="security_8h_source.html">security.h</a>&gt;</code></p>
@@ -110,9 +110,8 @@ Data Fields</h2></td></tr>
 <tr class="memitem:adf320fba0f3464162064811f54544689" id="r_adf320fba0f3464162064811f54544689"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adf320fba0f3464162064811f54544689">max_datagram_frame_size</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>QUIC security policy and flow control configuration. </p>
-<p>HTTP/3 security policy configuration.</p>
-<p>Flow control limits — populated from transport params, updated by MAX_* frames. </p><dl class="section note"><dt>Note</dt><dd>These values are advertised to the peer and enforced locally. Zero values indicate the feature is disabled or unlimited. </dd></dl>
+<div class="textblock"><p>Flow control limits — populated from transport params, updated by MAX_* frames. </p>
+<dl class="section note"><dt>Note</dt><dd>These values are advertised to the peer and enforced locally. Zero values indicate the feature is disabled or unlimited. </dd></dl>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
 <a id="af258801d8447f03a1d1e4fea5afc23f5" name="af258801d8447f03a1d1e4fea5afc23f5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af258801d8447f03a1d1e4fea5afc23f5">&#9670;&#160;</a></span>max_data</h2>

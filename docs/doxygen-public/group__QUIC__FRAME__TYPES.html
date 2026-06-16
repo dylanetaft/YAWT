@@ -89,15 +89,31 @@ $(function(){initNavTree('group__QUIC__FRAME__TYPES.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">Frame Types <div class="ingroups"><a class="el" href="group__QUIC.html">QUIC</a></div></div></div>
+  <div class="headertitle"><div class="title">Frame Types <div class="ingroups"><a class="el" href="group__QUIC.html">QUIC</a> &raquo; <a class="el" href="group__QUIC__Connection.html">Connection</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>All QUIC protocol types, constants, and low-level operations.  
+<p>Forward declaration for peer address.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FACK_5Ft" id="r_YAWT_5FQ_5FFrame_5FACK_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__ACK__t.html">YAWT_Q_Frame_ACK_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">ACK frame (0x02).  <a href="structYAWT__Q__Frame__ACK__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FACK_5FRange_5Ft" id="r_YAWT_5FQ_5FACK_5FRange_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__ACK__Range__t.html">YAWT_Q_ACK_Range_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">ACK Range field.  <a href="structYAWT__Q__ACK__Range__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FACK_5FECN_5Ft" id="r_YAWT_5FQ_5FFrame_5FACK_5FECN_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__ACK__ECN__t.html">YAWT_Q_Frame_ACK_ECN_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">ACK with ECN Counts frame (0x03).  <a href="structYAWT__Q__Frame__ACK__ECN__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FReset_5FStream_5Ft" id="r_YAWT_5FQ_5FFrame_5FReset_5FStream_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Reset__Stream__t.html">YAWT_Q_Frame_Reset_Stream_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RESET_STREAM frame (0x04).  <a href="structYAWT__Q__Frame__Reset__Stream__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FStop_5FSending_5Ft" id="r_YAWT_5FQ_5FFrame_5FStop_5FSending_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Stop__Sending__t.html">YAWT_Q_Frame_Stop_Sending_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">STOP_SENDING frame (0x05).  <a href="structYAWT__Q__Frame__Stop__Sending__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FCrypto_5Ft" id="r_YAWT_5FQ_5FFrame_5FCrypto_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Crypto__t.html">YAWT_Q_Frame_Crypto_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CRYPTO frame (0x06).  <a href="structYAWT__Q__Frame__Crypto__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FNew_5FToken_5Ft" id="r_YAWT_5FQ_5FFrame_5FNew_5FToken_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__New__Token__t.html">YAWT_Q_Frame_New_Token_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">NEW_TOKEN frame (0x07).  <a href="structYAWT__Q__Frame__New__Token__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FStream" id="r_YAWT_5FQ_5FFrame_5FStream"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <a href="structYAWT__Q__Frame__Stream.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FMax_5FData_5Ft" id="r_YAWT_5FQ_5FFrame_5FMax_5FData_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Max__Data__t.html">YAWT_Q_Frame_Max_Data_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">MAX_DATA frame (0x10).  <a href="structYAWT__Q__Frame__Max__Data__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FMax_5FStream_5FData_5Ft" id="r_YAWT_5FQ_5FFrame_5FMax_5FStream_5FData_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Max__Stream__Data__t.html">YAWT_Q_Frame_Max_Stream_Data_t</a></td></tr>
@@ -124,11 +140,33 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CONNECTION_CLOSE frame (0x1d, application layer).  <a href="structYAWT__Q__Frame__Connection__Close__App__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FDatagram_5Ft" id="r_YAWT_5FQ_5FFrame_5FDatagram_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Datagram__t.html">YAWT_Q_Frame_Datagram_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">DATAGRAM frame (0x30-0x31, RFC 9221).  <a href="structYAWT__Q__Frame__Datagram__t.html#details">More...</a><br /></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:gaae6e88026a73c2efeae1eb6777d6034c" id="r_gaae6e88026a73c2efeae1eb6777d6034c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td></tr>
+<tr class="memdesc:gaae6e88026a73c2efeae1eb6777d6034c"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<p>All QUIC protocol types, constants, and low-level operations. </p>
-<p>Forward declaration for peer address.</p>
+<p>Forward declaration for peer address. </p>
 <p>QUIC frame types and their parsed representations. </p>
+<a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
+<a id="gaae6e88026a73c2efeae1eb6777d6034c" name="gaae6e88026a73c2efeae1eb6777d6034c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaae6e88026a73c2efeae1eb6777d6034c">&#9670;&#160;</a></span>YAWT_Q_Frame_Stream_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a> <a class="el" href="#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>STREAM frame (0x08-0x0f). </p>
+<dl class="section note"><dt>Note</dt><dd>Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01). </dd></dl>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">

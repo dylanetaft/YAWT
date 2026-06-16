@@ -5,5 +5,6 @@ var searchData=
   ['h3_5fheader_2eh_2',['h3_header.h',['../h3__header_8h.html',1,'']]],
   ['h3_5fstream_5ftype_5fmax_5fbytes_3',['H3_STREAM_TYPE_MAX_BYTES',['../h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b',1,'h3_types.h']]],
   ['h3_5ftypes_2eh_4',['h3_types.h',['../h3__types_8h.html',1,'']]],
-  ['http3_5',['HTTP3',['../group__HTTP3.html',1,'']]]
+  ['headers_5',['Headers',['../group__H3__Headers.html',1,'']]],
+  ['http3_6',['HTTP3',['../group__HTTP3.html',1,'']]]
 ];
