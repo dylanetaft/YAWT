@@ -180,25 +180,6 @@ typedef struct {
 
 /**
  * @ingroup H3_Types
- * @brief Semantic HTTP request.
- * @note Holds a pointer to a header field section (allocated via YAWT_h3_header_section_create).
- *       NULL until headers are parsed. The lifecycle is managed by H3_Connection.
- */
-typedef struct {
-  YAWT_H3_HeaderFields_t *headers;
-} YAWT_H3_Request_t;
-
-/**
- * @ingroup H3_Types
- * @brief Semantic HTTP response.
- * @note Holds a pointer to a header field section. NULL until headers are parsed.
- */
-typedef struct {
-  YAWT_H3_HeaderFields_t *headers;
-} YAWT_H3_Response_t;
-
-/**
- * @ingroup H3_Types
  * @brief Per-stream H3 parse state.
  * @note Lives in a preallocated slot pool on the H3 connection (slot index is NOT
  *       the stream id — ids are sparse and grow unbounded, so we store stream_id
@@ -217,9 +198,9 @@ typedef struct {
   // UNASSIGNED is the "prefix not yet read" signal. Unused once type is set.
   uint8_t  hdr[H3_STREAM_TYPE_MAX_BYTES];
   uint64_t accumulated;
-  // Semantic request/response state — .headers is NULL until headers parsed.
-  YAWT_H3_Request_t  request;
-  YAWT_H3_Response_t response;
+  // Header pointers — NULL until parsed
+  YAWT_H3_HeaderFields_t *request_headers;
+  YAWT_H3_HeaderFields_t *response_headers;
   YAWT_H3_Frame_t frame;
 } YAWT_H3_Stream_t;
 

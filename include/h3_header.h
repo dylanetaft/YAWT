@@ -141,17 +141,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_find_str(const YAWT_H3_HeaderFields_t *sec
  * @return A struct with the current field, or a struct with NULL name when done.
  */
 YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section,
-                                            ANB_SlabIter_t *iter);
-
-/**
- * @ingroup H3_Headers
- * @brief Check if header fields have been allocated.
- * @param headers The header fields section.
- * @return true if the slab is not NULL.
- */
-static inline bool YAWT_h3_headers_is_set(const YAWT_H3_HeaderFields_t *headers) {
-  return headers && headers->slab != NULL;
-}
+                                             ANB_SlabIter_t *iter);
 
 /**
  * @internal

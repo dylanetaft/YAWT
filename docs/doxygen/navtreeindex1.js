@@ -1,8 +1,5 @@
 var NAVTREEINDEX1 =
 {
-"structYAWT__Q__FlowControl__t.html#a6eff4624cc67794423edab6498b1d5a8":[0,3,0,4],
-"structYAWT__Q__FlowControl__t.html#adf320fba0f3464162064811f54544689":[0,3,0,7],
-"structYAWT__Q__FlowControl__t.html#af0a2978c5f4f1aa0b7b2696171fcd5ce":[0,3,0,0],
 "structYAWT__Q__FlowControl__t.html#af258801d8447f03a1d1e4fea5afc23f5":[0,3,0,1],
 "structYAWT__Q__FrameHandler__Res__t.html":[0,2,5,0],
 "structYAWT__Q__Frame__ACK__ECN__t.html":[0,2,3,2],

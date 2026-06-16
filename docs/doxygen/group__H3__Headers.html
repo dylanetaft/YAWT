@@ -159,8 +159,6 @@ Functions</h2></td></tr>
 <tr class="memdesc:gae569cb0da504da64cced04931b6e0d36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up a field by name using a null-terminated string.  <br /></td></tr>
 <tr class="memitem:gaac4ed5babd9ad104bd2e4d9bc7155f8d" id="r_gaac4ed5babd9ad104bd2e4d9bc7155f8d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Header__Field__t.html">YAWT_H3_Header_Field_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaac4ed5babd9ad104bd2e4d9bc7155f8d">YAWT_h3_header_iter</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *section, ANB_SlabIter_t *iter)</td></tr>
 <tr class="memdesc:gaac4ed5babd9ad104bd2e4d9bc7155f8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterate all fields.  <br /></td></tr>
-<tr class="memitem:ga4f0f4d24b0a68ed298982cfd60bbc61c" id="r_ga4f0f4d24b0a68ed298982cfd60bbc61c"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4f0f4d24b0a68ed298982cfd60bbc61c">YAWT_h3_headers_is_set</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers)</td></tr>
-<tr class="memdesc:ga4f0f4d24b0a68ed298982cfd60bbc61c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if header fields have been allocated.  <br /></td></tr>
 <tr class="memitem:ga4659b29846a4aec71fd0a429f4990f59" id="r_ga4659b29846a4aec71fd0a429f4990f59"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4659b29846a4aec71fd0a429f4990f59">YAWT_qpack_decode_header_block</a> (const uint8_t *data, size_t len, <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *out)</td></tr>
 <tr class="memdesc:ga4659b29846a4aec71fd0a429f4990f59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode the entire encoded field section (HEADERS frame payload).  <br /></td></tr>
 <tr class="memitem:gaefaf96fc9300e17f67a58af7a9954a3c" id="r_gaefaf96fc9300e17f67a58af7a9954a3c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaefaf96fc9300e17f67a58af7a9954a3c">YAWT_qpack_encode_header_block</a> (const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *headers, uint8_t *buf, size_t len, size_t *written)</td></tr>
@@ -654,42 +652,6 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A struct with the current field, or a struct with NULL name when done. </dd></dl>
-
-</div>
-</div>
-<a id="ga4f0f4d24b0a68ed298982cfd60bbc61c" name="ga4f0f4d24b0a68ed298982cfd60bbc61c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4f0f4d24b0a68ed298982cfd60bbc61c">&#9670;&#160;</a></span>YAWT_h3_headers_is_set()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool YAWT_h3_headers_is_set </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="structYAWT__H3__HeaderFields__t.html">YAWT_H3_HeaderFields_t</a> *</td>          <td class="paramname"><span class="paramname"><em>headers</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Check if header fields have been allocated. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">headers</td><td>The header fields section. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>true if the slab is not NULL. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="h3__header_8h_source.html#l00152">152</a> of file <a class="el" href="h3__header_8h_source.html">h3_header.h</a>.</p>
 
 </div>
 </div>

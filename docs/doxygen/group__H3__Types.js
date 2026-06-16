@@ -1,8 +1,6 @@
 var group__H3__Types =
 [
     [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", null ],
-    [ "YAWT_H3_Request_t", "structYAWT__H3__Request__t.html", null ],
-    [ "YAWT_H3_Response_t", "structYAWT__H3__Response__t.html", null ],
     [ "YAWT_H3_Stream_t", "structYAWT__H3__Stream__t.html", null ],
     [ "YAWT_H3_Settings_t", "structYAWT__H3__Settings__t.html", null ],
     [ "YAWT_H3_FrameType_t", "group__H3__Types.html#gae58b0f409d56ccaa0d5b8ff01ee45975", [

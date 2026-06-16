@@ -5,8 +5,6 @@ var annotated_dup =
     [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", null ],
     [ "YAWT_H3_Header_Field_t", "structYAWT__H3__Header__Field__t.html", null ],
     [ "YAWT_H3_HeaderFields_t", "structYAWT__H3__HeaderFields__t.html", null ],
-    [ "YAWT_H3_Request_t", "structYAWT__H3__Request__t.html", null ],
-    [ "YAWT_H3_Response_t", "structYAWT__H3__Response__t.html", null ],
     [ "YAWT_H3_SecurityPolicy_t", "structYAWT__H3__SecurityPolicy__t.html", "structYAWT__H3__SecurityPolicy__t" ],
     [ "YAWT_H3_Settings_t", "structYAWT__H3__Settings__t.html", null ],
     [ "YAWT_H3_Stream_t", "structYAWT__H3__Stream__t.html", null ],

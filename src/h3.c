@@ -128,13 +128,13 @@ static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
     if (h3->streams[i].frame.payload != NULL) {
       free(h3->streams[i].frame.payload);
     }
-    if (h3->streams[i].request.headers) {
-      YAWT_h3_header_fields_destroy(h3->streams[i].request.headers);
-      h3->streams[i].request.headers = NULL;
+    if (h3->streams[i].request_headers) {
+      YAWT_h3_header_fields_destroy(h3->streams[i].request_headers);
+      h3->streams[i].request_headers = NULL;
     }
-    if (h3->streams[i].response.headers) {
-      YAWT_h3_header_fields_destroy(h3->streams[i].response.headers);
-      h3->streams[i].response.headers = NULL;
+    if (h3->streams[i].response_headers) {
+      YAWT_h3_header_fields_destroy(h3->streams[i].response_headers);
+      h3->streams[i].response_headers = NULL;
     }
   }
   free(h3->streams);
@@ -312,21 +312,21 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
     case YAWT_H3_STREAM_FRAME:
       switch (f->type) {
         case YAWT_H3_FRAME_HEADERS: {
-          if (!YAWT_h3_headers_is_set(stream->request.headers)) {
-            stream->request.headers = YAWT_h3_header_fields_create();
+          if (!stream->request_headers) {
+            stream->request_headers = YAWT_h3_header_fields_create();
           }
           YAWT_QPACK_Error_t qerr = YAWT_qpack_decode_header_block(
-              f->payload, (size_t)f->payload_len, stream->request.headers);
+              f->payload, (size_t)f->payload_len, stream->request_headers);
           if (qerr != YAWT_QPACK_OK) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3: QPACK decode failed on stream %lu: %d",
                      stream->id, qerr);
-            YAWT_h3_header_fields_destroy(stream->request.headers);
-            stream->request.headers = NULL;
+            YAWT_h3_header_fields_destroy(stream->request_headers);
+            stream->request_headers = NULL;
             return false;
           }
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
           _h3_emit_event(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
-            .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request.headers }
+            .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request_headers }
           });
           return true;
         }
