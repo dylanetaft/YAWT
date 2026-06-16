@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['yawt_5fh3_5fconnection_0',['YAWT_H3_Connection',['../structYAWT__H3__Connection.html',1,'']]],
+  ['yawt_5fh3_5fconnection_5ft_0',['YAWT_H3_Connection_t',['../structYAWT__H3__Connection__t.html',1,'']]],
   ['yawt_5fh3_5feventparam_1',['YAWT_H3_EventParam',['../unionYAWT__H3__EventParam.html',1,'']]],
   ['yawt_5fh3_5fframe_5ft_2',['YAWT_H3_Frame_t',['../structYAWT__H3__Frame__t.html',1,'']]],
   ['yawt_5fh3_5fheader_5ffield_5ft_3',['YAWT_H3_Header_Field_t',['../structYAWT__H3__Header__Field__t.html',1,'']]],
@@ -11,7 +11,7 @@ var searchData=
   ['yawt_5fq_5fack_5frange_5ft_8',['YAWT_Q_ACK_Range_t',['../structYAWT__Q__ACK__Range__t.html',1,'']]],
   ['yawt_5fq_5fcid_9',['YAWT_Q_Cid',['../structYAWT__Q__Cid.html',1,'']]],
   ['yawt_5fq_5fcon_5fcreate_5finfo_10',['YAWT_Q_Con_Create_Info',['../structYAWT__Q__Con__Create__Info.html',1,'']]],
-  ['yawt_5fq_5fconnection_11',['YAWT_Q_Connection',['../structYAWT__Q__Connection.html',1,'']]],
+  ['yawt_5fq_5fconnection_5ft_11',['YAWT_Q_Connection_t',['../structYAWT__Q__Connection__t.html',1,'']]],
   ['yawt_5fq_5fconnectionstats_5ft_12',['YAWT_Q_ConnectionStats_t',['../structYAWT__Q__ConnectionStats__t.html',1,'']]],
   ['yawt_5fq_5feventparam_5ft_13',['YAWT_Q_EventParam_t',['../unionYAWT__Q__EventParam__t.html',1,'']]],
   ['yawt_5fq_5fflowcontrol_5ft_14',['YAWT_Q_FlowControl_t',['../structYAWT__Q__FlowControl__t.html',1,'']]],

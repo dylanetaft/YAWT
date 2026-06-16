@@ -1,6 +1,6 @@
 var annotated_dup =
 [
-    [ "YAWT_H3_Connection", "structYAWT__H3__Connection.html", null ],
+    [ "YAWT_H3_Connection_t", "structYAWT__H3__Connection__t.html", null ],
     [ "YAWT_H3_EventParam", "unionYAWT__H3__EventParam.html", null ],
     [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", null ],
     [ "YAWT_H3_Header_Field_t", "structYAWT__H3__Header__Field__t.html", null ],
@@ -11,7 +11,7 @@ var annotated_dup =
     [ "YAWT_Q_ACK_Range_t", "structYAWT__Q__ACK__Range__t.html", null ],
     [ "YAWT_Q_Cid", "structYAWT__Q__Cid.html", null ],
     [ "YAWT_Q_Con_Create_Info", "structYAWT__Q__Con__Create__Info.html", null ],
-    [ "YAWT_Q_Connection", "structYAWT__Q__Connection.html", null ],
+    [ "YAWT_Q_Connection_t", "structYAWT__Q__Connection__t.html", null ],
     [ "YAWT_Q_ConnectionStats_t", "structYAWT__Q__ConnectionStats__t.html", null ],
     [ "YAWT_Q_EventParam_t", "unionYAWT__Q__EventParam__t.html", null ],
     [ "YAWT_Q_FlowControl_t", "structYAWT__Q__FlowControl__t.html", "structYAWT__Q__FlowControl__t" ],

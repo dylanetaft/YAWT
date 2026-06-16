@@ -54,7 +54,7 @@
 
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
-typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
+typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
 
 /**
  * @ingroup QUIC

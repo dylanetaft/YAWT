@@ -33,8 +33,8 @@
  * @brief HTTP/3 protocol types, enums, frames, streams, and settings.
  */
 
-typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
-typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
+typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
+typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
 
 #define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
 #define H3_STREAM_TYPE_MAX_BYTES   8  /**< Uni stream-type prefix is one varint (<=8 bytes) */
@@ -292,7 +292,7 @@ typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
  * @note Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED,
  *       freed on EVT_CLOSE (which con_free guarantees fires once).
  */
-typedef struct YAWT_H3_Connection {
+typedef struct YAWT_H3_Connection_t {
   YAWT_Q_Connection_t *qcon;            // back-reference to the QUIC layer
   YAWT_H3_EventHandler_t app_handler;   // app-level event callback
   YAWT_H3_Settings_t *local_settings;   // NULL until populated

@@ -1,7 +1,7 @@
 var quic__connection_8h =
 [
     [ "YAWT_Q_PeerAddr_t", "group__QUIC__Connection.html#ga56841887f108695e2dc516d7ef89a8a3", null ],
-    [ "YAWT_Q_Connection_t", "group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028", null ],
+    [ "YAWT_Q_Connection_t", "group__QUIC__Connection.html#ga73d9b5dacd4d887113a1ac3442db9bb8", null ],
     [ "YAWT_Q_Con_Create_Info_t", "group__QUIC__Connection.html#ga9385d61f71145755bc2861066fab5148", null ],
     [ "YAWT_q_con_create", "group__QUIC__Internal.html#gada1a108255b80a5f1bb3efb811da02a7", null ],
     [ "YAWT_q_con_find_by_cid", "group__QUIC__Connection.html#ga4236faacb50e964096987c74c59c6fbb", null ],

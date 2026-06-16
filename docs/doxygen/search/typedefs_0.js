@@ -1,11 +1,11 @@
 var searchData=
 [
-  ['yawt_5fh3_5fconnection_5ft_0',['YAWT_H3_Connection_t',['../group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d',1,'h3_types.h']]],
+  ['yawt_5fh3_5fconnection_5ft_0',['YAWT_H3_Connection_t',['../group__H3__Connection.html#ga1ad78a8b8ec87e12350b6c7f10e66a5c',1,'h3_types.h']]],
   ['yawt_5fh3_5feventhandler_5ft_1',['YAWT_H3_EventHandler_t',['../group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b',1,'h3_types.h']]],
   ['yawt_5fh3_5feventparam_5ft_2',['YAWT_H3_EventParam_t',['../group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30',1,'h3_types.h']]],
   ['yawt_5fq_5fcid_5ft_3',['YAWT_Q_Cid_t',['../group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27',1,'quic_types.h']]],
   ['yawt_5fq_5fcon_5fcreate_5finfo_5ft_4',['YAWT_Q_Con_Create_Info_t',['../group__QUIC__Connection.html#ga9385d61f71145755bc2861066fab5148',1,'quic_connection.h']]],
-  ['yawt_5fq_5fconnection_5ft_5',['YAWT_Q_Connection_t',['../group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028',1,'quic_connection.h']]],
+  ['yawt_5fq_5fconnection_5ft_5',['YAWT_Q_Connection_t',['../group__QUIC__Connection.html#ga73d9b5dacd4d887113a1ac3442db9bb8',1,'quic_connection.h']]],
   ['yawt_5fq_5fcrypto_5fcred_5ft_6',['YAWT_Q_Crypto_Cred_t',['../group__Crypt.html#gae8d929ada6cc2f19721ae29ff9d48c03',1,'crypt.h']]],
   ['yawt_5fq_5fcrypto_5ft_7',['YAWT_Q_Crypto_t',['../group__Crypt.html#ga2e8365554dbb0891270f945e33174d77',1,'crypt.h']]],
   ['yawt_5fq_5feventhandler_5ft_8',['YAWT_Q_EventHandler_t',['../group__QUIC.html#ga82409f8be34321b9774adf65b5422dbb',1,'quic.h']]],

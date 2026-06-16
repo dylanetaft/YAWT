@@ -34,7 +34,7 @@ typedef struct YAWT_Q_PeerAddr {
  *       fields are mutated only on that thread, synchronously with con_rx / con_maintain.
  *       Most fields are QUIC-internal; `user_data` is the app's.
  */
-typedef struct YAWT_Q_Connection {
+typedef struct YAWT_Q_Connection_t {
   YAWT_Q_Cid_t cid;
   YAWT_Q_Cid_t peer_cid;
   YAWT_Q_Cid_t original_dcid;  // client's random DCID from first Initial (temporary index)
