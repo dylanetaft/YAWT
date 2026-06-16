@@ -158,32 +158,6 @@ typedef struct {
 } YAWT_Q_WireFrame_t;
 
 /**
- * @internal
- * @ingroup QUIC_Internal
- * @brief Result from processing frames in a packet.
- */
-typedef struct {
-  YAWT_Q_Error_t err;
-  int requires_ack;
-} YAWT_Q_FrameHandler_Res_t;
-
-/**
- * @internal
- * @ingroup QUIC_Internal
- * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
- * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free
- */
-typedef struct {
-  uint64_t stream_id;
-  uint64_t rx_next_offset;
-  uint64_t tx_next_offset;
-  uint64_t rx_fin_offset;
-  uint64_t tx_max_data;
-  uint8_t rx_fin;
-  uint8_t tx_fin_sent;
-} YAWT_Q_StreamMeta_t;
-
-/**
  * @ingroup QUIC_Connection
  * @brief Connection-level counters and packet number tracking.
  */

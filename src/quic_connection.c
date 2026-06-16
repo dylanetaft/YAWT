@@ -1,5 +1,6 @@
 #include "quic_connection.h"
 #include "quic.h"
+#include "impl/quic_types.h"
 #include <stdio.h>
 #include <uthash/uthash.h>
 #include <allocnbuffer/slab.h>
@@ -168,6 +169,14 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
   if (!con || !new_cid || new_cid->len == 0) return;
   YAWT_q_cid_set(&con->peer_cid, new_cid->id, new_cid->len);
   YAWT_LOG(YAWT_LOG_INFO, "Peer CID updated: %s", YAWT_q_cid_to_hex(&con->peer_cid));
+}
+
+void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
+  if (con) con->user_data = p;
+}
+
+void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
+  return con ? con->user_data : NULL;
 }
 
 void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler) {

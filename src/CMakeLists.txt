@@ -11,7 +11,7 @@ file(GLOB_RECURSE YAWT_SOURCES ${PROJECT_SOURCE_DIR}/*.c)
 
 add_library(yawt STATIC ${YAWT_SOURCES})
 
-target_include_directories(yawt PUBLIC
+target_include_directories(yawt SYSTEM PUBLIC
     ${PROJECT_SOURCE_DIR}/../include
     ${CMAKE_INSTALL_PREFIX}/include
 )
@@ -46,5 +46,3 @@ if(BUILD_TESTS)
     include(FetchContent)
     add_subdirectory(${PROJECT_SOURCE_DIR}/../tests ${CMAKE_BINARY_DIR}/tests)
 endif()
-
-

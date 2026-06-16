@@ -1,0 +1,2 @@
+-I../../build/install/include
+-std=c11

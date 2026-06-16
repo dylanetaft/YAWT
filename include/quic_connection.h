@@ -28,32 +28,9 @@ typedef struct YAWT_Q_PeerAddr_t {
 /**
  * @ingroup QUIC_Connection
  * @brief A QUIC connection.
- * @note Owned by the QUIC layer (created in con_create, destroyed in con_free).
- *       Indexed in global CID hash tables; found via con_find_by_cid.
- *       Threading: NOT thread-safe — one libev loop drives all connections. All
- *       fields are mutated only on that thread, synchronously with con_rx / con_maintain.
- *       Most fields are QUIC-internal; `user_data` is the app's.
+ * @note Definition in impl/quic_types.h — include it to access fields directly.
  */
-typedef struct YAWT_Q_Connection_t {
-  YAWT_Q_Cid_t cid;
-  YAWT_Q_Cid_t peer_cid;
-  YAWT_Q_Cid_t original_dcid;  // client's random DCID from first Initial (temporary index)
-  uint32_t version;
-  ANB_Slab_t *recv_buffer;
-  ANB_Slab_t *tx_buffer;            // queued YAWT_Q_WireFrame_t, flushed by con_maintain
-  UT_hash_handle hh_cid;
-  UT_hash_handle hh_odcid;
-  YAWT_Q_PeerAddr_t peer_addr;
-  YAWT_Q_Crypto_t *crypto;
-  ANB_Slab_t *stream_rx;            // out-of-order RX: YAWT_Q_Frame_BufferedStream_t items
-  ANB_Slab_t *stream_meta;          // YAWT_Q_StreamMeta_t per open stream
-  YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
-  YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
-  YAWT_Q_ConnectionStats_t stats;   // byte counters
-  void *user_data;                  // opaque app/H3 state; QUIC never dereferences it
-  uint64_t close_code;              // recorded by close triggers, emitted once by con_free
-  char close_reason[256];           // bounded, null-terminated; "" if none
-} YAWT_Q_Connection_t;
+typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
 
 /**
  * @ingroup QUIC_Connection
@@ -165,21 +142,12 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
 
 /**
  * @ingroup QUIC_Connection
- * @brief Install the process-wide event handler.
- * @param handler The event handler function. Passing NULL restores the built-in no-op default.
- */
-void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
-
-/**
- * @ingroup QUIC_Connection
  * @brief Set opaque per-connection app state.
  * @param con The QUIC connection.
  * @param p Opaque pointer (e.g., the H3 connection object).
  * @note Lifetime is the app's responsibility. QUIC never dereferences it.
  */
-static inline void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
-  if (con) con->user_data = p;
-}
+void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p);
 
 /**
  * @ingroup QUIC_Connection
@@ -187,9 +155,14 @@ static inline void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
  * @param con The QUIC connection.
  * @return The opaque pointer, or NULL if con is NULL.
  */
-static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
-  return con ? con->user_data : NULL;
-}
+void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con);
+
+/**
+ * @ingroup QUIC_Connection
+ * @brief Install the process-wide event handler.
+ * @param handler The event handler function. Passing NULL restores the built-in no-op default.
+ */
+void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
 
 /**
  * @ingroup QUIC_Connection

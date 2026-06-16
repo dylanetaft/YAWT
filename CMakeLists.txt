@@ -18,7 +18,7 @@ ExternalProject_add(
 ExternalProject_Add(
   AllocNBuffer
   UPDATE_DISCONNECTED True
-  GIT_REPOSITORY https://github.com/df00znet-dev/Alloc-N-Buffer
+  GIT_REPOSITORY https://github.com/dylanetaft/Alloc-N-Buffer
   GIT_TAG main
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_PREFIX}

@@ -2,6 +2,7 @@
 #include "quic.h"
 #include "quic_connection.h"
 #include "crypt.h"
+#include "impl/quic_types.h"
 
 static uint8_t _encode_buf[YAWT_Q_MAX_PKT_SIZE];
 

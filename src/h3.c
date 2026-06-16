@@ -3,6 +3,8 @@
 #include "qpack.h"
 #include "quic.h"   // YAWT_q_varint_* + YAWT_Q_ReadCursor_t — H3 reuses the QUIC varint codec
 #include "quic_connection.h"  // YAWT_Q_Connection_t, user_data, event types
+#include "impl/quic_types.h"  // YAWT_Q_Connection_t definition
+#include "impl/h3_types.h"    // YAWT_H3_Connection_t and YAWT_H3_Stream_t definitions
 #include "security.h"
 #include "logger.h"
 #include <allocnbuffer/slab.h>
