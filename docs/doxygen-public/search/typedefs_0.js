@@ -11,6 +11,5 @@ var searchData=
   ['yawt_5fq_5feventhandler_5ft_8',['YAWT_Q_EventHandler_t',['../group__QUIC.html#ga82409f8be34321b9774adf65b5422dbb',1,'quic.h']]],
   ['yawt_5fq_5fframe_5fbufferedstream_5ft_9',['YAWT_Q_Frame_BufferedStream_t',['../group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea',1,'quic_types.h']]],
   ['yawt_5fq_5fframe_5fstream_5ft_10',['YAWT_Q_Frame_Stream_t',['../group__QUIC__FRAME__TYPES.html#gaae6e88026a73c2efeae1eb6777d6034c',1,'quic_types.h']]],
-  ['yawt_5fq_5fpacket_5ft_11',['YAWT_Q_Packet_t',['../group__QUIC.html#ga758de3dadb790488cd27e55f9cf34a92',1,'quic_types.h']]],
-  ['yawt_5fq_5fpeeraddr_5ft_12',['YAWT_Q_PeerAddr_t',['../group__QUIC__Connection.html#ga56841887f108695e2dc516d7ef89a8a3',1,'quic_connection.h']]]
+  ['yawt_5fq_5fpeeraddr_5ft_11',['YAWT_Q_PeerAddr_t',['../group__QUIC__Connection.html#ga56841887f108695e2dc516d7ef89a8a3',1,'quic_connection.h']]]
 ];

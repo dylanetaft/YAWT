@@ -11,8 +11,8 @@ var h3__header_8h =
     [ "YAWT_h3_header_find", "group__H3__Headers.html#gac81d486b4aeb195b480b3dedba9f981e", null ],
     [ "YAWT_h3_header_find_str", "group__H3__Headers.html#gae569cb0da504da64cced04931b6e0d36", null ],
     [ "YAWT_h3_header_iter", "group__H3__Headers.html#gaac4ed5babd9ad104bd2e4d9bc7155f8d", null ],
-    [ "YAWT_qpack_decode_header_block", "group__H3__Headers.html#ga4659b29846a4aec71fd0a429f4990f59", null ],
-    [ "YAWT_qpack_encode_header_block", "group__H3__Headers.html#gaefaf96fc9300e17f67a58af7a9954a3c", null ],
-    [ "YAWT_qpack_header_block_size", "group__H3__Headers.html#ga4977d6237885e27cb4ca6c690047cb43", null ],
-    [ "YAWT_qpack_header_block_max_size", "group__H3__Headers.html#gad616dbd1401de130157851a837bec6a4", null ]
+    [ "YAWT_qpack_decode_header_block", "group__H3__Internal.html#ga4659b29846a4aec71fd0a429f4990f59", null ],
+    [ "YAWT_qpack_encode_header_block", "group__H3__Internal.html#gaefaf96fc9300e17f67a58af7a9954a3c", null ],
+    [ "YAWT_qpack_header_block_size", "group__H3__Internal.html#ga4977d6237885e27cb4ca6c690047cb43", null ],
+    [ "YAWT_qpack_header_block_max_size", "group__H3__Internal.html#gad616dbd1401de130157851a837bec6a4", null ]
 ];

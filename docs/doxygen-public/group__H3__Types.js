@@ -1,8 +1,6 @@
 var group__H3__Types =
 [
     [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", null ],
-    [ "YAWT_H3_Request_t", "structYAWT__H3__Request__t.html", null ],
-    [ "YAWT_H3_Response_t", "structYAWT__H3__Response__t.html", null ],
     [ "YAWT_H3_Stream_t", "structYAWT__H3__Stream__t.html", null ],
     [ "YAWT_H3_Settings_t", "structYAWT__H3__Settings__t.html", null ],
     [ "YAWT_H3_Error_t", "group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d", [
@@ -24,13 +22,6 @@ var group__H3__Types =
       [ "YAWT_H3_FRAME_GOAWAY", "group__H3__Types.html#ggae58b0f409d56ccaa0d5b8ff01ee45975a1f630615312440a070b269366cd0057b", null ],
       [ "YAWT_H3_FRAME_MAX_PUSH_ID", "group__H3__Types.html#ggae58b0f409d56ccaa0d5b8ff01ee45975a4a702349c4ca93a69f9e1cfdf5b0ab1b", null ]
     ] ],
-    [ "YAWT_H3_QPACK_EncoderInstructionType_t", "group__H3__Types.html#gab4fc52971ca76db3180d7f826b019bc1", [
-      [ "INSERT_WITH_NAME_REF", "group__H3__Types.html#ggab4fc52971ca76db3180d7f826b019bc1ae60c74ed50afdbf442d2d42d5c7a137c", null ],
-      [ "INSERT_WITH_LITERAL_NAME", "group__H3__Types.html#ggab4fc52971ca76db3180d7f826b019bc1a3bb818d912141d9564aeb0550d7b10ab", null ],
-      [ "SET_CAPACITY", "group__H3__Types.html#ggab4fc52971ca76db3180d7f826b019bc1aad143f912918323fc2488361a1d0c7f3", null ],
-      [ "DUPLICATE", "group__H3__Types.html#ggab4fc52971ca76db3180d7f826b019bc1a6d0b42a4ceb4a0594120df04371fad5f", null ],
-      [ "UNKNOWN", "group__H3__Types.html#ggab4fc52971ca76db3180d7f826b019bc1a6ce26a62afab55d7606ad4e92428b30c", null ]
-    ] ],
     [ "YAWT_H3_SettingId_t", "group__H3__Types.html#gac275e05e4bbc28952cc885859ac5767a", [
       [ "YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY", "group__H3__Types.html#ggac275e05e4bbc28952cc885859ac5767aaf6f20ca76febc0cfe79b5be64463099d", null ],
       [ "YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE", "group__H3__Types.html#ggac275e05e4bbc28952cc885859ac5767aa2a6f5ec48c5b9414da6f6287b0669a3b", null ],
@@ -46,13 +37,6 @@ var group__H3__Types =
       [ "YAWT_H3_STREAM_CONTROL", "group__H3__Types.html#gga4138fe0cf8509aa0f5cf95c57041ceb0a270c890b55ae15bd7b21834f9631cebc", null ],
       [ "YAWT_H3_STREAM_QPACK", "group__H3__Types.html#gga4138fe0cf8509aa0f5cf95c57041ceb0a3ddea5b2589ca28f084645e134963fe5", null ],
       [ "YAWT_H3_STREAM_WEBTRANSPORT", "group__H3__Types.html#gga4138fe0cf8509aa0f5cf95c57041ceb0ad1691fe96e48e7e813c849e71734d771", null ]
-    ] ],
-    [ "YAWT_H3_WireStreamType_t", "group__H3__Types.html#ga1feb87ab2d5c3769763990325a4c89bb", [
-      [ "YAWT_H3_STREAM_WIRE_CONTROL", "group__H3__Types.html#gga1feb87ab2d5c3769763990325a4c89bba63e4e704e0a954045db41ce85d595a22", null ],
-      [ "YAWT_H3_STREAM_WIRE_PUSH", "group__H3__Types.html#gga1feb87ab2d5c3769763990325a4c89bbad726e1f044849273b212fbb601734928", null ],
-      [ "YAWT_H3_STREAM_WIRE_QPACK_ENCODER", "group__H3__Types.html#gga1feb87ab2d5c3769763990325a4c89bbaff60d03aeb0c3a9e47ac9cb665cb945d", null ],
-      [ "YAWT_H3_STREAM_WIRE_QPACK_DECODER", "group__H3__Types.html#gga1feb87ab2d5c3769763990325a4c89bba8e1c773c5510631cb297a6e60477304e", null ],
-      [ "YAWT_H3_STREAM_WIRE_WEBTRANSPORT", "group__H3__Types.html#gga1feb87ab2d5c3769763990325a4c89bbacac1b4692c755f777d3b040b492d07b5", null ]
     ] ],
     [ "YAWT_h3_err_str", "group__H3__Types.html#ga90bac050129e3c4f3f9057b7d4ab8530", null ]
 ];

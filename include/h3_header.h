@@ -145,7 +145,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode the entire encoded field section (HEADERS frame payload).
  * @param data The encoded data.
  * @param len The encoded data length.
@@ -163,7 +163,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Encode a header fields section into a QPACK header block.
  * @param headers The header fields to encode.
  * @param buf Output buffer.
@@ -181,7 +181,7 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Calculate the encoded size of a header block without actually encoding it.
  * @param headers The header fields to measure.
  * @return The number of bytes that would be written by YAWT_qpack_encode_header_block.
@@ -190,7 +190,7 @@ size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers);
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Calculate an upper bound on the encoded size of a header block.
  * @param headers The header fields to measure.
  * @return The maximum number of bytes, assuming worst-case prefix integer sizes.

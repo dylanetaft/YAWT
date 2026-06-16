@@ -3,8 +3,6 @@ var group__H3__Headers =
     [ "YAWT_H3_HeaderFields_t", "structYAWT__H3__HeaderFields__t.html", null ],
     [ "YAWT_H3_Header_Field_t", "structYAWT__H3__Header__Field__t.html", null ],
     [ "YAWT_QPACK_StaticEntry_t", "structYAWT__QPACK__StaticEntry__t.html", null ],
-    [ "YAWT_QPACK_HuffNode_t", "structYAWT__QPACK__HuffNode__t.html", null ],
-    [ "YAWT_QPACK_HuffDecoder_t", "structYAWT__QPACK__HuffDecoder__t.html", null ],
     [ "YAWT_QPACK_Error_t", "group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938", null ],
     [ "YAWT_QPACK_FieldLineRepType_t", "group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983", null ],
     [ "YAWT_h3_header_add", "group__H3__Headers.html#ga64b02c3f0faf81d6eaf96456a421bba6", null ],
@@ -17,6 +15,5 @@ var group__H3__Headers =
     [ "YAWT_h3_header_find_str", "group__H3__Headers.html#gae569cb0da504da64cced04931b6e0d36", null ],
     [ "YAWT_h3_header_iter", "group__H3__Headers.html#gaac4ed5babd9ad104bd2e4d9bc7155f8d", null ],
     [ "YAWT_h3_header_resolve", "group__H3__Headers.html#ga7a9f1a26bb35c8ac7305d1ebb73b5a86", null ],
-    [ "YAWT_h3_header_resolve_str", "group__H3__Headers.html#gab00277019a41706ad3be3627ed292f25", null ],
-    [ "YAWT_h3_headers_is_set", "group__H3__Headers.html#ga4f0f4d24b0a68ed298982cfd60bbc61c", null ]
+    [ "YAWT_h3_header_resolve_str", "group__H3__Headers.html#gab00277019a41706ad3be3627ed292f25", null ]
 ];

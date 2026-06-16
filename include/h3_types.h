@@ -67,7 +67,8 @@ typedef enum {
 } YAWT_H3_FrameType_t;
 
 /**
- * @ingroup H3_Types
+ * @internal
+ * @ingroup H3_Internal
  * @brief Unidirectional wire format stream types.
  * @note RFC 9114 §6.2, RFC 9204 §4.2, draft-15. The first varint on a client
  *       uni stream selects its role; we read it once into the per-stream slot.
@@ -306,7 +307,8 @@ typedef struct YAWT_H3_Connection {
 } YAWT_H3_Connection_t;
 
 /**
- * @ingroup H3_Types
+ * @internal
+ * @ingroup H3_Internal
  * @brief Dynamic encoder instructions (RFC 9204 §4.3).
  * @note Not used yet.
  */

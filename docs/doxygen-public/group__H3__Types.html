@@ -100,10 +100,6 @@ $(function(){initNavTree('group__H3__Types.html','',''); });
 Data Structures</h2></td></tr>
 <tr class="memitem:YAWT_5FH3_5FFrame_5Ft" id="r_YAWT_5FH3_5FFrame_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Frame__t.html">YAWT_H3_Frame_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The one H3 frame currently in flight on a stream.  <a href="structYAWT__H3__Frame__t.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FH3_5FRequest_5Ft" id="r_YAWT_5FH3_5FRequest_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Request__t.html">YAWT_H3_Request_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Semantic HTTP request.  <a href="structYAWT__H3__Request__t.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FH3_5FResponse_5Ft" id="r_YAWT_5FH3_5FResponse_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Response__t.html">YAWT_H3_Response_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Semantic HTTP response.  <a href="structYAWT__H3__Response__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FH3_5FStream_5Ft" id="r_YAWT_5FH3_5FStream_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Stream__t.html">YAWT_H3_Stream_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-stream H3 parse state.  <a href="structYAWT__H3__Stream__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FH3_5FSettings_5Ft" id="r_YAWT_5FH3_5FSettings_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a></td></tr>
@@ -123,16 +119,6 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:gae58b0f409d56ccaa0d5b8ff01ee45975"><td class="mdescLeft">&#160;</td><td class="mdescRight">HTTP/3 frame types (RFC 9114 §7.2).  <a href="#gae58b0f409d56ccaa0d5b8ff01ee45975">More...</a><br /></td></tr>
-<tr class="memitem:ga1feb87ab2d5c3769763990325a4c89bb" id="r_ga1feb87ab2d5c3769763990325a4c89bb"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a> { <br />
-&#160;&#160;<a class="el" href="#gga1feb87ab2d5c3769763990325a4c89bba63e4e704e0a954045db41ce85d595a22">YAWT_H3_STREAM_WIRE_CONTROL</a> = 0x00
-, <a class="el" href="#gga1feb87ab2d5c3769763990325a4c89bbad726e1f044849273b212fbb601734928">YAWT_H3_STREAM_WIRE_PUSH</a> = 0x01
-, <a class="el" href="#gga1feb87ab2d5c3769763990325a4c89bbaff60d03aeb0c3a9e47ac9cb665cb945d">YAWT_H3_STREAM_WIRE_QPACK_ENCODER</a> = 0x02
-, <a class="el" href="#gga1feb87ab2d5c3769763990325a4c89bba8e1c773c5510631cb297a6e60477304e">YAWT_H3_STREAM_WIRE_QPACK_DECODER</a> = 0x03
-, <br />
-&#160;&#160;<a class="el" href="#gga1feb87ab2d5c3769763990325a4c89bbacac1b4692c755f777d3b040b492d07b5">YAWT_H3_STREAM_WIRE_WEBTRANSPORT</a> = 0x54
-<br />
- }</td></tr>
-<tr class="memdesc:ga1feb87ab2d5c3769763990325a4c89bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unidirectional wire format stream types.  <a href="#ga1feb87ab2d5c3769763990325a4c89bb">More...</a><br /></td></tr>
 <tr class="memitem:ga4138fe0cf8509aa0f5cf95c57041ceb0" id="r_ga4138fe0cf8509aa0f5cf95c57041ceb0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4138fe0cf8509aa0f5cf95c57041ceb0">YAWT_H3_StreamType_t</a> { <br />
 &#160;&#160;<a class="el" href="#gga4138fe0cf8509aa0f5cf95c57041ceb0a9e69d5130e5f2328b5d4f0883efb6a75">YAWT_H3_STREAM_UNASSIGNED</a> = 0
 , <a class="el" href="#gga4138fe0cf8509aa0f5cf95c57041ceb0ac190fdc13747e5c450c5fe68f0111399">YAWT_H3_STREAM_FRAME</a>
@@ -168,16 +154,6 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:gaee3588bbd1d2ab017fac2184d2424e1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Internal return status for H3 functions.  <a href="#gaee3588bbd1d2ab017fac2184d2424e1d">More...</a><br /></td></tr>
-<tr class="memitem:gab4fc52971ca76db3180d7f826b019bc1" id="r_gab4fc52971ca76db3180d7f826b019bc1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a> { <br />
-&#160;&#160;<a class="el" href="#ggab4fc52971ca76db3180d7f826b019bc1ae60c74ed50afdbf442d2d42d5c7a137c">INSERT_WITH_NAME_REF</a>
-, <a class="el" href="#ggab4fc52971ca76db3180d7f826b019bc1a3bb818d912141d9564aeb0550d7b10ab">INSERT_WITH_LITERAL_NAME</a>
-, <a class="el" href="#ggab4fc52971ca76db3180d7f826b019bc1aad143f912918323fc2488361a1d0c7f3">SET_CAPACITY</a>
-, <a class="el" href="#ggab4fc52971ca76db3180d7f826b019bc1a6d0b42a4ceb4a0594120df04371fad5f">DUPLICATE</a>
-, <br />
-&#160;&#160;<a class="el" href="#ggab4fc52971ca76db3180d7f826b019bc1a6ce26a62afab55d7606ad4e92428b30c">UNKNOWN</a>
-<br />
- }</td></tr>
-<tr class="memdesc:gab4fc52971ca76db3180d7f826b019bc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dynamic encoder instructions (RFC 9204 §4.3).  <a href="#gab4fc52971ca76db3180d7f826b019bc1">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -257,35 +233,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="gab4fc52971ca76db3180d7f826b019bc1" name="gab4fc52971ca76db3180d7f826b019bc1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gab4fc52971ca76db3180d7f826b019bc1">&#9670;&#160;</a></span>YAWT_H3_QPACK_EncoderInstructionType_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="#gab4fc52971ca76db3180d7f826b019bc1">YAWT_H3_QPACK_EncoderInstructionType_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Dynamic encoder instructions (RFC 9204 §4.3). </p>
-<dl class="section note"><dt>Note</dt><dd>Not used yet. </dd></dl>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggab4fc52971ca76db3180d7f826b019bc1ae60c74ed50afdbf442d2d42d5c7a137c" name="ggab4fc52971ca76db3180d7f826b019bc1ae60c74ed50afdbf442d2d42d5c7a137c"></a>INSERT_WITH_NAME_REF&#160;</td><td class="fielddoc"><p>Insert with name reference (RFC 9204 §4.3.2) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggab4fc52971ca76db3180d7f826b019bc1a3bb818d912141d9564aeb0550d7b10ab" name="ggab4fc52971ca76db3180d7f826b019bc1a3bb818d912141d9564aeb0550d7b10ab"></a>INSERT_WITH_LITERAL_NAME&#160;</td><td class="fielddoc"><p>Insert with literal name (RFC 9204 §4.3.3) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggab4fc52971ca76db3180d7f826b019bc1aad143f912918323fc2488361a1d0c7f3" name="ggab4fc52971ca76db3180d7f826b019bc1aad143f912918323fc2488361a1d0c7f3"></a>SET_CAPACITY&#160;</td><td class="fielddoc"><p>Set dynamic table capacity (RFC 9204 §4.3.1) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggab4fc52971ca76db3180d7f826b019bc1a6d0b42a4ceb4a0594120df04371fad5f" name="ggab4fc52971ca76db3180d7f826b019bc1a6d0b42a4ceb4a0594120df04371fad5f"></a>DUPLICATE&#160;</td><td class="fielddoc"><p>Duplicate entry (RFC 9204 §4.3.4) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggab4fc52971ca76db3180d7f826b019bc1a6ce26a62afab55d7606ad4e92428b30c" name="ggab4fc52971ca76db3180d7f826b019bc1a6ce26a62afab55d7606ad4e92428b30c"></a>UNKNOWN&#160;</td><td class="fielddoc"><p>Unknown instruction </p>
-</td></tr>
-</table>
-
-</div>
-</div>
 <a id="gac275e05e4bbc28952cc885859ac5767a" name="gac275e05e4bbc28952cc885859ac5767a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac275e05e4bbc28952cc885859ac5767a">&#9670;&#160;</a></span>YAWT_H3_SettingId_t</h2>
 
@@ -342,35 +289,6 @@ Functions</h2></td></tr>
 <tr><td class="fieldname"><a id="gga4138fe0cf8509aa0f5cf95c57041ceb0a3ddea5b2589ca28f084645e134963fe5" name="gga4138fe0cf8509aa0f5cf95c57041ceb0a3ddea5b2589ca28f084645e134963fe5"></a>YAWT_H3_STREAM_QPACK&#160;</td><td class="fielddoc"><p>QPACK encoder/decoder stream </p>
 </td></tr>
 <tr><td class="fieldname"><a id="gga4138fe0cf8509aa0f5cf95c57041ceb0ad1691fe96e48e7e813c849e71734d771" name="gga4138fe0cf8509aa0f5cf95c57041ceb0ad1691fe96e48e7e813c849e71734d771"></a>YAWT_H3_STREAM_WEBTRANSPORT&#160;</td><td class="fielddoc"><p>WebTransport stream (draft-15) </p>
-</td></tr>
-</table>
-
-</div>
-</div>
-<a id="ga1feb87ab2d5c3769763990325a4c89bb" name="ga1feb87ab2d5c3769763990325a4c89bb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga1feb87ab2d5c3769763990325a4c89bb">&#9670;&#160;</a></span>YAWT_H3_WireStreamType_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="#ga1feb87ab2d5c3769763990325a4c89bb">YAWT_H3_WireStreamType_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Unidirectional wire format stream types. </p>
-<dl class="section note"><dt>Note</dt><dd>RFC 9114 §6.2, RFC 9204 §4.2, draft-15. The first varint on a client uni stream selects its role; we read it once into the per-stream slot. Bidi (request) streams have no such prefix. </dd></dl>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga1feb87ab2d5c3769763990325a4c89bba63e4e704e0a954045db41ce85d595a22" name="gga1feb87ab2d5c3769763990325a4c89bba63e4e704e0a954045db41ce85d595a22"></a>YAWT_H3_STREAM_WIRE_CONTROL&#160;</td><td class="fielddoc"><p>Control stream (RFC 9114 §6.2.1) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1feb87ab2d5c3769763990325a4c89bbad726e1f044849273b212fbb601734928" name="gga1feb87ab2d5c3769763990325a4c89bbad726e1f044849273b212fbb601734928"></a>YAWT_H3_STREAM_WIRE_PUSH&#160;</td><td class="fielddoc"><p>Push stream (RFC 9114 §6.2.2) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1feb87ab2d5c3769763990325a4c89bbaff60d03aeb0c3a9e47ac9cb665cb945d" name="gga1feb87ab2d5c3769763990325a4c89bbaff60d03aeb0c3a9e47ac9cb665cb945d"></a>YAWT_H3_STREAM_WIRE_QPACK_ENCODER&#160;</td><td class="fielddoc"><p>QPACK encoder stream (RFC 9204 §4.2) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1feb87ab2d5c3769763990325a4c89bba8e1c773c5510631cb297a6e60477304e" name="gga1feb87ab2d5c3769763990325a4c89bba8e1c773c5510631cb297a6e60477304e"></a>YAWT_H3_STREAM_WIRE_QPACK_DECODER&#160;</td><td class="fielddoc"><p>QPACK decoder stream (RFC 9204 §4.2) </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga1feb87ab2d5c3769763990325a4c89bbacac1b4692c755f777d3b040b492d07b5" name="gga1feb87ab2d5c3769763990325a4c89bbacac1b4692c755f777d3b040b492d07b5"></a>YAWT_H3_STREAM_WIRE_WEBTRANSPORT&#160;</td><td class="fielddoc"><p>WebTransport stream (draft-15) </p>
 </td></tr>
 </table>
 

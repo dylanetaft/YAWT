@@ -5,7 +5,7 @@
 
 /**
  * @defgroup QUIC QUIC
- * @brief Low-level QUIC protocol operations and utilities.
+ * @brief QUIC protocol operations and utilities.
  */
 
 

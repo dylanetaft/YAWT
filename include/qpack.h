@@ -29,7 +29,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Get a static-table entry.
  * @param index The table index (0..98).
  * @return Pointer to the entry, or NULL if out of range.
@@ -38,7 +38,7 @@ const YAWT_QPACK_StaticEntry_t *YAWT_qpack_static_get(uint64_t index);
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Find the first static-table index whose name matches.
  * @param name The name to search for.
  * @return The index, or -1 if not found.
@@ -47,7 +47,7 @@ int YAWT_qpack_static_find_name(const char *name);
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Find the first static-table index whose name AND value match.
  * @param name The name to search for.
  * @param value The value to search for.
@@ -87,7 +87,7 @@ typedef enum {
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode the leading byte of a field line representation.
  * @param byte The leading byte.
  * @param out_prefix_bits Pointer to receive the number of prefix bits consumed.
@@ -98,7 +98,7 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Encode a single field line representation.
  * @param field The header field to encode.
  * @param buf Output buffer.
@@ -115,7 +115,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Get the maximum number of bytes a single field line could occupy when encoded.
  * @param field The header field to measure.
  * @return Maximum bytes, assuming worst-case prefix integer sizes (UINT64_MAX).
@@ -125,7 +125,7 @@ size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *fi
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode a prefixed integer (RFC 7541 §5.1 / RFC 9204 §4.1.1).
  * @param buffer The input buffer.
  * @param buffer_size The input buffer size.
@@ -141,7 +141,7 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_decode_prefix_int(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Encode an unsigned integer with prefix encoding (RFC 7541 §5.1).
  * @param buffer Output buffer.
  * @param buffer_size Output buffer size.
@@ -159,7 +159,8 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_prefix_int(
 #define YAWT_QPACK_HUFF_DEC_TREE_MAX 600  /**< Maximum nodes in the Huffman decode tree */
 
 /**
- * @ingroup H3_Headers
+ * @internal
+ * @ingroup H3_Internal
  * @brief Huffman decode tree node.
  * @note Array-indexed binary tree, lazy-initialized on first decode call.
  */
@@ -171,7 +172,8 @@ typedef struct {
 } YAWT_QPACK_HuffNode_t;
 
 /**
- * @ingroup H3_Headers
+ * @internal
+ * @ingroup H3_Internal
  * @brief Huffman decoder state.
  */
 typedef struct {
@@ -181,7 +183,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode a single Huffman byte from a bitstream.
  * @param data The input bitstream.
  * @param data_len The input bitstream length.
@@ -199,7 +201,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_byte(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode an entire Huffman-encoded string into `out` buffer.
  * @param data The input bitstream.
  * @param data_len The input bitstream length.
@@ -215,7 +217,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_decode_string(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Encode a single byte into a Huffman bitstream.
  * @param in_byte The byte to encode.
  * @param out Output buffer.
@@ -233,7 +235,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_byte(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Encode a raw byte string into Huffman-encoded form.
  * @param input The input string.
  * @param input_len The input string length.
@@ -248,7 +250,7 @@ YAWT_QPACK_Error_t YAWT_QPACK_huff_encode_string(
 
 /**
  * @internal
- * @ingroup H3_Headers
+ * @ingroup H3_Internal
  * @brief Decode QPACK header block prefix (RFC 9204 §4.5.1).
  * @param data The input data.
  * @param data_len The input data length.

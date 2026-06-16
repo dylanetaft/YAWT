@@ -13,6 +13,12 @@
  * @brief HTTP/3 connection management, event dispatch, and sending.
  */
 
+/**
+ * @defgroup H3_Internal Internal
+ * @ingroup HTTP3 
+ * @brief Internal HTTP/3 implementation details — not part of the public API.
+ */
+
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
@@ -21,7 +27,7 @@
 
 /**
  * @internal
- * @ingroup H3_Connection
+ * @ingroup H3_Internal
  * @brief Assembles a frame from located metadata.
  * @param stream The QUIC stream frame.
  * @param meta The H3 stream metadata.
@@ -35,7 +41,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream,
 
 /**
  * @internal
- * @ingroup H3_Connection
+ * @ingroup H3_Internal
  * @brief Encode an H3 frame header (type varint + length varint) into buf.
  * @param frame_type The H3 frame type.
  * @param payload_len The payload length.
@@ -47,7 +53,7 @@ size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint
 
 /**
  * @internal
- * @ingroup H3_Connection
+ * @ingroup H3_Internal
  * @brief Get the number of bytes needed for an H3 frame header.
  * @param payload_len The payload length that will follow.
  * @return Number of bytes needed for type + length varints.
@@ -72,7 +78,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
 
 /**
  * @internal
- * @ingroup H3_Connection
+ * @ingroup H3_Internal
  * @brief Decode a SETTINGS frame body.
  * @param rc Read cursor whose data/len cover exactly the SETTINGS payload.
  * @param out Output settings struct.
@@ -85,7 +91,7 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
 
 /**
  * @internal
- * @ingroup H3_Connection
+ * @ingroup H3_Internal
  * @brief Encode a SETTINGS frame body (id/value varint pairs) into buf.
  * @param settings The settings to encode.
  * @param buf Output buffer.

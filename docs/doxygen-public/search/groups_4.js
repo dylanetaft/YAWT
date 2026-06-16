@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['logging_0',['Logging',['../group__Logging.html',1,'']]]
+  ['internal_0',['Internal',['../group__H3__Internal.html',1,'Internal'],['../group__QUIC__Internal.html',1,'Internal']]]
 ];
