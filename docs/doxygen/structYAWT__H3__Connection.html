@@ -89,7 +89,7 @@ $(function(){initNavTree('structYAWT__H3__Connection.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">YAWT_H3_Connection Struct Reference<div class="ingroups"><a class="el" href="group__HTTP3.html">HTTP3</a></div></div></div>
+  <div class="headertitle"><div class="title">YAWT_H3_Connection Struct Reference<div class="ingroups"><a class="el" href="group__HTTP3.html">HTTP3</a> &raquo; <a class="el" href="group__H3__Connection.html">Connection</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -100,8 +100,8 @@ $(function(){initNavTree('structYAWT__H3__Connection.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a6eee35df27367d22f5c541abf2d20720" id="r_a6eee35df27367d22f5c541abf2d20720"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6eee35df27367d22f5c541abf2d20720">qcon</a></td></tr>
-<tr class="memitem:a667a63766f7f0c1f25ccaba14b496d3e" id="r_a667a63766f7f0c1f25ccaba14b496d3e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a667a63766f7f0c1f25ccaba14b496d3e">app_handler</a></td></tr>
+<tr class="memitem:a6eee35df27367d22f5c541abf2d20720" id="r_a6eee35df27367d22f5c541abf2d20720"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6eee35df27367d22f5c541abf2d20720">qcon</a></td></tr>
+<tr class="memitem:a667a63766f7f0c1f25ccaba14b496d3e" id="r_a667a63766f7f0c1f25ccaba14b496d3e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a667a63766f7f0c1f25ccaba14b496d3e">app_handler</a></td></tr>
 <tr class="memitem:ab8306176e658169367f2e400f2b7be19" id="r_ab8306176e658169367f2e400f2b7be19"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab8306176e658169367f2e400f2b7be19">local_settings</a></td></tr>
 <tr class="memitem:a34a2d781bc06551b3b65fb2eb9a86f5b" id="r_a34a2d781bc06551b3b65fb2eb9a86f5b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__H3__Settings__t.html">YAWT_H3_Settings_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a34a2d781bc06551b3b65fb2eb9a86f5b">peer_settings</a></td></tr>
 <tr class="memitem:aa3d6b4932194dce99c7b61b710a2b758" id="r_aa3d6b4932194dce99c7b61b710a2b758"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa3d6b4932194dce99c7b61b710a2b758">nstreams</a></td></tr>
@@ -112,7 +112,7 @@ Data Fields</h2></td></tr>
 <div class="textblock"><p>H3 connection object. </p>
 <dl class="section note"><dt>Note</dt><dd>Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00312">312</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00330">330</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
 <a id="a6eee35df27367d22f5c541abf2d20720" name="a6eee35df27367d22f5c541abf2d20720"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6eee35df27367d22f5c541abf2d20720">&#9670;&#160;</a></span>qcon</h2>
@@ -121,12 +121,12 @@ Data Fields</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__HTTP3.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a>* YAWT_H3_Connection::qcon</td>
+          <td class="memname"><a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a>* YAWT_H3_Connection::qcon</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00313">313</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00331">331</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -137,12 +137,12 @@ Data Fields</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__HTTP3.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> YAWT_H3_Connection::app_handler</td>
+          <td class="memname"><a class="el" href="group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> YAWT_H3_Connection::app_handler</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00314">314</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00332">332</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -158,7 +158,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00315">315</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00333">333</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -174,7 +174,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00316">316</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00334">334</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -190,7 +190,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00317">317</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00335">335</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -206,7 +206,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00318">318</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00336">336</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -222,7 +222,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00319">319</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00337">337</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>

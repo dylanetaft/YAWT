@@ -10,7 +10,7 @@ var searchData=
   ['yawt_5fq_5fcrypto_5ft_7',['YAWT_Q_Crypto_t',['../group__Crypt.html#ga2e8365554dbb0891270f945e33174d77',1,'crypt.h']]],
   ['yawt_5fq_5feventhandler_5ft_8',['YAWT_Q_EventHandler_t',['../group__QUIC__Connection.html#ga82409f8be34321b9774adf65b5422dbb',1,'quic.h']]],
   ['yawt_5fq_5feventparam_5ft_9',['YAWT_Q_EventParam_t',['../group__QUIC__Connection.html#gaba54d7c0f161bc3e7f3efab411968712',1,'quic_types.h']]],
-  ['yawt_5fq_5fframe_5fbufferedstream_5ft_10',['YAWT_Q_Frame_BufferedStream_t',['../group__QUIC__Connection.html#gade8ac1df5770886c672261a83d40e3ea',1,'quic_types.h']]],
+  ['yawt_5fq_5fframe_5fbufferedstream_5ft_10',['YAWT_Q_Frame_BufferedStream_t',['../group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea',1,'quic_types.h']]],
   ['yawt_5fq_5fframe_5fstream_5ft_11',['YAWT_Q_Frame_Stream_t',['../group__QUIC__FRAME__TYPES.html#gaae6e88026a73c2efeae1eb6777d6034c',1,'quic_types.h']]],
   ['yawt_5fq_5fiovec_5ft_12',['YAWT_Q_IoVec_t',['../group__QUIC__Connection.html#gacce07d550c2b0c63614d19dfbdafca38',1,'quic_types.h']]],
   ['yawt_5fq_5fpacket_5ft_13',['YAWT_Q_Packet_t',['../group__QUIC__Connection.html#ga758de3dadb790488cd27e55f9cf34a92',1,'quic_types.h']]],

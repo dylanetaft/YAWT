@@ -8,7 +8,7 @@ var quic__types_8h =
     [ "YAWT_Q_SHORT_HDR_OVERHEAD", "quic__types_8h.html#a82c4656639707ecf232c87d029f000ce", null ],
     [ "YAWT_Q_Cid_t", "group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27", null ],
     [ "YAWT_Q_EventParam_t", "group__QUIC__Connection.html#gaba54d7c0f161bc3e7f3efab411968712", null ],
-    [ "YAWT_Q_Frame_BufferedStream_t", "group__QUIC__Connection.html#gade8ac1df5770886c672261a83d40e3ea", null ],
+    [ "YAWT_Q_Frame_BufferedStream_t", "group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea", null ],
     [ "YAWT_Q_Frame_Stream_t", "group__QUIC__FRAME__TYPES.html#gaae6e88026a73c2efeae1eb6777d6034c", null ],
     [ "YAWT_Q_IoVec_t", "group__QUIC__Connection.html#gacce07d550c2b0c63614d19dfbdafca38", null ],
     [ "YAWT_Q_Packet_t", "group__QUIC__Connection.html#ga758de3dadb790488cd27e55f9cf34a92", null ],

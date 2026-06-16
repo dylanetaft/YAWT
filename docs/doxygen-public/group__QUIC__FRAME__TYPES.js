@@ -16,6 +16,7 @@ var group__QUIC__FRAME__TYPES =
     [ "YAWT_Q_Frame_Stream", "structYAWT__Q__Frame__Stream.html", [
       [ "data", "structYAWT__Q__Frame__Stream.html#ac812e0a38adbd9cb32176d0c68b4f6d8", null ]
     ] ],
+    [ "YAWT_Q_Frame_BufferedStream", "structYAWT__Q__Frame__BufferedStream.html", null ],
     [ "YAWT_Q_Frame_Max_Data_t", "structYAWT__Q__Frame__Max__Data__t.html", null ],
     [ "YAWT_Q_Frame_Max_Stream_Data_t", "structYAWT__Q__Frame__Max__Stream__Data__t.html", null ],
     [ "YAWT_Q_Frame_Max_Streams_t", "structYAWT__Q__Frame__Max__Streams__t.html", null ],
@@ -35,5 +36,7 @@ var group__QUIC__FRAME__TYPES =
     [ "YAWT_Q_Frame_Datagram_t", "structYAWT__Q__Frame__Datagram__t.html", [
       [ "dataptr", "structYAWT__Q__Frame__Datagram__t.html#aeb27c8dc23f07614c6e3a242fd623d29", null ]
     ] ],
+    [ "YAWT_Q_Frame_t", "structYAWT__Q__Frame__t.html", null ],
+    [ "YAWT_Q_Frame_BufferedStream_t", "group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea", null ],
     [ "YAWT_Q_Frame_Stream_t", "group__QUIC__FRAME__TYPES.html#gaae6e88026a73c2efeae1eb6777d6034c", null ]
 ];

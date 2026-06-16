@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['http3_0',['HTTP3',['../group__HTTP3.html',1,'']]]
+  ['connection_0',['Connection',['../group__H3__Connection.html',1,'Connection'],['../group__QUIC__Connection.html',1,'Connection']]],
+  ['crypt_1',['Crypt',['../group__Crypt.html',1,'']]]
 ];

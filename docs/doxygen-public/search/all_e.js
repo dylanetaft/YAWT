@@ -85,7 +85,7 @@ var searchData=
   ['yawt_5fq_5fframe_5fack_5fecn_5ft_82',['YAWT_Q_Frame_ACK_ECN_t',['../structYAWT__Q__Frame__ACK__ECN__t.html',1,'']]],
   ['yawt_5fq_5fframe_5fack_5ft_83',['YAWT_Q_Frame_ACK_t',['../structYAWT__Q__Frame__ACK__t.html',1,'']]],
   ['yawt_5fq_5fframe_5fbufferedstream_84',['YAWT_Q_Frame_BufferedStream',['../structYAWT__Q__Frame__BufferedStream.html',1,'']]],
-  ['yawt_5fq_5fframe_5fbufferedstream_5ft_85',['YAWT_Q_Frame_BufferedStream_t',['../group__QUIC__Connection.html#gade8ac1df5770886c672261a83d40e3ea',1,'quic_types.h']]],
+  ['yawt_5fq_5fframe_5fbufferedstream_5ft_85',['YAWT_Q_Frame_BufferedStream_t',['../group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea',1,'quic_types.h']]],
   ['yawt_5fq_5fframe_5fconnection_5fclose_5fapp_5ft_86',['YAWT_Q_Frame_Connection_Close_App_t',['../structYAWT__Q__Frame__Connection__Close__App__t.html',1,'']]],
   ['yawt_5fq_5fframe_5fconnection_5fclose_5ft_87',['YAWT_Q_Frame_Connection_Close_t',['../structYAWT__Q__Frame__Connection__Close__t.html',1,'']]],
   ['yawt_5fq_5fframe_5fcrypto_5ft_88',['YAWT_Q_Frame_Crypto_t',['../structYAWT__Q__Frame__Crypto__t.html',1,'']]],

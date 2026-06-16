@@ -281,7 +281,7 @@ typedef struct YAWT_Q_Frame_Stream {
 } YAWT_Q_Frame_Stream_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_FRAME_TYPES
  * @brief A STREAM frame plus the storage its .frame.data points at.
  * @note Used when a frame must outlive the input datagram (out-of-order RX buffering 
  * and TX queuing). bf->data is the OWNED inline copy. bf->frame.data is the borrowed 
@@ -422,7 +422,7 @@ typedef struct {
 } YAWT_Q_Frame_Datagram_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_FRAME_TYPES
  * @brief Parsed frame — returned by YAWT_q_parse_frame.
  */
 typedef struct {

@@ -12,9 +12,7 @@ var group__QUIC__Connection =
       [ "reserved", "structYAWT__Q__Packet.html#a70a0f9ca1658aacc60a8cb2f781a2b43", null ],
       [ "version", "structYAWT__Q__Packet.html#a4af64fe7a7ff5f0f1ebd56d8923b7a43", null ]
     ] ],
-    [ "YAWT_Q_Frame_BufferedStream", "structYAWT__Q__Frame__BufferedStream.html", null ],
     [ "YAWT_Q_IoVec", "structYAWT__Q__IoVec.html", null ],
-    [ "YAWT_Q_Frame_t", "structYAWT__Q__Frame__t.html", null ],
     [ "YAWT_Q_EventParam", "unionYAWT__Q__EventParam.html", null ],
     [ "YAWT_Q_Cid_t", "group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27", null ],
     [ "YAWT_Q_Con_Create_Info_t", "group__QUIC__Connection.html#ga9385d61f71145755bc2861066fab5148", null ],
@@ -22,7 +20,6 @@ var group__QUIC__Connection =
     [ "YAWT_Q_Connection_t", "group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028", null ],
     [ "YAWT_Q_EventHandler_t", "group__QUIC__Connection.html#ga82409f8be34321b9774adf65b5422dbb", null ],
     [ "YAWT_Q_EventParam_t", "group__QUIC__Connection.html#gaba54d7c0f161bc3e7f3efab411968712", null ],
-    [ "YAWT_Q_Frame_BufferedStream_t", "group__QUIC__Connection.html#gade8ac1df5770886c672261a83d40e3ea", null ],
     [ "YAWT_Q_IoVec_t", "group__QUIC__Connection.html#gacce07d550c2b0c63614d19dfbdafca38", null ],
     [ "YAWT_Q_Packet_t", "group__QUIC__Connection.html#ga758de3dadb790488cd27e55f9cf34a92", null ],
     [ "YAWT_Q_Error_t", "group__QUIC__Connection.html#ga2850b37ee3121eafdc74262c04bf59f2", null ],

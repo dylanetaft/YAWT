@@ -114,6 +114,8 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">NEW_TOKEN frame (0x07).  <a href="structYAWT__Q__Frame__New__Token__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FStream" id="r_YAWT_5FQ_5FFrame_5FStream"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <a href="structYAWT__Q__Frame__Stream.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5FBufferedStream" id="r_YAWT_5FQ_5FFrame_5FBufferedStream"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A STREAM frame plus the storage its .frame.data points at.  <a href="structYAWT__Q__Frame__BufferedStream.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FMax_5FData_5Ft" id="r_YAWT_5FQ_5FFrame_5FMax_5FData_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Max__Data__t.html">YAWT_Q_Frame_Max_Data_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">MAX_DATA frame (0x10).  <a href="structYAWT__Q__Frame__Max__Data__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FMax_5FStream_5FData_5Ft" id="r_YAWT_5FQ_5FFrame_5FMax_5FStream_5FData_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Max__Stream__Data__t.html">YAWT_Q_Frame_Max_Stream_Data_t</a></td></tr>
@@ -140,15 +142,36 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CONNECTION_CLOSE frame (0x1d, application layer).  <a href="structYAWT__Q__Frame__Connection__Close__App__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FFrame_5FDatagram_5Ft" id="r_YAWT_5FQ_5FFrame_5FDatagram_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__Datagram__t.html">YAWT_Q_Frame_Datagram_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">DATAGRAM frame (0x30-0x31, RFC 9221).  <a href="structYAWT__Q__Frame__Datagram__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FFrame_5Ft" id="r_YAWT_5FQ_5FFrame_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parsed frame — returned by YAWT_q_parse_frame.  <a href="structYAWT__Q__Frame__t.html#details">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:gaae6e88026a73c2efeae1eb6777d6034c" id="r_gaae6e88026a73c2efeae1eb6777d6034c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__Stream.html">YAWT_Q_Frame_Stream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaae6e88026a73c2efeae1eb6777d6034c">YAWT_Q_Frame_Stream_t</a></td></tr>
 <tr class="memdesc:gaae6e88026a73c2efeae1eb6777d6034c"><td class="mdescLeft">&#160;</td><td class="mdescRight">STREAM frame (0x08-0x0f).  <br /></td></tr>
+<tr class="memitem:gade8ac1df5770886c672261a83d40e3ea" id="r_gade8ac1df5770886c672261a83d40e3ea"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td></tr>
+<tr class="memdesc:gade8ac1df5770886c672261a83d40e3ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">A STREAM frame plus the storage its .frame.data points at.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <p>QUIC frame types and their parsed representations. </p>
 <a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
+<a id="gade8ac1df5770886c672261a83d40e3ea" name="gade8ac1df5770886c672261a83d40e3ea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gade8ac1df5770886c672261a83d40e3ea">&#9670;&#160;</a></span>YAWT_Q_Frame_BufferedStream_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Frame__BufferedStream.html">YAWT_Q_Frame_BufferedStream</a> <a class="el" href="#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A STREAM frame plus the storage its .frame.data points at. </p>
+<dl class="section note"><dt>Note</dt><dd>Used when a frame must outlive the input datagram (out-of-order RX buffering and TX queuing). bf-&gt;data is the OWNED inline copy. bf-&gt;frame.data is the borrowed pointer, set to point at bf-&gt;data when buffered. </dd></dl>
+
+</div>
+</div>
 <a id="gaae6e88026a73c2efeae1eb6777d6034c" name="gaae6e88026a73c2efeae1eb6777d6034c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaae6e88026a73c2efeae1eb6777d6034c">&#9670;&#160;</a></span>YAWT_Q_Frame_Stream_t</h2>
 
