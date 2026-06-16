@@ -108,11 +108,11 @@ Topics</h2></td></tr>
 <tr class="memdesc:group__QUIC__FRAME__TYPES"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types and their parsed representations. <br /></td></tr>
 <tr class="memitem:QUIC_5FDrive" id="r_QUIC_5FDrive"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC__Drive.html">Drive Functions </a></td></tr>
 <tr class="memdesc:group__QUIC__Drive"><td class="mdescLeft">&#160;</td><td class="mdescRight">Functions the user must call from their event loop to drive the QUIC stack. <br /></td></tr>
+<tr class="memitem:QUIC_5FInternal" id="r_QUIC_5FInternal"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__QUIC__Internal.html">Internal </a></td></tr>
+<tr class="memdesc:group__QUIC__Internal"><td class="mdescLeft">&#160;</td><td class="mdescRight">Internal QUIC implementation details — not part of the public API. <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
-<tr class="memitem:YAWT_5FQ_5FPacket" id="r_YAWT_5FQ_5FPacket"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flat packet struct — all packet types collapsed into one.  <a href="structYAWT__Q__Packet.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FIoVec_5Ft" id="r_YAWT_5FQ_5FIoVec_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__IoVec__t.html">YAWT_Q_IoVec_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scatter/gather buffer element for sending.  <a href="structYAWT__Q__IoVec__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FEventParam_5Ft" id="r_YAWT_5FQ_5FEventParam_5Ft"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionYAWT__Q__EventParam__t.html">YAWT_Q_EventParam_t</a></td></tr>
@@ -122,8 +122,6 @@ Data Structures</h2></td></tr>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga82409f8be34321b9774adf65b5422dbb" id="r_ga82409f8be34321b9774adf65b5422dbb"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga82409f8be34321b9774adf65b5422dbb">YAWT_Q_EventHandler_t</a>) (YAWT_Q_Connection_t *con, <a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="unionYAWT__Q__EventParam__t.html">YAWT_Q_EventParam_t</a> param)</td></tr>
 <tr class="memdesc:ga82409f8be34321b9774adf65b5422dbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process-wide event handler.  <br /></td></tr>
-<tr class="memitem:ga758de3dadb790488cd27e55f9cf34a92" id="r_ga758de3dadb790488cd27e55f9cf34a92"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></td></tr>
-<tr class="memdesc:ga758de3dadb790488cd27e55f9cf34a92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flat packet struct — all packet types collapsed into one.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -142,16 +140,6 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:ga2850b37ee3121eafdc74262c04bf59f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC error codes.  <a href="#ga2850b37ee3121eafdc74262c04bf59f2">More...</a><br /></td></tr>
-<tr class="memitem:ga7f26dad2b0638cc66f8ef1cc1423a481" id="r_ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> { <br />
-&#160;&#160;<b>YAWT_Q_PKT_TYPE_INITIAL</b> = 0x00
-, <b>YAWT_Q_PKT_TYPE_0RTT</b> = 0x01
-, <b>YAWT_Q_PKT_TYPE_HANDSHAKE</b> = 0x02
-, <b>YAWT_Q_PKT_TYPE_RETRY</b> = 0x03
-, <br />
-&#160;&#160;<b>YAWT_Q_PKT_TYPE_1RTT</b> = 0xFF
-<br />
- }</td></tr>
-<tr class="memdesc:ga7f26dad2b0638cc66f8ef1cc1423a481"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC packet types (all 5 forms).  <a href="#ga7f26dad2b0638cc66f8ef1cc1423a481">More...</a><br /></td></tr>
 <tr class="memitem:ga18527349c2d3f9f52c1600abc554b8b6" id="r_ga18527349c2d3f9f52c1600abc554b8b6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga18527349c2d3f9f52c1600abc554b8b6">YAWT_Q_Stream_Type_t</a> { <b>YAWT_Q_C_BIDI</b> = 0x00
 , <b>YAWT_Q_S_BIDI</b> = 0x01
 , <b>YAWT_Q_C_UNI</b> = 0x02
@@ -194,12 +182,6 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:ga57a79159b86da14e34eb450d26fe6072"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC frame types.  <a href="#ga57a79159b86da14e34eb450d26fe6072">More...</a><br /></td></tr>
-<tr class="memitem:ga84c95fc076cafaaed9f9f8997703e454" id="r_ga84c95fc076cafaaed9f9f8997703e454"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a> { <b>YAWT_Q_PKT_INITIAL</b> = 0x00
-, <b>YAWT_Q_PKT_0RTT</b> = 0x01
-, <b>YAWT_Q_PKT_HANDSHAKE</b> = 0x02
-, <b>YAWT_Q_PKT_RETRY</b> = 0x03
- }</td></tr>
-<tr class="memdesc:ga84c95fc076cafaaed9f9f8997703e454"><td class="mdescLeft">&#160;</td><td class="mdescRight">QUIC long packet types.  <a href="#ga84c95fc076cafaaed9f9f8997703e454">More...</a><br /></td></tr>
 <tr class="memitem:ga8f207db1067de78b254ce521377215dd" id="r_ga8f207db1067de78b254ce521377215dd"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> { <br />
 &#160;&#160;<b>YAWT_Q_EVT_CONNECTED</b>
 , <b>YAWT_Q_EVT_STREAM</b>
@@ -234,24 +216,7 @@ Functions</h2></td></tr>
 <p>Process-wide event handler. </p>
 <dl class="section note"><dt>Note</dt><dd>Lifetime: a single global, installed via <a class="el" href="group__QUIC__Connection.html#ga1b6fbf09c5d78347b023750c3875d6c0" title="Install the process-wide event handler.">YAWT_q_con_set_event_handler()</a>. Threading: the QUIC layer is single-threaded (one libev loop). The handler is invoked synchronously from <a class="el" href="group__QUIC__Drive.html#gad371a09d91fb6b2510594eb82c9ae392" title="Single ingress for received UDP datagrams.">YAWT_q_con_rx()</a> and <a class="el" href="group__QUIC__Drive.html#gafca5419f25d1e344cf6e35558a0530fc" title="Maintenance function for quic.">YAWT_q_con_maintain()</a>. Nothing here is thread-safe. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00061">61</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
-
-</div>
-</div>
-<a id="ga758de3dadb790488cd27e55f9cf34a92" name="ga758de3dadb790488cd27e55f9cf34a92"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga758de3dadb790488cd27e55f9cf34a92">&#9670;&#160;</a></span>YAWT_Q_Packet_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__Q__Packet.html">YAWT_Q_Packet</a> <a class="el" href="#ga758de3dadb790488cd27e55f9cf34a92">YAWT_Q_Packet_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flat packet struct — all packet types collapsed into one. </p>
-<dl class="section warning"><dt>Warning</dt><dd>Transience: when produced by YAWT_q_parse_packet, the pointer fields below (payload, raw, and extra.*.token) borrow INTO the input datagram buffer. They are valid only while that buffer is. Decrypt happens in-place on those bytes. Do not retain these pointers beyond the current parse scope. </dd></dl>
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00067">67</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -270,26 +235,7 @@ Functions</h2></td></tr>
 
 <p>QUIC error codes. </p>
 
-<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00080">80</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
-
-</div>
-</div>
-<a id="ga7f26dad2b0638cc66f8ef1cc1423a481" name="ga7f26dad2b0638cc66f8ef1cc1423a481"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga7f26dad2b0638cc66f8ef1cc1423a481">&#9670;&#160;</a></span>YAWT_Q_Packet_Type_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>QUIC packet types (all 5 forms). </p>
-<dl class="section note"><dt>Note</dt><dd>Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2). 1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00082">82</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00086">86</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>
@@ -329,24 +275,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ga84c95fc076cafaaed9f9f8997703e454" name="ga84c95fc076cafaaed9f9f8997703e454"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga84c95fc076cafaaed9f9f8997703e454">&#9670;&#160;</a></span>YAWT_Q_Long_Packet_Type_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="#ga84c95fc076cafaaed9f9f8997703e454">YAWT_Q_Long_Packet_Type_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>QUIC long packet types. </p>
-
-<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00139">139</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
-
-</div>
-</div>
 <a id="ga8f207db1067de78b254ce521377215dd" name="ga8f207db1067de78b254ce521377215dd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga8f207db1067de78b254ce521377215dd">&#9670;&#160;</a></span>YAWT_Q_EventType_t</h2>
 
@@ -362,7 +290,7 @@ Functions</h2></td></tr>
 <p>QUIC event taxonomy. </p>
 <dl class="section note"><dt>Note</dt><dd>New events extend this enum AND add a matching <span class="tt">P_&lt;eventtype&gt;</span> substruct to <a class="el" href="unionYAWT__Q__EventParam__t.html" title="Per-event parameters.">YAWT_Q_EventParam_t</a> below. The 1:1 mapping between enum suffix and union member name is part of the contract. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00457">457</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00459">459</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 
 </div>
 </div>
@@ -399,7 +327,7 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A static string describing the error. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00098">98</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="quic_8h_source.html#l00104">104</a> of file <a class="el" href="quic_8h_source.html">quic.h</a>.</p>
 
 </div>
 </div>

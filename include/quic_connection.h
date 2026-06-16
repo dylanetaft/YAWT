@@ -89,7 +89,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Create a QUIC connection.
  * @details This is created in response to an incoming quic packet
  * with an unrecognized CID, managed by the QUIC library
@@ -109,7 +109,7 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Destroy a connection.
  * @details This is used by the QUIC library to free connections after close/idle expiration
  * @param con Pointer to the connection pointer. Sets *con = NULL.
@@ -120,7 +120,7 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Clear the original DCID from a connection (used after handshake).
  * @param con The connection.
  */
@@ -156,7 +156,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Update the peer's Connection ID.
  * @param con The QUIC connection.
  * @param new_cid The new peer Connection ID.

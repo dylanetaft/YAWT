@@ -42,7 +42,7 @@ var searchData=
   ['yawt_5fq_5fframehandler_5fres_5ft_39',['YAWT_Q_FrameHandler_Res_t',['../structYAWT__Q__FrameHandler__Res__t.html',1,'']]],
   ['yawt_5fq_5fiovec_5ft_40',['YAWT_Q_IoVec_t',['../structYAWT__Q__IoVec__t.html',1,'']]],
   ['yawt_5fq_5fmaintenanceconfig_5ft_41',['YAWT_Q_MaintenanceConfig_t',['../structYAWT__Q__MaintenanceConfig__t.html',1,'']]],
-  ['yawt_5fq_5fpacket_42',['YAWT_Q_Packet',['../structYAWT__Q__Packet.html',1,'']]],
+  ['yawt_5fq_5fpacket_5ft_42',['YAWT_Q_Packet_t',['../structYAWT__Q__Packet__t.html',1,'']]],
   ['yawt_5fq_5fpeeraddr_43',['YAWT_Q_PeerAddr',['../structYAWT__Q__PeerAddr.html',1,'']]],
   ['yawt_5fq_5freadcursor_5ft_44',['YAWT_Q_ReadCursor_t',['../structYAWT__Q__ReadCursor__t.html',1,'']]],
   ['yawt_5fq_5fsecuritypolicy_5ft_45',['YAWT_Q_SecurityPolicy_t',['../structYAWT__Q__SecurityPolicy__t.html',1,'']]],

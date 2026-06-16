@@ -41,7 +41,7 @@ typedef struct YAWT_Q_Cid {
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal_Internal
  * @brief Set a Connection ID.
  * @param dst Destination CID struct.
  * @param id Source byte array.
@@ -58,7 +58,7 @@ static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t 
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal_Internal
  * @brief Format a CID as a hex string.
  * @param cid The Connection ID to format.
  * @return Pointer to a static buffer containing the hex string (not thread-safe).
@@ -74,7 +74,7 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
 
 /**
  * @internal
- * @ingroup QUIC
+ * @ingroup QUIC_Internal
  * @brief QUIC packet types (all 5 forms).
  * @note Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
  *       1-RTT has no encoded type bits (short header); 0xFF is an in-memory sentinel.
@@ -133,7 +133,8 @@ typedef enum {
 } YAWT_Q_Frame_Type_t;
 
 /**
- * @ingroup QUIC
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief QUIC long packet types.
  */
 typedef enum {
@@ -144,14 +145,15 @@ typedef enum {
 } YAWT_Q_Long_Packet_Type_t;
 
 /**
- * @ingroup QUIC
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Flat packet struct — all packet types collapsed into one.
  * @warning Transience: when produced by YAWT_q_parse_packet, the pointer fields below
  * (payload, raw, and extra.*.token) borrow INTO the input datagram buffer.
  * They are valid only while that buffer is. Decrypt happens in-place on those bytes.
  * Do not retain these pointers beyond the current parse scope.
  */
-typedef struct YAWT_Q_Packet {
+typedef struct {
   YAWT_Q_Packet_Type_t type;
 
   /** Header fields (all packet types) */

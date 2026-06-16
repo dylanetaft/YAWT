@@ -39,6 +39,12 @@
  *          - YAWT_q_con_maintain() on a timer (see YAWT_q_con_get_maint_config())
  */
 
+/**
+ * @defgroup QUIC_Internal Internal
+ * @ingroup QUIC
+ * @brief Internal QUIC implementation details — not part of the public API.
+ */
+
 
 #pragma once
 #include <stdint.h>
@@ -153,7 +159,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Result from processing frames in a packet.
  */
 typedef struct {
@@ -163,7 +169,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Internal
  * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
  * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free
  */
@@ -195,7 +201,7 @@ typedef struct {
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode PADDING frames into buf.
  * @param buf Output buffer.
  * @param buf_len Output buffer length.
@@ -207,7 +213,7 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a CRYPTO frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -220,7 +226,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode an ACK frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -231,7 +237,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level,
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a STREAM frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param frame The STREAM frame to encode.
@@ -243,7 +249,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a PING frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @return YAWT_Q_OK on success, or an error code.
@@ -253,7 +259,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a CONNECTION_CLOSE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
@@ -266,7 +272,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a PATH_RESPONSE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param data The 8-byte data to echo back.
@@ -276,7 +282,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, cons
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a DATAGRAM frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param data The datagram payload.
@@ -289,7 +295,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode a HANDSHAKE_DONE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @return YAWT_Q_OK on success, or an error code.
@@ -302,7 +308,7 @@ typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Encode + encrypt a packet.
  * @param pkt The packet to encode.
  * @param crypto The crypto context.
@@ -346,7 +352,7 @@ size_t YAWT_q_varint_size(uint64_t val);
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Parse a QUIC packet from a read cursor.
  * @param rc The read cursor.
  * @param out Output packet struct.
@@ -358,7 +364,7 @@ void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out);
 
 /**
  * @internal
- * @ingroup QUIC_Wire
+ * @ingroup QUIC_Internal
  * @brief Parse a single frame from the cursor.
  * @param rc The read cursor.
  * @param pkt_type Source packet type (encryption level).

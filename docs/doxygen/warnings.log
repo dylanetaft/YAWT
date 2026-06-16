@@ -1,7 +1,5 @@
 /home/dylanetaft/projects/YAWT/include/crypt.h:8: warning: missing title after \defgroup Crypt
 /home/dylanetaft/projects/YAWT/include/h3.h:7: warning: missing title after \defgroup HTTP3
 /home/dylanetaft/projects/YAWT/include/logger.h:7: warning: missing title after \defgroup Logging
-/home/dylanetaft/projects/YAWT/include/quic.h:7: warning: missing title after \defgroup QUIC
-/home/dylanetaft/projects/YAWT/include/security.h:7: warning: Refusing to add group Security to itself
-/home/dylanetaft/projects/YAWT/include/quic_connection.h:23: warning: Found non-existing group 'QUIC_Connection_Connection' for the command '@ingroup', ignoring command
-/home/dylanetaft/projects/YAWT/include/quic_connection.h:26: warning: Found non-existing group 'QUIC_Connection_Connection' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:50: warning: Found non-existing group 'QUIC_Internal_Internal' for the command '@ingroup', ignoring command
+/home/dylanetaft/projects/YAWT/include/quic_types.h:66: warning: Found non-existing group 'QUIC_Internal_Internal' for the command '@ingroup', ignoring command

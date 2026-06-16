@@ -98,12 +98,10 @@ $(function(){initNavTree('group__QUIC__Connection.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
-<tr class="memitem:YAWT_5FQ_5FFrameHandler_5FRes_5Ft" id="r_YAWT_5FQ_5FFrameHandler_5FRes_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__FrameHandler__Res__t.html">YAWT_Q_FrameHandler_Res_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Result from processing frames in a packet.  <a href="structYAWT__Q__FrameHandler__Res__t.html#details">More...</a><br /></td></tr>
-<tr class="memitem:YAWT_5FQ_5FStreamMeta_5Ft" id="r_YAWT_5FQ_5FStreamMeta_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__StreamMeta__t.html">YAWT_Q_StreamMeta_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stream metadata — one per open stream, stored in the con-&gt;stream_meta slab.  <a href="structYAWT__Q__StreamMeta__t.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FConnectionStats_5Ft" id="r_YAWT_5FQ_5FConnectionStats_5Ft"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__ConnectionStats__t.html">YAWT_Q_ConnectionStats_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connection-level counters and packet number tracking.  <a href="structYAWT__Q__ConnectionStats__t.html#details">More...</a><br /></td></tr>
+<tr class="memitem:YAWT_5FQ_5FPeerAddr" id="r_YAWT_5FQ_5FPeerAddr"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__PeerAddr.html">YAWT_Q_PeerAddr</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).  <a href="structYAWT__Q__PeerAddr.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FConnection" id="r_YAWT_5FQ_5FConnection"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A QUIC connection.  <a href="structYAWT__Q__Connection.html#details">More...</a><br /></td></tr>
 <tr class="memitem:YAWT_5FQ_5FCon_5FCreate_5FInfo" id="r_YAWT_5FQ_5FCon_5FCreate_5FInfo"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structYAWT__Q__Con__Create__Info.html">YAWT_Q_Con_Create_Info</a></td></tr>
@@ -115,6 +113,9 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:ga56841887f108695e2dc516d7ef89a8a3" id="r_ga56841887f108695e2dc516d7ef89a8a3"><td class="memItemLeft" align="right" valign="top"><a id="ga56841887f108695e2dc516d7ef89a8a3" name="ga56841887f108695e2dc516d7ef89a8a3"></a>
+typedef struct <a class="el" href="structYAWT__Q__PeerAddr.html">YAWT_Q_PeerAddr</a>&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_Q_PeerAddr_t</b></td></tr>
+<tr class="memdesc:ga56841887f108695e2dc516d7ef89a8a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x). <br /></td></tr>
 <tr class="memitem:ga48eeb291f8b1aa1867e90dbd40b71028" id="r_ga48eeb291f8b1aa1867e90dbd40b71028"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__Q__Connection.html">YAWT_Q_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a></td></tr>
 <tr class="memdesc:ga48eeb291f8b1aa1867e90dbd40b71028"><td class="mdescLeft">&#160;</td><td class="mdescRight">A QUIC connection.  <br /></td></tr>
 <tr class="memitem:ga9385d61f71145755bc2861066fab5148" id="r_ga9385d61f71145755bc2861066fab5148"><td class="memItemLeft" align="right" valign="top"><a id="ga9385d61f71145755bc2861066fab5148" name="ga9385d61f71145755bc2861066fab5148"></a>
@@ -126,18 +127,10 @@ typedef struct <a class="el" href="structYAWT__Q__Cid.html">YAWT_Q_Cid</a>&#160;
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:gada1a108255b80a5f1bb3efb811da02a7" id="r_gada1a108255b80a5f1bb3efb811da02a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gada1a108255b80a5f1bb3efb811da02a7">YAWT_q_con_create</a> (<a class="el" href="#ga9385d61f71145755bc2861066fab5148">YAWT_Q_Con_Create_Info_t</a> *info)</td></tr>
-<tr class="memdesc:gada1a108255b80a5f1bb3efb811da02a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a QUIC connection.  <br /></td></tr>
 <tr class="memitem:ga4236faacb50e964096987c74c59c6fbb" id="r_ga4236faacb50e964096987c74c59c6fbb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4236faacb50e964096987c74c59c6fbb">YAWT_q_con_find_by_cid</a> (const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *cid)</td></tr>
 <tr class="memdesc:ga4236faacb50e964096987c74c59c6fbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a connection by Connection ID.  <br /></td></tr>
-<tr class="memitem:ga3372b564a81847b87a7aaeceacb936bd" id="r_ga3372b564a81847b87a7aaeceacb936bd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3372b564a81847b87a7aaeceacb936bd">YAWT_q_con_free</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> **con)</td></tr>
-<tr class="memdesc:ga3372b564a81847b87a7aaeceacb936bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a connection.  <br /></td></tr>
-<tr class="memitem:ga9d377d06199838bd5c40723f8cc7c8ae" id="r_ga9d377d06199838bd5c40723f8cc7c8ae"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9d377d06199838bd5c40723f8cc7c8ae">YAWT_q_con_clear_odcid</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con)</td></tr>
-<tr class="memdesc:ga9d377d06199838bd5c40723f8cc7c8ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clear the original DCID from a connection (used after handshake).  <br /></td></tr>
 <tr class="memitem:gaa42b5811a855b2100b2808dea10253c7" id="r_gaa42b5811a855b2100b2808dea10253c7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa42b5811a855b2100b2808dea10253c7">YAWT_q_con_send_stream</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, uint64_t stream_id, const <a class="el" href="structYAWT__Q__IoVec__t.html">YAWT_Q_IoVec_t</a> *iov, int iov_count, int fin)</td></tr>
 <tr class="memdesc:gaa42b5811a855b2100b2808dea10253c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enqueue STREAM frames for the given scatter/gather buffers.  <br /></td></tr>
-<tr class="memitem:gadf0db1cf516d2726a5a131ee7291ca27" id="r_gadf0db1cf516d2726a5a131ee7291ca27"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gadf0db1cf516d2726a5a131ee7291ca27">YAWT_q_con_update_peer_cid</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *new_cid)</td></tr>
-<tr class="memdesc:gadf0db1cf516d2726a5a131ee7291ca27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the peer's Connection ID.  <br /></td></tr>
 <tr class="memitem:ga1b6fbf09c5d78347b023750c3875d6c0" id="r_ga1b6fbf09c5d78347b023750c3875d6c0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1b6fbf09c5d78347b023750c3875d6c0">YAWT_q_con_set_event_handler</a> (<a class="el" href="group__QUIC.html#ga82409f8be34321b9774adf65b5422dbb">YAWT_Q_EventHandler_t</a> handler)</td></tr>
 <tr class="memdesc:ga1b6fbf09c5d78347b023750c3875d6c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install the process-wide event handler.  <br /></td></tr>
 <tr class="memitem:ga23fd444e7cf8e071b95942633153c08b" id="r_ga23fd444e7cf8e071b95942633153c08b"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga23fd444e7cf8e071b95942633153c08b">YAWT_q_con_set_user_data</a> (<a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, void *p)</td></tr>
@@ -148,10 +141,6 @@ Functions</h2></td></tr>
 <tr class="memdesc:ga2a502c343570b1a1858ec200d574f3c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiate graceful close.  <br /></td></tr>
 <tr class="memitem:gaf0b00a4fc6e08633ffc58dbdca249120" id="r_gaf0b00a4fc6e08633ffc58dbdca249120"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="structYAWT__Q__MaintenanceConfig__t.html">YAWT_Q_MaintenanceConfig_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaf0b00a4fc6e08633ffc58dbdca249120">YAWT_q_con_get_maint_config</a> (void)</td></tr>
 <tr class="memdesc:gaf0b00a4fc6e08633ffc58dbdca249120"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pointer to the current global maintenance config.  <br /></td></tr>
-<tr class="memitem:ga6aacddb761627c8e9ace2cc1e9ec323c" id="r_ga6aacddb761627c8e9ace2cc1e9ec323c"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga6aacddb761627c8e9ace2cc1e9ec323c">YAWT_q_cid_set</a> (<a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dst, const uint8_t *id, uint8_t len)</td></tr>
-<tr class="memdesc:ga6aacddb761627c8e9ace2cc1e9ec323c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a Connection ID.  <br /></td></tr>
-<tr class="memitem:ga579789bdc3d3a5f8796fd450ec756d3c" id="r_ga579789bdc3d3a5f8796fd450ec756d3c"><td class="memItemLeft" align="right" valign="top">static const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga579789bdc3d3a5f8796fd450ec756d3c">YAWT_q_cid_to_hex</a> (const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *cid)</td></tr>
-<tr class="memdesc:ga579789bdc3d3a5f8796fd450ec756d3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Format a CID as a hex string.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <p>QUIC connection lifecycle, state, and event system types. </p>
@@ -175,33 +164,6 @@ Functions</h2></td></tr>
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
-<a id="gada1a108255b80a5f1bb3efb811da02a7" name="gada1a108255b80a5f1bb3efb811da02a7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gada1a108255b80a5f1bb3efb811da02a7">&#9670;&#160;</a></span>YAWT_q_con_create()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> * YAWT_q_con_create </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#ga9385d61f71145755bc2861066fab5148">YAWT_Q_Con_Create_Info_t</a> *</td>          <td class="paramname"><span class="paramname"><em>info</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Create a QUIC connection. </p>
-<p>This is created in response to an incoming quic packet with an unrecognized CID, managed by the QUIC library </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">info</td><td>Connection creation parameters. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to the new connection, or NULL on failure. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Registers it in the CID hash. Lifetime: until YAWT_q_con_free. </dd></dl>
-
-</div>
-</div>
 <a id="ga4236faacb50e964096987c74c59c6fbb" name="ga4236faacb50e964096987c74c59c6fbb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga4236faacb50e964096987c74c59c6fbb">&#9670;&#160;</a></span>YAWT_q_con_find_by_cid()</h2>
 
@@ -225,57 +187,6 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the connection, or NULL if not found. </dd></dl>
-
-</div>
-</div>
-<a id="ga3372b564a81847b87a7aaeceacb936bd" name="ga3372b564a81847b87a7aaeceacb936bd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3372b564a81847b87a7aaeceacb936bd">&#9670;&#160;</a></span>YAWT_q_con_free()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_con_free </td>
-          <td>(</td>
-          <td class="paramtype">YAWT_Q_Connection_t **</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Destroy a connection. </p>
-<p>This is used by the QUIC library to free connections after close/idle expiration </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">con</td><td>Pointer to the connection pointer. Sets *con = NULL. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section note"><dt>Note</dt><dd>SINGLE close chokepoint: emits EVT_CLOSE exactly once before teardown. Idempotent against NULL (double-free safe). </dd></dl>
-
-</div>
-</div>
-<a id="ga9d377d06199838bd5c40723f8cc7c8ae" name="ga9d377d06199838bd5c40723f8cc7c8ae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9d377d06199838bd5c40723f8cc7c8ae">&#9670;&#160;</a></span>YAWT_q_con_clear_odcid()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_con_clear_odcid </td>
-          <td>(</td>
-          <td class="paramtype">YAWT_Q_Connection_t *</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Clear the original DCID from a connection (used after handshake). </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">con</td><td>The connection. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -326,36 +237,6 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>YAWT_Q_OK on success, or an error code. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>Ownership: copies all iov[] data (caller keeps its buffers). </dd></dl>
-
-</div>
-</div>
-<a id="gadf0db1cf516d2726a5a131ee7291ca27" name="gadf0db1cf516d2726a5a131ee7291ca27"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gadf0db1cf516d2726a5a131ee7291ca27">&#9670;&#160;</a></span>YAWT_q_con_update_peer_cid()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_con_update_peer_cid </td>
-          <td>(</td>
-          <td class="paramtype">YAWT_Q_Connection_t *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>new_cid</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Update the peer's Connection ID. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">con</td><td>The QUIC connection. </td></tr>
-    <tr><td class="paramname">new_cid</td><td>The new peer Connection ID. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -509,90 +390,6 @@ Functions</h2></td></tr>
 
 <p>Get a pointer to the current global maintenance config. </p>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the global <a class="el" href="structYAWT__Q__MaintenanceConfig__t.html" title="Global maintenance configuration.">YAWT_Q_MaintenanceConfig_t</a>. </dd></dl>
-
-</div>
-</div>
-<a id="ga6aacddb761627c8e9ace2cc1e9ec323c" name="ga6aacddb761627c8e9ace2cc1e9ec323c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga6aacddb761627c8e9ace2cc1e9ec323c">&#9670;&#160;</a></span>YAWT_q_cid_set()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void YAWT_q_cid_set </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dst</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const uint8_t *</td>          <td class="paramname"><span class="paramname"><em>id</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>len</em></span>&#160;)</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Set a Connection ID. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">dst</td><td>Destination CID struct. </td></tr>
-    <tr><td class="paramname">id</td><td>Source byte array. </td></tr>
-    <tr><td class="paramname">len</td><td>Length of the source byte array. Truncated to 20 if &gt; 20. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00050">50</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
-
-<p class="reference">References <a class="el" href="logger_8h_source.html#l00073">YAWT_LOG</a>, and <a class="el" href="logger_8h_source.html#l00025">YAWT_LOG_ERROR</a>.</p>
-
-</div>
-</div>
-<a id="ga579789bdc3d3a5f8796fd450ec756d3c" name="ga579789bdc3d3a5f8796fd450ec756d3c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga579789bdc3d3a5f8796fd450ec756d3c">&#9670;&#160;</a></span>YAWT_q_cid_to_hex()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">const char * YAWT_q_cid_to_hex </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cid</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Format a CID as a hex string. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">cid</td><td>The Connection ID to format. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to a static buffer containing the hex string (not thread-safe). </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="quic__types_8h_source.html#l00066">66</a> of file <a class="el" href="quic__types_8h_source.html">quic_types.h</a>.</p>
 
 </div>
 </div>

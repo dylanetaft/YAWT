@@ -42,7 +42,7 @@ var annotated_dup =
     [ "YAWT_Q_FrameHandler_Res_t", "structYAWT__Q__FrameHandler__Res__t.html", null ],
     [ "YAWT_Q_IoVec_t", "structYAWT__Q__IoVec__t.html", null ],
     [ "YAWT_Q_MaintenanceConfig_t", "structYAWT__Q__MaintenanceConfig__t.html", null ],
-    [ "YAWT_Q_Packet", "structYAWT__Q__Packet.html", "structYAWT__Q__Packet" ],
+    [ "YAWT_Q_Packet_t", "structYAWT__Q__Packet__t.html", "structYAWT__Q__Packet__t" ],
     [ "YAWT_Q_PeerAddr", "structYAWT__Q__PeerAddr.html", null ],
     [ "YAWT_Q_ReadCursor_t", "structYAWT__Q__ReadCursor__t.html", null ],
     [ "YAWT_Q_SecurityPolicy_t", "structYAWT__Q__SecurityPolicy__t.html", "structYAWT__Q__SecurityPolicy__t" ],
