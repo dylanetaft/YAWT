@@ -19,7 +19,7 @@
  * @brief Forward declaration for peer address.
  */
 struct YAWT_Q_PeerAddr;
-typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
+typedef struct YAWT_Q_PeerAddr_t YAWT_Q_PeerAddr_t;
 
 #define YAWT_Q_MAX_PKT_SIZE 1350  /**< Maximum QUIC packet size */
 #define YAWT_Q_CID_LEN 20  /**< Maximum Connection ID length */
@@ -34,7 +34,7 @@ typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
  * @ingroup QUIC_Connection
  * @brief QUIC Connection ID.
  */
-typedef struct YAWT_Q_Cid {
+typedef struct YAWT_Q_Cid_t {
   uint8_t id[20];
   uint8_t len;
 } YAWT_Q_Cid_t;
@@ -271,7 +271,7 @@ typedef struct {
  * @brief STREAM frame (0x08-0x0f).
  * @note Low 3 bits of frame type: OFF(0x04) LEN(0x02) FIN(0x01).
  */
-typedef struct YAWT_Q_Frame_Stream {
+typedef struct YAWT_Q_Frame_Stream_t {
   uint8_t off;
   uint8_t len_present;
   uint8_t fin;
@@ -292,7 +292,7 @@ typedef struct YAWT_Q_Frame_Stream {
  * and TX queuing). bf->data is the OWNED inline copy. bf->frame.data is the borrowed 
  * pointer, set to point at bf->data when buffered.
  */
-typedef struct YAWT_Q_Frame_BufferedStream {
+typedef struct YAWT_Q_Frame_BufferedStream_t {
   YAWT_Q_Frame_Stream_t frame;
   uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.data points here when buffered
 } YAWT_Q_Frame_BufferedStream_t;

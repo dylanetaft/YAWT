@@ -1,10 +1,10 @@
 var searchData=
 [
-  ['h3_2eh_0',['h3.h',['../h3_8h.html',1,'']]],
-  ['h3_5fframe_5fmax_5fheader_5fbytes_1',['H3_FRAME_MAX_HEADER_BYTES',['../h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d',1,'h3_types.h']]],
-  ['h3_5fheader_2eh_2',['h3_header.h',['../h3__header_8h.html',1,'']]],
-  ['h3_5fstream_5ftype_5fmax_5fbytes_3',['H3_STREAM_TYPE_MAX_BYTES',['../h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b',1,'h3_types.h']]],
-  ['h3_5ftypes_2eh_4',['h3_types.h',['../h3__types_8h.html',1,'']]],
-  ['headers_5',['Headers',['../group__H3__Headers.html',1,'']]],
-  ['http3_6',['HTTP3',['../group__HTTP3.html',1,'']]]
+  ['ecn_5fce_5fcount_0',['ecn_ce_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#ab0c24c2fc92415586b3d03e942d286db',1,'YAWT_Q_Frame_ACK_ECN_t']]],
+  ['ect0_5fcount_1',['ect0_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#a9be514e59ac7d062905c37a9696252d5',1,'YAWT_Q_Frame_ACK_ECN_t']]],
+  ['ect1_5fcount_2',['ect1_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#a9f49deb21c4cc3af11b3b98500f395c2',1,'YAWT_Q_Frame_ACK_ECN_t']]],
+  ['enable_5fconnect_5fprotocol_3',['enable_connect_protocol',['../structYAWT__H3__Settings__t.html#a7bc93d14741b56913e307a3b99984a0e',1,'YAWT_H3_Settings_t']]],
+  ['err_4',['err',['../structYAWT__Q__ReadCursor__t.html#a6430962305566f46ca126693c4bcfd89',1,'YAWT_Q_ReadCursor_t::err'],['../structYAWT__Q__FrameHandler__Res__t.html#a883635cb6858eccadc7a8cbcd90b0af3',1,'YAWT_Q_FrameHandler_Res_t::err']]],
+  ['error_5fcode_5',['error_code',['../unionYAWT__H3__EventParam.html#a6a92eef6a5bbaf387c2b9394e4595803',1,'YAWT_H3_EventParam::error_code'],['../structYAWT__Q__Frame__Connection__Close__t.html#a388b0e5aa62a3a4055a7079488ceb6ef',1,'YAWT_Q_Frame_Connection_Close_t::error_code'],['../structYAWT__Q__Frame__Connection__Close__App__t.html#ae1a208ff5c90da87b6cac5ba82c82a60',1,'YAWT_Q_Frame_Connection_Close_App_t::error_code'],['../unionYAWT__Q__EventParam__t.html#a315c99c5a6c2a82a9489276766005145',1,'YAWT_Q_EventParam_t::error_code']]],
+  ['extra_6',['extra',['../structYAWT__Q__Packet__t.html#a9709c44da1c1dc7a55afd90eb73640f9',1,'YAWT_Q_Packet_t']]]
 ];

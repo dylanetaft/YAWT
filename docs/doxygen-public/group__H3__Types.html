@@ -213,7 +213,7 @@ Functions</h2></td></tr>
 <p>HTTP/3 frame types (RFC 9114 §7.2). </p>
 <dl class="section note"><dt>Note</dt><dd>HTTP/3 data types (RFC 9114) — the YAWT_H3 analog of <a class="el" href="quic__types_8h.html" title="Core QUIC data structures, constants, and enums.">quic_types.h</a>. Holds the enums and structs; the function API lives in <a class="el" href="h3_8h.html" title="HTTP/3 (RFC 9114) function API — minimal subset for WebTransport.">h3.h</a>. See docs/reference.md for the per-RFC mandatory/skip breakdown.</dd></dl>
 <p>Encapsulation: H3 has no packet concept. H3 frames live on the in-order byte stream of a QUIC stream (delivered by the QUIC layer via YAWT_Q_EVT_STREAM). A QUIC stream chunk may carry a partial H3 frame or several, so the frame parser has an INCOMPLETE outcome the QUIC frame parser never needed.</p>
-<dl class="section note"><dt>Note</dt><dd>Named constants; YAWT_H3_Frame_t.type is kept as a raw uint64_t so unknown/reserved/greased types survive round-trip and are skipped generically rather than rejected. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Named constants; <a class="el" href="structYAWT__H3__Frame__t.html#ad66eaba247442d96be78b26d13625287">YAWT_H3_Frame_t.type</a> is kept as a raw uint64_t so unknown/reserved/greased types survive round-trip and are skipped generically rather than rejected. </dd></dl>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggae58b0f409d56ccaa0d5b8ff01ee45975af4290973a62b1210441c84284113314e" name="ggae58b0f409d56ccaa0d5b8ff01ee45975af4290973a62b1210441c84284113314e"></a>YAWT_H3_FRAME_DATA&#160;</td><td class="fielddoc"><p>DATA frame — carries request/response body </p>
 </td></tr>

@@ -1,8 +1,29 @@
 var group__H3__Connection =
 [
-    [ "YAWT_H3_EventParam", "unionYAWT__H3__EventParam.html", null ],
-    [ "YAWT_H3_Connection", "structYAWT__H3__Connection.html", null ],
-    [ "YAWT_H3_Connection_t", "group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d", null ],
+    [ "YAWT_H3_EventParam", "unionYAWT__H3__EventParam.html", [
+      [ "data", "unionYAWT__H3__EventParam.html#a63737e8e7a72b02e0e9cb20ca946b87d", null ],
+      [ "error_code", "unionYAWT__H3__EventParam.html#a6a92eef6a5bbaf387c2b9394e4595803", null ],
+      [ "fin", "unionYAWT__H3__EventParam.html#a09faf163ff299e5ead6bc425c961087d", null ],
+      [ "headers", "unionYAWT__H3__EventParam.html#a1589dcecc1fff6f79ad0e73c71c0c884", null ],
+      [ "len", "unionYAWT__H3__EventParam.html#a342703707be60afd8989e37b57ee5f81", null ],
+      [ "P_EVT_CLOSE", "unionYAWT__H3__EventParam.html#afbab003c7c54e5108d2c1d99f2afe0b6", null ],
+      [ "P_EVT_DATA", "unionYAWT__H3__EventParam.html#aae47f9dfcf5db046ce632835a0dac203", null ],
+      [ "P_EVT_HEADERS", "unionYAWT__H3__EventParam.html#a09a91e9c89dbd95d070bb10e1f166c1c", null ],
+      [ "P_EVT_SETTINGS", "unionYAWT__H3__EventParam.html#a87786fb3b885fc1352c047118665055a", null ],
+      [ "reason", "unionYAWT__H3__EventParam.html#ad7ead3e227e4f913cb170a86560401c7", null ],
+      [ "settings", "unionYAWT__H3__EventParam.html#ac661e7013506de6e4b7c899c6df980da", null ],
+      [ "stream_id", "unionYAWT__H3__EventParam.html#a28a315d45541619e800106787e2bc894", null ]
+    ] ],
+    [ "YAWT_H3_Connection_t", "structYAWT__H3__Connection__t.html", [
+      [ "app_handler", "structYAWT__H3__Connection__t.html#ae0f5dc6b9b04abb7daf72d0c69bbe562", null ],
+      [ "control_stream_id", "structYAWT__H3__Connection__t.html#aaa5951489ea0b2a035e486b8c87983da", null ],
+      [ "local_settings", "structYAWT__H3__Connection__t.html#adf1748271c8b93cbe182c5318b32400d", null ],
+      [ "nstreams", "structYAWT__H3__Connection__t.html#ac78c9f561b10ef81061cda992b1e4faa", null ],
+      [ "peer_settings", "structYAWT__H3__Connection__t.html#a932b5bc603b10f74734d03f169d5a224", null ],
+      [ "qcon", "structYAWT__H3__Connection__t.html#af06ee5174c875c3d7f3e5a367286ccdf", null ],
+      [ "streams", "structYAWT__H3__Connection__t.html#a2ff9f82f8fb73d3e8def057549a9ac62", null ]
+    ] ],
+    [ "YAWT_H3_Connection_t", "group__H3__Connection.html#ga1ad78a8b8ec87e12350b6c7f10e66a5c", null ],
     [ "YAWT_H3_EventHandler_t", "group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b", null ],
     [ "YAWT_H3_EventParam_t", "group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30", null ],
     [ "YAWT_H3_EventType_t", "group__H3__Connection.html#gaf251a0d5a0aa9d92bfe8c345f35f1e1c", [

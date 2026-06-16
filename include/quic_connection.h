@@ -20,7 +20,7 @@
  * @ingroup QUIC_Connection 
  * @brief Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).
  */
-typedef struct YAWT_Q_PeerAddr {
+typedef struct YAWT_Q_PeerAddr_t {
   uint8_t  addr[16];
   uint16_t port;
 } YAWT_Q_PeerAddr_t;
@@ -59,7 +59,7 @@ typedef struct YAWT_Q_Connection_t {
  * @ingroup QUIC_Connection
  * @brief Connection creation parameters.
  */
-typedef struct YAWT_Q_Con_Create_Info {
+typedef struct YAWT_Q_Con_Create_Info_t {
   int is_server;
   YAWT_Q_Crypto_Cred_t *cred;
   YAWT_Q_Cid_t peer_cid;

@@ -1,8 +1,31 @@
 var group__H3__Types =
 [
-    [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", null ],
-    [ "YAWT_H3_Stream_t", "structYAWT__H3__Stream__t.html", null ],
-    [ "YAWT_H3_Settings_t", "structYAWT__H3__Settings__t.html", null ],
+    [ "YAWT_H3_Frame_t", "structYAWT__H3__Frame__t.html", [
+      [ "accumulated", "structYAWT__H3__Frame__t.html#a9459434ca9ee75491580d2bc8cdda8d4", null ],
+      [ "hdr", "structYAWT__H3__Frame__t.html#afe6125c68019ff04f3ff183bf6becf98", null ],
+      [ "hdr_size", "structYAWT__H3__Frame__t.html#ac8391c9481b009acd8bed163df690843", null ],
+      [ "payload", "structYAWT__H3__Frame__t.html#aeed238ed183ef743917913c7154e81cc", null ],
+      [ "payload_len", "structYAWT__H3__Frame__t.html#a899dc11fac3eabed9ea3e01a7519ca58", null ],
+      [ "type", "structYAWT__H3__Frame__t.html#ad66eaba247442d96be78b26d13625287", null ]
+    ] ],
+    [ "YAWT_H3_Stream_t", "structYAWT__H3__Stream__t.html", [
+      [ "accumulated", "structYAWT__H3__Stream__t.html#a32e92b686c8527d67b5102a90edc4cd2", null ],
+      [ "frame", "structYAWT__H3__Stream__t.html#ac92b4589008b210d4f4f285bd3fb9bf3", null ],
+      [ "hdr", "structYAWT__H3__Stream__t.html#a87084db8779f07c85ba76bdb0e025334", null ],
+      [ "id", "structYAWT__H3__Stream__t.html#a6093ffcb5b57862049d0091041bfda27", null ],
+      [ "in_use", "structYAWT__H3__Stream__t.html#aa9d822505d50c6fb3c99d6aae6d61a84", null ],
+      [ "request_headers", "structYAWT__H3__Stream__t.html#a7a606b2edbc626c1ad0bcf748ff1a295", null ],
+      [ "response_headers", "structYAWT__H3__Stream__t.html#abd7ebbfa8340b73282a9efac4d0e21a1", null ],
+      [ "type", "structYAWT__H3__Stream__t.html#a0d1f9294605b9b4c2efe81cf20ceba52", null ]
+    ] ],
+    [ "YAWT_H3_Settings_t", "structYAWT__H3__Settings__t.html", [
+      [ "enable_connect_protocol", "structYAWT__H3__Settings__t.html#a7bc93d14741b56913e307a3b99984a0e", null ],
+      [ "h3_datagram", "structYAWT__H3__Settings__t.html#a66fa9fd9106a3a10be55437ad36407c0", null ],
+      [ "max_field_section_size", "structYAWT__H3__Settings__t.html#a05da6aca75de93b28ceb8e6428de8792", null ],
+      [ "qpack_blocked_streams", "structYAWT__H3__Settings__t.html#ac891cceefdd24fbcf091c7fbcb930f48", null ],
+      [ "qpack_max_table_capacity", "structYAWT__H3__Settings__t.html#a2b7fca387a447e885435eb8808267e15", null ],
+      [ "wt_enabled", "structYAWT__H3__Settings__t.html#a96ebfce639013857378b7472fc83f80f", null ]
+    ] ],
     [ "YAWT_H3_Error_t", "group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d", [
       [ "YAWT_H3_OK", "group__H3__Types.html#ggaee3588bbd1d2ab017fac2184d2424e1dafd704c85274cc0346e812b65ed1cdc9e", null ],
       [ "YAWT_H3_ERR_SHORT_BUFFER", "group__H3__Types.html#ggaee3588bbd1d2ab017fac2184d2424e1dab8878526fa7e33f758df9fe6f3f900f3", null ],

@@ -53,7 +53,7 @@
 #include "quic_types.h"
 
 struct YAWT_Q_Level_Keys;
-typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
+typedef struct YAWT_Q_Level_Keys_t YAWT_Q_Level_Keys_t;
 typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
 
 /**
@@ -304,7 +304,7 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
 struct YAWT_Q_Crypto;
-typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
+typedef struct YAWT_Q_Crypto_t YAWT_Q_Crypto_t;
 
 /**
  * @internal

@@ -126,31 +126,31 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:gab027e92a88c52e72e67fd76891125788" id="r_gab027e92a88c52e72e67fd76891125788"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab027e92a88c52e72e67fd76891125788">YAWT_q_crypto_init</a> (int is_server, <a class="el" href="group__Crypt.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> *cred, const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *original_dcid, const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *our_cid, <a class="el" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *local_fc, <a class="el" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *peer_fc, <a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> *err)</td></tr>
+<tr class="memitem:gab027e92a88c52e72e67fd76891125788" id="r_gab027e92a88c52e72e67fd76891125788"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab027e92a88c52e72e67fd76891125788">YAWT_q_crypto_init</a> (int is_server, <a class="el" href="group__Crypt.html#gad96a0d360a1872e3755eb88fd505a640">YAWT_Q_Crypto_Cred_t</a> *cred, const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *original_dcid, const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *our_cid, <a class="el" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *local_fc, <a class="el" href="structYAWT__Q__FlowControl__t.html">YAWT_Q_FlowControl_t</a> *peer_fc, <a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> *err)</td></tr>
 <tr class="memdesc:gab027e92a88c52e72e67fd76891125788"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize per-connection crypto state.  <br /></td></tr>
-<tr class="memitem:ga1345856764f24b6db8651cedca3a51b1" id="r_ga1345856764f24b6db8651cedca3a51b1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1345856764f24b6db8651cedca3a51b1">YAWT_q_crypto_free</a> (<a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:ga1345856764f24b6db8651cedca3a51b1" id="r_ga1345856764f24b6db8651cedca3a51b1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1345856764f24b6db8651cedca3a51b1">YAWT_q_crypto_free</a> (<a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:ga1345856764f24b6db8651cedca3a51b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free GnuTLS resources and crypto state.  <br /></td></tr>
-<tr class="memitem:ga75987bb8a52f40774d2e55bf5ce7700b" id="r_ga75987bb8a52f40774d2e55bf5ce7700b"><td class="memItemLeft" align="right" valign="top">const uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga75987bb8a52f40774d2e55bf5ce7700b">YAWT_q_crypto_pop_tx</a> (<a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, int level, size_t *out_len)</td></tr>
+<tr class="memitem:ga75987bb8a52f40774d2e55bf5ce7700b" id="r_ga75987bb8a52f40774d2e55bf5ce7700b"><td class="memItemLeft" align="right" valign="top">const uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga75987bb8a52f40774d2e55bf5ce7700b">YAWT_q_crypto_pop_tx</a> (<a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto, int level, size_t *out_len)</td></tr>
 <tr class="memdesc:ga75987bb8a52f40774d2e55bf5ce7700b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get outbound TLS data for a given encryption level.  <br /></td></tr>
-<tr class="memitem:ga5eabc44f646520112c32b7a16d45497e" id="r_ga5eabc44f646520112c32b7a16d45497e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5eabc44f646520112c32b7a16d45497e">YAWT_q_crypto_feed</a> (<a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, const <a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *frame)</td></tr>
+<tr class="memitem:ga5eabc44f646520112c32b7a16d45497e" id="r_ga5eabc44f646520112c32b7a16d45497e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5eabc44f646520112c32b7a16d45497e">YAWT_q_crypto_feed</a> (<a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto, const <a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *frame)</td></tr>
 <tr class="memdesc:ga5eabc44f646520112c32b7a16d45497e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Feed a received CRYPTO frame to the TLS engine.  <br /></td></tr>
 <tr class="memitem:gab7476ea1b12e1d840df1f8abc307bb26" id="r_gab7476ea1b12e1d840df1f8abc307bb26"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab7476ea1b12e1d840df1f8abc307bb26">YAWT_q_crypto_random_nonce</a> (void *buf, size_t len)</td></tr>
 <tr class="memdesc:gab7476ea1b12e1d840df1f8abc307bb26"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fill a buffer with random bytes (not cryptographically secure).  <br /></td></tr>
-<tr class="memitem:gab6e3bb0370b0b18223090b37e8aedc03" id="r_gab6e3bb0370b0b18223090b37e8aedc03"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab6e3bb0370b0b18223090b37e8aedc03">YAWT_q_crypto_start</a> (<a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:gab6e3bb0370b0b18223090b37e8aedc03" id="r_gab6e3bb0370b0b18223090b37e8aedc03"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gab6e3bb0370b0b18223090b37e8aedc03">YAWT_q_crypto_start</a> (<a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:gab6e3bb0370b0b18223090b37e8aedc03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Start the TLS handshake (client calls this to produce ClientHello).  <br /></td></tr>
-<tr class="memitem:ga9293c9b3537627b5b247afa7c21e83c0" id="r_ga9293c9b3537627b5b247afa7c21e83c0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9293c9b3537627b5b247afa7c21e83c0">YAWT_q_crypto_derive_initial_keys</a> (<a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *dcid)</td></tr>
+<tr class="memitem:ga9293c9b3537627b5b247afa7c21e83c0" id="r_ga9293c9b3537627b5b247afa7c21e83c0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9293c9b3537627b5b247afa7c21e83c0">YAWT_q_crypto_derive_initial_keys</a> (<a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto, const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *dcid)</td></tr>
 <tr class="memdesc:ga9293c9b3537627b5b247afa7c21e83c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Derive Initial encryption keys from client's Destination Connection ID (RFC 9001 §5.2).  <br /></td></tr>
-<tr class="memitem:gaa9cfa49fe8c86e128a12661ecebb514b" id="r_gaa9cfa49fe8c86e128a12661ecebb514b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa9cfa49fe8c86e128a12661ecebb514b">YAWT_q_crypto_unprotect_header</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:gaa9cfa49fe8c86e128a12661ecebb514b" id="r_gaa9cfa49fe8c86e128a12661ecebb514b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa9cfa49fe8c86e128a12661ecebb514b">YAWT_q_crypto_unprotect_header</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:gaa9cfa49fe8c86e128a12661ecebb514b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove header protection in-place (RFC 9001 §5.4).  <br /></td></tr>
-<tr class="memitem:ga03f5a01dfdbaa58cfdb8588572e58a02" id="r_ga03f5a01dfdbaa58cfdb8588572e58a02"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga03f5a01dfdbaa58cfdb8588572e58a02">YAWT_q_crypto_decrypt_payload</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:ga03f5a01dfdbaa58cfdb8588572e58a02" id="r_ga03f5a01dfdbaa58cfdb8588572e58a02"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga03f5a01dfdbaa58cfdb8588572e58a02">YAWT_q_crypto_decrypt_payload</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:ga03f5a01dfdbaa58cfdb8588572e58a02"><td class="mdescLeft">&#160;</td><td class="mdescRight">AEAD decrypt payload in-place (RFC 9001 §5.3).  <br /></td></tr>
-<tr class="memitem:ga1d03aff99fa9fc70ddce8153dcdc8fbf" id="r_ga1d03aff99fa9fc70ddce8153dcdc8fbf"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1d03aff99fa9fc70ddce8153dcdc8fbf">YAWT_q_crypto_unprotect_packet</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:ga1d03aff99fa9fc70ddce8153dcdc8fbf" id="r_ga1d03aff99fa9fc70ddce8153dcdc8fbf"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga1d03aff99fa9fc70ddce8153dcdc8fbf">YAWT_q_crypto_unprotect_packet</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:ga1d03aff99fa9fc70ddce8153dcdc8fbf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unprotect header + decrypt payload of a parsed packet in-place.  <br /></td></tr>
-<tr class="memitem:ga5f866a12a480098b7c8e9c7e1069ba3c" id="r_ga5f866a12a480098b7c8e9c7e1069ba3c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5f866a12a480098b7c8e9c7e1069ba3c">YAWT_q_crypto_protect_packet</a> (uint8_t *buf, size_t buf_len, const <a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:ga5f866a12a480098b7c8e9c7e1069ba3c" id="r_ga5f866a12a480098b7c8e9c7e1069ba3c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5f866a12a480098b7c8e9c7e1069ba3c">YAWT_q_crypto_protect_packet</a> (uint8_t *buf, size_t buf_len, const <a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:ga5f866a12a480098b7c8e9c7e1069ba3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Protect (encrypt + apply header protection) an outbound packet in-place.  <br /></td></tr>
-<tr class="memitem:ga9c60b1bc1924c409e706ee9cce0b9185" id="r_ga9c60b1bc1924c409e706ee9cce0b9185"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9c60b1bc1924c409e706ee9cce0b9185">YAWT_q_crypto_is_handshake_complete</a> (const <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
+<tr class="memitem:ga9c60b1bc1924c409e706ee9cce0b9185" id="r_ga9c60b1bc1924c409e706ee9cce0b9185"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9c60b1bc1924c409e706ee9cce0b9185">YAWT_q_crypto_is_handshake_complete</a> (const <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto)</td></tr>
 <tr class="memdesc:ga9c60b1bc1924c409e706ee9cce0b9185"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the TLS handshake has completed.  <br /></td></tr>
-<tr class="memitem:ga87a2f15d669b3d24a47c88d447aeaf36" id="r_ga87a2f15d669b3d24a47c88d447aeaf36"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga87a2f15d669b3d24a47c88d447aeaf36">YAWT_q_crypto_key_level_available</a> (const <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, <a class="el" href="group__Crypt.html#gad8dc02c9b7f257e748ebe6069b1171cf">YAWT_Q_Encryption_Level_t</a> level)</td></tr>
+<tr class="memitem:ga87a2f15d669b3d24a47c88d447aeaf36" id="r_ga87a2f15d669b3d24a47c88d447aeaf36"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga87a2f15d669b3d24a47c88d447aeaf36">YAWT_q_crypto_key_level_available</a> (const <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto, <a class="el" href="group__Crypt.html#gad8dc02c9b7f257e748ebe6069b1171cf">YAWT_Q_Encryption_Level_t</a> level)</td></tr>
 <tr class="memdesc:ga87a2f15d669b3d24a47c88d447aeaf36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if keys are available at a given encryption level.  <br /></td></tr>
 <tr class="memitem:gae09b3e40e67523c96371995784ed56d8" id="r_gae09b3e40e67523c96371995784ed56d8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae09b3e40e67523c96371995784ed56d8">YAWT_q_encode_frame_padding</a> (uint8_t *buf, size_t buf_len, size_t pad_len)</td></tr>
 <tr class="memdesc:gae09b3e40e67523c96371995784ed56d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode PADDING frames into buf.  <br /></td></tr>
@@ -158,7 +158,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:gac400a6915d5eaefacc963251f3249f4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a CRYPTO frame and push to tx_buffer.  <br /></td></tr>
 <tr class="memitem:gaa66d3cdc0cf860dc6b9c05ff3b2866be" id="r_gaa66d3cdc0cf860dc6b9c05ff3b2866be"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa66d3cdc0cf860dc6b9c05ff3b2866be">YAWT_q_enqueue_frame_ack</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con, uint8_t level, uint64_t largest_ack)</td></tr>
 <tr class="memdesc:gaa66d3cdc0cf860dc6b9c05ff3b2866be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode an ACK frame and push to tx_buffer.  <br /></td></tr>
-<tr class="memitem:ga4722dd3abbf1d5d9404b211ffd0f7230" id="r_ga4722dd3abbf1d5d9404b211ffd0f7230"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4722dd3abbf1d5d9404b211ffd0f7230">YAWT_q_enqueue_frame_stream</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con, const <a class="el" href="group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a> *frame)</td></tr>
+<tr class="memitem:ga4722dd3abbf1d5d9404b211ffd0f7230" id="r_ga4722dd3abbf1d5d9404b211ffd0f7230"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga4722dd3abbf1d5d9404b211ffd0f7230">YAWT_q_enqueue_frame_stream</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con, const <a class="el" href="structYAWT__Q__Frame__BufferedStream__t.html">YAWT_Q_Frame_BufferedStream_t</a> *frame)</td></tr>
 <tr class="memdesc:ga4722dd3abbf1d5d9404b211ffd0f7230"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a STREAM frame and push to tx_buffer.  <br /></td></tr>
 <tr class="memitem:ga2166fa41e8657579f72550c9935a348e" id="r_ga2166fa41e8657579f72550c9935a348e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2166fa41e8657579f72550c9935a348e">YAWT_q_enqueue_frame_ping</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con)</td></tr>
 <tr class="memdesc:ga2166fa41e8657579f72550c9935a348e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a PING frame and push to tx_buffer.  <br /></td></tr>
@@ -170,19 +170,19 @@ Functions</h2></td></tr>
 <tr class="memdesc:ga6164fb811cea82e7ae8966a7c75ea3b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a DATAGRAM frame and push to tx_buffer.  <br /></td></tr>
 <tr class="memitem:ga9eba5c50306e864cb18868bb16260d18" id="r_ga9eba5c50306e864cb18868bb16260d18"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9eba5c50306e864cb18868bb16260d18">YAWT_q_enqueue_frame_handshake_done</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con)</td></tr>
 <tr class="memdesc:ga9eba5c50306e864cb18868bb16260d18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a HANDSHAKE_DONE frame and push to tx_buffer.  <br /></td></tr>
-<tr class="memitem:gabb32472ceaba4206fc6a9816a642f8b3" id="r_gabb32472ceaba4206fc6a9816a642f8b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabb32472ceaba4206fc6a9816a642f8b3">YAWT_q_encode_packet</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *crypto, const uint8_t **out_buf)</td></tr>
+<tr class="memitem:gabb32472ceaba4206fc6a9816a642f8b3" id="r_gabb32472ceaba4206fc6a9816a642f8b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabb32472ceaba4206fc6a9816a642f8b3">YAWT_q_encode_packet</a> (<a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *pkt, <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *crypto, const uint8_t **out_buf)</td></tr>
 <tr class="memdesc:gabb32472ceaba4206fc6a9816a642f8b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode + encrypt a packet.  <br /></td></tr>
 <tr class="memitem:ga0c1c03b1b387428ae034b93b73554787" id="r_ga0c1c03b1b387428ae034b93b73554787"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga0c1c03b1b387428ae034b93b73554787">YAWT_q_parse_packet</a> (<a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *rc, <a class="el" href="structYAWT__Q__Packet__t.html">YAWT_Q_Packet_t</a> *out)</td></tr>
 <tr class="memdesc:ga0c1c03b1b387428ae034b93b73554787"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a QUIC packet from a read cursor.  <br /></td></tr>
 <tr class="memitem:ga9435261344a47515257d1311a942b53e" id="r_ga9435261344a47515257d1311a942b53e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9435261344a47515257d1311a942b53e">YAWT_q_parse_frame</a> (<a class="el" href="structYAWT__Q__ReadCursor__t.html">YAWT_Q_ReadCursor_t</a> *rc, <a class="el" href="#ga7f26dad2b0638cc66f8ef1cc1423a481">YAWT_Q_Packet_Type_t</a> pkt_type, <a class="el" href="structYAWT__Q__Frame__t.html">YAWT_Q_Frame_t</a> *out)</td></tr>
 <tr class="memdesc:ga9435261344a47515257d1311a942b53e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a single frame from the cursor.  <br /></td></tr>
-<tr class="memitem:gada1a108255b80a5f1bb3efb811da02a7" id="r_gada1a108255b80a5f1bb3efb811da02a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gada1a108255b80a5f1bb3efb811da02a7">YAWT_q_con_create</a> (<a class="el" href="group__QUIC__Connection.html#ga9385d61f71145755bc2861066fab5148">YAWT_Q_Con_Create_Info_t</a> *info)</td></tr>
+<tr class="memitem:gada1a108255b80a5f1bb3efb811da02a7" id="r_gada1a108255b80a5f1bb3efb811da02a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gada1a108255b80a5f1bb3efb811da02a7">YAWT_q_con_create</a> (<a class="el" href="structYAWT__Q__Con__Create__Info__t.html">YAWT_Q_Con_Create_Info_t</a> *info)</td></tr>
 <tr class="memdesc:gada1a108255b80a5f1bb3efb811da02a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a QUIC connection.  <br /></td></tr>
 <tr class="memitem:ga3372b564a81847b87a7aaeceacb936bd" id="r_ga3372b564a81847b87a7aaeceacb936bd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3372b564a81847b87a7aaeceacb936bd">YAWT_q_con_free</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> **con)</td></tr>
 <tr class="memdesc:ga3372b564a81847b87a7aaeceacb936bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a connection.  <br /></td></tr>
 <tr class="memitem:ga9d377d06199838bd5c40723f8cc7c8ae" id="r_ga9d377d06199838bd5c40723f8cc7c8ae"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga9d377d06199838bd5c40723f8cc7c8ae">YAWT_q_con_clear_odcid</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con)</td></tr>
 <tr class="memdesc:ga9d377d06199838bd5c40723f8cc7c8ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clear the original DCID from a connection (used after handshake).  <br /></td></tr>
-<tr class="memitem:gadf0db1cf516d2726a5a131ee7291ca27" id="r_gadf0db1cf516d2726a5a131ee7291ca27"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gadf0db1cf516d2726a5a131ee7291ca27">YAWT_q_con_update_peer_cid</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con, const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *new_cid)</td></tr>
+<tr class="memitem:gadf0db1cf516d2726a5a131ee7291ca27" id="r_gadf0db1cf516d2726a5a131ee7291ca27"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gadf0db1cf516d2726a5a131ee7291ca27">YAWT_q_con_update_peer_cid</a> (<a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> *con, const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *new_cid)</td></tr>
 <tr class="memdesc:gadf0db1cf516d2726a5a131ee7291ca27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the peer's Connection ID.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
@@ -233,24 +233,24 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> * YAWT_q_crypto_init </td>
+          <td class="memname"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> * YAWT_q_crypto_init </td>
           <td>(</td>
           <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>is_server</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#gae8d929ada6cc2f19721ae29ff9d48c03">YAWT_Q_Crypto_Cred_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cred</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gad96a0d360a1872e3755eb88fd505a640">YAWT_Q_Crypto_Cred_t</a> *</td>          <td class="paramname"><span class="paramname"><em>cred</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>original_dcid</em></span>, </td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>original_dcid</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>our_cid</em></span>, </td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>our_cid</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -296,7 +296,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">void YAWT_q_crypto_free </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -321,7 +321,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">const uint8_t * YAWT_q_crypto_pop_tx </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -359,7 +359,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2">YAWT_Q_Error_t</a> YAWT_q_crypto_feed </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -422,7 +422,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int YAWT_q_crypto_start </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -448,12 +448,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int YAWT_q_crypto_derive_initial_keys </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dcid</em></span>&#160;)</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>dcid</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -484,7 +484,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -515,7 +515,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -546,7 +546,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -588,7 +588,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -616,7 +616,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int YAWT_q_crypto_is_handshake_complete </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
+          <td class="paramtype">const <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -642,7 +642,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int YAWT_q_crypto_key_level_available </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype">const <a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -791,7 +791,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="group__QUIC__FRAME__TYPES.html#gade8ac1df5770886c672261a83d40e3ea">YAWT_Q_Frame_BufferedStream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Frame__BufferedStream__t.html">YAWT_Q_Frame_BufferedStream_t</a> *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -989,7 +989,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__Crypt.html#ga2e8365554dbb0891270f945e33174d77">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__Crypt.html#gab257360f6fe40557bcf3f0fd0b6f9b2c">YAWT_Q_Crypto_t</a> *</td>          <td class="paramname"><span class="paramname"><em>crypto</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -1091,7 +1091,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="structYAWT__Q__Connection__t.html">YAWT_Q_Connection_t</a> * YAWT_q_con_create </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__QUIC__Connection.html#ga9385d61f71145755bc2861066fab5148">YAWT_Q_Con_Create_Info_t</a> *</td>          <td class="paramname"><span class="paramname"><em>info</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="structYAWT__Q__Con__Create__Info__t.html">YAWT_Q_Con_Create_Info_t</a> *</td>          <td class="paramname"><span class="paramname"><em>info</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -1174,7 +1174,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="group__QUIC__Connection.html#gad46831779e0383b371d88542aeae9f27">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>new_cid</em></span>&#160;)</td>
+          <td class="paramtype">const <a class="el" href="structYAWT__Q__Cid__t.html">YAWT_Q_Cid_t</a> *</td>          <td class="paramname"><span class="paramname"><em>new_cid</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">

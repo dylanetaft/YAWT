@@ -9,7 +9,7 @@
 
 
 // Per-level keys derived by GnuTLS
-typedef struct YAWT_Q_Level_Keys {
+typedef struct YAWT_Q_Level_Keys_t {
   uint8_t secret_read[48];   // traffic secret for reading (max SHA-384 = 48 bytes)
   uint8_t secret_write[48];  // traffic secret for writing
   size_t secret_len;
@@ -28,7 +28,7 @@ typedef struct YAWT_Q_Level_Keys {
   YAWT_Q_Key_State_t state;   // lifecycle state for this level's keys
 } YAWT_Q_Level_Keys_t;
 
-typedef struct YAWT_Q_Crypto {
+typedef struct YAWT_Q_Crypto_t {
   gnutls_session_t session;
   int is_server;
 
@@ -52,7 +52,7 @@ typedef struct YAWT_Q_Crypto {
   YAWT_Q_FlowControl_t *peer_fc;  // points to connection's peer_fc
   YAWT_Q_FlowControl_t *local_fc; // points to connection's local_fc
 } YAWT_Q_Crypto_t;
-typedef struct YAWT_Q_Crypto_Cred {
+typedef struct YAWT_Q_Crypto_Cred_t {
   gnutls_certificate_credentials_t cred;
 } YAWT_Q_Crypto_Cred_t;
 

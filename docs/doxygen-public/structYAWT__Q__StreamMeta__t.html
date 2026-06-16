@@ -89,27 +89,127 @@ $(function(){initNavTree('structYAWT__Q__StreamMeta__t.html','',''); });
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">YAWT_Q_StreamMeta_t Struct Reference</div></div>
+  <div class="headertitle"><div class="title">YAWT_Q_StreamMeta_t Struct Reference<div class="ingroups"><a class="el" href="group__QUIC.html">QUIC</a> &raquo; <a class="el" href="group__QUIC__Internal.html">Internal</a></div></div></div>
 </div><!--header-->
 <div class="contents">
+
+<p>Stream metadata — one per open stream, stored in the con-&gt;stream_meta slab.  
+ <a href="#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="quic_8h_source.html">quic.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a59c9cc66e21e3054e144889bf463d1d8" id="r_a59c9cc66e21e3054e144889bf463d1d8"><td class="memItemLeft" align="right" valign="top"><a id="a59c9cc66e21e3054e144889bf463d1d8" name="a59c9cc66e21e3054e144889bf463d1d8"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>stream_id</b></td></tr>
-<tr class="memitem:a583f2444a71035458c908d2ba93b1434" id="r_a583f2444a71035458c908d2ba93b1434"><td class="memItemLeft" align="right" valign="top"><a id="a583f2444a71035458c908d2ba93b1434" name="a583f2444a71035458c908d2ba93b1434"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>rx_next_offset</b></td></tr>
-<tr class="memitem:ab007a9ff58f7b7670847a8efe82d7fa1" id="r_ab007a9ff58f7b7670847a8efe82d7fa1"><td class="memItemLeft" align="right" valign="top"><a id="ab007a9ff58f7b7670847a8efe82d7fa1" name="ab007a9ff58f7b7670847a8efe82d7fa1"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>tx_next_offset</b></td></tr>
-<tr class="memitem:a95b7e623fc065f70179fa0b4d46c55dc" id="r_a95b7e623fc065f70179fa0b4d46c55dc"><td class="memItemLeft" align="right" valign="top"><a id="a95b7e623fc065f70179fa0b4d46c55dc" name="a95b7e623fc065f70179fa0b4d46c55dc"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>rx_fin_offset</b></td></tr>
-<tr class="memitem:a150d1f72f1254f564f48bc13738b53a0" id="r_a150d1f72f1254f564f48bc13738b53a0"><td class="memItemLeft" align="right" valign="top"><a id="a150d1f72f1254f564f48bc13738b53a0" name="a150d1f72f1254f564f48bc13738b53a0"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>tx_max_data</b></td></tr>
-<tr class="memitem:afe341318458611e7d851c99eb235cb32" id="r_afe341318458611e7d851c99eb235cb32"><td class="memItemLeft" align="right" valign="top"><a id="afe341318458611e7d851c99eb235cb32" name="afe341318458611e7d851c99eb235cb32"></a>
-uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>rx_fin</b></td></tr>
-<tr class="memitem:a7e1ef19935a079b246d49a9a0521409b" id="r_a7e1ef19935a079b246d49a9a0521409b"><td class="memItemLeft" align="right" valign="top"><a id="a7e1ef19935a079b246d49a9a0521409b" name="a7e1ef19935a079b246d49a9a0521409b"></a>
-uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>tx_fin_sent</b></td></tr>
+<tr class="memitem:a59c9cc66e21e3054e144889bf463d1d8" id="r_a59c9cc66e21e3054e144889bf463d1d8"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a59c9cc66e21e3054e144889bf463d1d8">stream_id</a></td></tr>
+<tr class="memitem:a583f2444a71035458c908d2ba93b1434" id="r_a583f2444a71035458c908d2ba93b1434"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a583f2444a71035458c908d2ba93b1434">rx_next_offset</a></td></tr>
+<tr class="memitem:ab007a9ff58f7b7670847a8efe82d7fa1" id="r_ab007a9ff58f7b7670847a8efe82d7fa1"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab007a9ff58f7b7670847a8efe82d7fa1">tx_next_offset</a></td></tr>
+<tr class="memitem:a95b7e623fc065f70179fa0b4d46c55dc" id="r_a95b7e623fc065f70179fa0b4d46c55dc"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a95b7e623fc065f70179fa0b4d46c55dc">rx_fin_offset</a></td></tr>
+<tr class="memitem:a150d1f72f1254f564f48bc13738b53a0" id="r_a150d1f72f1254f564f48bc13738b53a0"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a150d1f72f1254f564f48bc13738b53a0">tx_max_data</a></td></tr>
+<tr class="memitem:afe341318458611e7d851c99eb235cb32" id="r_afe341318458611e7d851c99eb235cb32"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afe341318458611e7d851c99eb235cb32">rx_fin</a></td></tr>
+<tr class="memitem:a7e1ef19935a079b246d49a9a0521409b" id="r_a7e1ef19935a079b246d49a9a0521409b"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7e1ef19935a079b246d49a9a0521409b">tx_fin_sent</a></td></tr>
 </table>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Stream metadata — one per open stream, stored in the con-&gt;stream_meta slab. </p>
+<dl class="section note"><dt>Note</dt><dd>Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free </dd></dl>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="afe341318458611e7d851c99eb235cb32" name="afe341318458611e7d851c99eb235cb32"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe341318458611e7d851c99eb235cb32">&#9670;&#160;</a></span>rx_fin</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_StreamMeta_t::rx_fin</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a95b7e623fc065f70179fa0b4d46c55dc" name="a95b7e623fc065f70179fa0b4d46c55dc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a95b7e623fc065f70179fa0b4d46c55dc">&#9670;&#160;</a></span>rx_fin_offset</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_StreamMeta_t::rx_fin_offset</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a583f2444a71035458c908d2ba93b1434" name="a583f2444a71035458c908d2ba93b1434"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a583f2444a71035458c908d2ba93b1434">&#9670;&#160;</a></span>rx_next_offset</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_StreamMeta_t::rx_next_offset</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a59c9cc66e21e3054e144889bf463d1d8" name="a59c9cc66e21e3054e144889bf463d1d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a59c9cc66e21e3054e144889bf463d1d8">&#9670;&#160;</a></span>stream_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_StreamMeta_t::stream_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7e1ef19935a079b246d49a9a0521409b" name="a7e1ef19935a079b246d49a9a0521409b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7e1ef19935a079b246d49a9a0521409b">&#9670;&#160;</a></span>tx_fin_sent</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t YAWT_Q_StreamMeta_t::tx_fin_sent</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a150d1f72f1254f564f48bc13738b53a0" name="a150d1f72f1254f564f48bc13738b53a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a150d1f72f1254f564f48bc13738b53a0">&#9670;&#160;</a></span>tx_max_data</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_StreamMeta_t::tx_max_data</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab007a9ff58f7b7670847a8efe82d7fa1" name="ab007a9ff58f7b7670847a8efe82d7fa1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab007a9ff58f7b7670847a8efe82d7fa1">&#9670;&#160;</a></span>tx_next_offset</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t YAWT_Q_StreamMeta_t::tx_next_offset</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>include/<a class="el" href="quic_8h_source.html">quic.h</a></li>
 </ul>

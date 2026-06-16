@@ -32,7 +32,7 @@
  * @note Holds TLS certificate, private key, and GnuTLS session configuration.
  *       Created once at startup and shared across all connections.
  */
-typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
+typedef struct YAWT_Q_Crypto_Cred_t YAWT_Q_Crypto_Cred_t;
 
 /**
  * @ingroup Crypt
@@ -40,7 +40,7 @@ typedef struct YAWT_Q_Crypto_Cred YAWT_Q_Crypto_Cred_t;
  * @note Holds GnuTLS session, key material at each encryption level, and
  *       CRYPTO frame reassembly buffers. Created by YAWT_q_crypto_init().
  */
-typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
+typedef struct YAWT_Q_Crypto_t YAWT_Q_Crypto_t;
 
 /**
  * @ingroup Crypt

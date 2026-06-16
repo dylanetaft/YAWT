@@ -108,25 +108,25 @@ Data Structures</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:gaa448f7106436f267aefc54638cdf5938" id="r_gaa448f7106436f267aefc54638cdf5938"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa448f7106436f267aefc54638cdf5938">YAWT_QPACK_Error_t</a> { <br />
-&#160;&#160;<b>YAWT_QPACK_OK</b> = 0
-, <b>YAWT_QPACK_ERR_MALFORMED</b>
-, <b>YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED</b>
-, <b>YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT</b>
+&#160;&#160;<a class="el" href="#ggaa448f7106436f267aefc54638cdf5938ae235e41a2184f347562e7d3e13e86947">YAWT_QPACK_OK</a> = 0
+, <a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a885adf803d761e720b1b235cf82cb6f7">YAWT_QPACK_ERR_MALFORMED</a>
+, <a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a396e1b1d679fdf75c067d757a3682b64">YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED</a>
+, <a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a88cb95ec6a0864c7d47e76969a8f85b7">YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT</a>
 , <br />
-&#160;&#160;<b>YAWT_QPACK_ERR_SHORT_BUFFER</b>
-, <b>YAWT_QPACK_ERR_INVALID_PARAM</b>
-, <b>YAWT_QPACK_DONE</b>
+&#160;&#160;<a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a636baad0a4a086077100d103fbfc9950">YAWT_QPACK_ERR_SHORT_BUFFER</a>
+, <a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a72bf9f9174d04aa1b524d5406f569394">YAWT_QPACK_ERR_INVALID_PARAM</a>
+, <a class="el" href="#ggaa448f7106436f267aefc54638cdf5938a0043353755172c9fd4187e968756f2f9">YAWT_QPACK_DONE</a>
 <br />
  }</td></tr>
 <tr class="memdesc:gaa448f7106436f267aefc54638cdf5938"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK decoder return status.  <a href="#gaa448f7106436f267aefc54638cdf5938">More...</a><br /></td></tr>
 <tr class="memitem:ga97a706f643bc583a45449dc90aca0983" id="r_ga97a706f643bc583a45449dc90aca0983"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga97a706f643bc583a45449dc90aca0983">YAWT_QPACK_FieldLineRepType_t</a> { <br />
-&#160;&#160;<b>YAWT_QPACK_FIELD_LINE_INDEXED</b>
-, <b>YAWT_QPACK_FIELD_LINE_INDEXED_POST_BASE</b>
-, <b>YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF</b>
-, <b>YAWT_QPACK_FIELD_LINE_LITERAL_POST_BASE_NAME_REF</b>
+&#160;&#160;<a class="el" href="#gga97a706f643bc583a45449dc90aca0983a8efe4a5fed2c914d941cbfc64e5559d1">YAWT_QPACK_FIELD_LINE_INDEXED</a>
+, <a class="el" href="#gga97a706f643bc583a45449dc90aca0983ac411b130eb7a66370d587ad476a7c677">YAWT_QPACK_FIELD_LINE_INDEXED_POST_BASE</a>
+, <a class="el" href="#gga97a706f643bc583a45449dc90aca0983aa79379ec2f064ab23728d4c22fe3bf3c">YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF</a>
+, <a class="el" href="#gga97a706f643bc583a45449dc90aca0983ad0f37224871b900dda8a5cd110c02fb7">YAWT_QPACK_FIELD_LINE_LITERAL_POST_BASE_NAME_REF</a>
 , <br />
-&#160;&#160;<b>YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME</b>
-, <b>YAWT_QPACK_FIELD_LINE_UNKNOWN</b>
+&#160;&#160;<a class="el" href="#gga97a706f643bc583a45449dc90aca0983a646606da61489bb586f841c59db64506">YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME</a>
+, <a class="el" href="#gga97a706f643bc583a45449dc90aca0983ae96646239fab8dd3bc135bc784f67c9a">YAWT_QPACK_FIELD_LINE_UNKNOWN</a>
 <br />
  }</td></tr>
 <tr class="memdesc:ga97a706f643bc583a45449dc90aca0983"><td class="mdescLeft">&#160;</td><td class="mdescRight">QPACK field line representations (RFC 9204 §4.5).  <a href="#ga97a706f643bc583a45449dc90aca0983">More...</a><br /></td></tr>
@@ -175,6 +175,15 @@ Functions</h2></td></tr>
 
 <p>QPACK decoder return status. </p>
 <dl class="section note"><dt>Note</dt><dd>Static table + literals only (dynamic table rejected). </dd></dl>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938ae235e41a2184f347562e7d3e13e86947" name="ggaa448f7106436f267aefc54638cdf5938ae235e41a2184f347562e7d3e13e86947"></a>YAWT_QPACK_OK&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a885adf803d761e720b1b235cf82cb6f7" name="ggaa448f7106436f267aefc54638cdf5938a885adf803d761e720b1b235cf82cb6f7"></a>YAWT_QPACK_ERR_MALFORMED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a396e1b1d679fdf75c067d757a3682b64" name="ggaa448f7106436f267aefc54638cdf5938a396e1b1d679fdf75c067d757a3682b64"></a>YAWT_QPACK_ERR_DYNAMIC_TABLE_UNSUPPORTED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a88cb95ec6a0864c7d47e76969a8f85b7" name="ggaa448f7106436f267aefc54638cdf5938a88cb95ec6a0864c7d47e76969a8f85b7"></a>YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a636baad0a4a086077100d103fbfc9950" name="ggaa448f7106436f267aefc54638cdf5938a636baad0a4a086077100d103fbfc9950"></a>YAWT_QPACK_ERR_SHORT_BUFFER&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a72bf9f9174d04aa1b524d5406f569394" name="ggaa448f7106436f267aefc54638cdf5938a72bf9f9174d04aa1b524d5406f569394"></a>YAWT_QPACK_ERR_INVALID_PARAM&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ggaa448f7106436f267aefc54638cdf5938a0043353755172c9fd4187e968756f2f9" name="ggaa448f7106436f267aefc54638cdf5938a0043353755172c9fd4187e968756f2f9"></a>YAWT_QPACK_DONE&#160;</td><td class="fielddoc"></td></tr>
+</table>
 
 </div>
 </div>
@@ -192,6 +201,14 @@ Functions</h2></td></tr>
 
 <p>QPACK field line representations (RFC 9204 §4.5). </p>
 <dl class="section note"><dt>Note</dt><dd>These are used to decode the encoded field section inside a HEADERS frame. They do NOT modify the dynamic table; they only reference it. </dd></dl>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983a8efe4a5fed2c914d941cbfc64e5559d1" name="gga97a706f643bc583a45449dc90aca0983a8efe4a5fed2c914d941cbfc64e5559d1"></a>YAWT_QPACK_FIELD_LINE_INDEXED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983ac411b130eb7a66370d587ad476a7c677" name="gga97a706f643bc583a45449dc90aca0983ac411b130eb7a66370d587ad476a7c677"></a>YAWT_QPACK_FIELD_LINE_INDEXED_POST_BASE&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983aa79379ec2f064ab23728d4c22fe3bf3c" name="gga97a706f643bc583a45449dc90aca0983aa79379ec2f064ab23728d4c22fe3bf3c"></a>YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983ad0f37224871b900dda8a5cd110c02fb7" name="gga97a706f643bc583a45449dc90aca0983ad0f37224871b900dda8a5cd110c02fb7"></a>YAWT_QPACK_FIELD_LINE_LITERAL_POST_BASE_NAME_REF&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983a646606da61489bb586f841c59db64506" name="gga97a706f643bc583a45449dc90aca0983a646606da61489bb586f841c59db64506"></a>YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga97a706f643bc583a45449dc90aca0983ae96646239fab8dd3bc135bc784f67c9a" name="gga97a706f643bc583a45449dc90aca0983ae96646239fab8dd3bc135bc784f67c9a"></a>YAWT_QPACK_FIELD_LINE_UNKNOWN&#160;</td><td class="fielddoc"></td></tr>
+</table>
 
 </div>
 </div>

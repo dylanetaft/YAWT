@@ -100,15 +100,42 @@ $(function(){initNavTree('structYAWT__H3__HeaderFields__t.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a1fe5df5bc144ba15b4b7f449594b85b7" id="r_a1fe5df5bc144ba15b4b7f449594b85b7"><td class="memItemLeft" align="right" valign="top"><a id="a1fe5df5bc144ba15b4b7f449594b85b7" name="a1fe5df5bc144ba15b4b7f449594b85b7"></a>
-ANB_Slab_t *&#160;</td><td class="memItemRight" valign="bottom"><b>slab</b></td></tr>
-<tr class="memitem:a30bb5475cb22e5ec0533bee100fefb3c" id="r_a30bb5475cb22e5ec0533bee100fefb3c"><td class="memItemLeft" align="right" valign="top"><a id="a30bb5475cb22e5ec0533bee100fefb3c" name="a30bb5475cb22e5ec0533bee100fefb3c"></a>
-ANB_Blob_t *&#160;</td><td class="memItemRight" valign="bottom"><b>huff_scratch</b></td></tr>
+<tr class="memitem:a1fe5df5bc144ba15b4b7f449594b85b7" id="r_a1fe5df5bc144ba15b4b7f449594b85b7"><td class="memItemLeft" align="right" valign="top">ANB_Slab_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1fe5df5bc144ba15b4b7f449594b85b7">slab</a></td></tr>
+<tr class="memitem:a30bb5475cb22e5ec0533bee100fefb3c" id="r_a30bb5475cb22e5ec0533bee100fefb3c"><td class="memItemLeft" align="right" valign="top">ANB_Blob_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a30bb5475cb22e5ec0533bee100fefb3c">huff_scratch</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Header fields — backed by ANB_Slab internally. </p>
 <dl class="section note"><dt>Note</dt><dd>huff_scratch (ANB_Blob_t) is used during QPACK decode of Huffman-encoded literals in header field lines; allocated upfront in YAWT_h3_header_fields_create and grown as needed. </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+</div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
+<a id="a30bb5475cb22e5ec0533bee100fefb3c" name="a30bb5475cb22e5ec0533bee100fefb3c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a30bb5475cb22e5ec0533bee100fefb3c">&#9670;&#160;</a></span>huff_scratch</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">ANB_Blob_t* YAWT_H3_HeaderFields_t::huff_scratch</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1fe5df5bc144ba15b4b7f449594b85b7" name="a1fe5df5bc144ba15b4b7f449594b85b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1fe5df5bc144ba15b4b7f449594b85b7">&#9670;&#160;</a></span>slab</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">ANB_Slab_t* YAWT_H3_HeaderFields_t::slab</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>include/<a class="el" href="h3__types_8h_source.html">h3_types.h</a></li>
 </ul>
 </div><!-- contents -->
