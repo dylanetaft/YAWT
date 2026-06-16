@@ -105,12 +105,12 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" id="r_gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></td></tr>
-<tr class="memdesc:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declaration for H3 connection object.  <br /></td></tr>
 <tr class="memitem:ga2b447d0a9609cf9651dd797c0fcd9f30" id="r_ga2b447d0a9609cf9651dd797c0fcd9f30"><td class="memItemLeft" align="right" valign="top">typedef union <a class="el" href="unionYAWT__H3__EventParam.html">YAWT_H3_EventParam</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a></td></tr>
 <tr class="memdesc:ga2b447d0a9609cf9651dd797c0fcd9f30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-event parameters for H3.  <br /></td></tr>
 <tr class="memitem:ga5d1d694f8c2f154003d76a186db6385b" id="r_ga5d1d694f8c2f154003d76a186db6385b"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a>) (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con, <a class="el" href="#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> event, <a class="el" href="#ga2b447d0a9609cf9651dd797c0fcd9f30">YAWT_H3_EventParam_t</a> param)</td></tr>
 <tr class="memdesc:ga5d1d694f8c2f154003d76a186db6385b"><td class="mdescLeft">&#160;</td><td class="mdescRight">App-level event callback for H3.  <br /></td></tr>
+<tr class="memitem:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" id="r_gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></td></tr>
+<tr class="memdesc:gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 connection object.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -141,26 +141,6 @@ Functions</h2></td></tr>
 <p>HTTP/3 connection management, event dispatch, and sending.</p>
 <p>HTTP/3 connection object, event system, and callbacks. </p>
 <a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
-<a id="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" name="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">&#9670;&#160;</a></span>YAWT_H3_Connection_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Forward declaration for H3 connection object. </p>
-<p>H3 connection object.</p>
-<dl class="section note"><dt>Note</dt><dd>Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once). </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00241">241</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
-
-</div>
-</div>
 <a id="ga2b447d0a9609cf9651dd797c0fcd9f30" name="ga2b447d0a9609cf9651dd797c0fcd9f30"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga2b447d0a9609cf9651dd797c0fcd9f30">&#9670;&#160;</a></span>YAWT_H3_EventParam_t</h2>
 
@@ -192,7 +172,26 @@ Functions</h2></td></tr>
 
 <p>App-level event callback for H3. </p>
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00289">289</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00286">286</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+
+</div>
+</div>
+<a id="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d" name="gad8cfc8dc2cc50e7e7d79514ea1c6bf5d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">&#9670;&#160;</a></span>YAWT_H3_Connection_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structYAWT__H3__Connection.html">YAWT_H3_Connection</a> <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>H3 connection object. </p>
+<dl class="section note"><dt>Note</dt><dd>Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED, freed on EVT_CLOSE (which con_free guarantees fires once). </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00037">37</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>
@@ -222,7 +221,7 @@ Functions</h2></td></tr>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00249">249</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="h3__types_8h_source.html#l00246">246</a> of file <a class="el" href="h3__types_8h_source.html">h3_types.h</a>.</p>
 
 </div>
 </div>

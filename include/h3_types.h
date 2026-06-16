@@ -34,6 +34,7 @@
  */
 
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
+typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
 
 #define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
 #define H3_STREAM_TYPE_MAX_BYTES   8  /**< Uni stream-type prefix is one varint (<=8 bytes) */
@@ -147,6 +148,7 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
   }
 }
 
+
 /**
  * @ingroup H3_Types
  * @brief The one H3 frame currently in flight on a stream.
@@ -234,11 +236,6 @@ typedef struct {
   size_t      i_name;    // name-only match in QPACK static table (0 = none)
 } YAWT_H3_Header_Field_t;
 
-/**
- * @ingroup H3_Connection
- * @brief Forward declaration for H3 connection object
- */
-typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
 
 /**
  * @ingroup H3_Connection
@@ -289,7 +286,6 @@ typedef union YAWT_H3_EventParam {
 typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
                                         YAWT_H3_EventType_t event,
                                         YAWT_H3_EventParam_t param);
-
 /**
  * @ingroup H3_Connection
  * @brief H3 connection object.
@@ -305,6 +301,7 @@ typedef struct YAWT_H3_Connection {
   YAWT_H3_Stream_t *streams;            // preallocated slot pool, linear-scan by id
   uint64_t control_stream_id;           // server's control stream (UINT64_MAX = not opened)
 } YAWT_H3_Connection_t;
+
 
 /**
  * @internal
