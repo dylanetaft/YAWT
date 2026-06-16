@@ -4,7 +4,7 @@
  */
 
 /**
- * @ingroup QUIC
+ * @addtogroup QUIC_Connection
  * @brief Primary user-facing QUIC API for connection management and I/O.
  */
 
@@ -17,7 +17,7 @@
 #include "crypt.h"
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection_Connection
  * @brief Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).
  */
 typedef struct YAWT_Q_PeerAddr {
@@ -26,7 +26,7 @@ typedef struct YAWT_Q_PeerAddr {
 } YAWT_Q_PeerAddr_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief A QUIC connection.
  * @note Owned by the QUIC layer (created in con_create, destroyed in con_free).
  *       Indexed in global CID hash tables; found via con_find_by_cid.
@@ -56,7 +56,7 @@ typedef struct YAWT_Q_Connection {
 } YAWT_Q_Connection_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Connection creation parameters.
  */
 typedef struct YAWT_Q_Con_Create_Info {
@@ -69,7 +69,7 @@ typedef struct YAWT_Q_Con_Create_Info {
 } YAWT_Q_Con_Create_Info_t;
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Global maintenance configuration.
  * @note Controls retransmit timing, idle timeout, and keepalive behavior across all connections.
  *       (Frame-level retransmit DOES use exponential backoff; this is distinct from the fixed ACK timer.)
@@ -88,7 +88,7 @@ typedef struct {
 // ---------------------------------------------------------------------------
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Create a QUIC connection.
  * @param info Connection creation parameters.
  * @return Pointer to the new connection, or NULL on failure.
@@ -97,7 +97,7 @@ typedef struct {
 YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Find a connection by Connection ID.
  * @param cid The Connection ID to search for.
  * @return Pointer to the connection, or NULL if not found.
@@ -105,7 +105,7 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
 YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Destroy a connection.
  * @param con Pointer to the connection pointer. Sets *con = NULL.
  * @note SINGLE close chokepoint: emits EVT_CLOSE exactly once before teardown.
@@ -115,14 +115,14 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 
 /**
  * @internal
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Clear the original DCID from a connection (used after handshake).
  * @param con The connection.
  */
 void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Single ingress for received UDP datagrams.
  * @param data The datagram payload (borrowed for the call).
  * @param len The datagram length.
@@ -136,7 +136,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                               const YAWT_Q_PeerAddr_t *peer_addr, double now);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Enqueue STREAM frames for the given scatter/gather buffers.
  * @param con The QUIC connection.
  * @param stream_id The target stream ID.
@@ -151,7 +151,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
 /**
  * @internal
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Update the peer's Connection ID.
  * @param con The QUIC connection.
  * @param new_cid The new peer Connection ID.
@@ -159,14 +159,14 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Install the process-wide event handler.
  * @param handler The event handler function. Passing NULL restores the built-in no-op default.
  */
 void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Set opaque per-connection app state.
  * @param con The QUIC connection.
  * @param p Opaque pointer (e.g., the H3 connection object).
@@ -177,7 +177,7 @@ static inline void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
 }
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Get opaque per-connection app state.
  * @param con The QUIC connection.
  * @return The opaque pointer, or NULL if con is NULL.
@@ -187,7 +187,7 @@ static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
 }
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Initiate graceful close.
  * @param con The QUIC connection.
  * @param error_code The error code to send.
@@ -197,14 +197,14 @@ static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
 void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Get a pointer to the current global maintenance config.
  * @return Pointer to the global YAWT_Q_MaintenanceConfig_t.
  */
 const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void);
 
 /**
- * @ingroup QUIC
+ * @ingroup QUIC_Connection
  * @brief Unified maintenance pass over all connections.
  * @param now Current time (e.g., from ev_now()).
  * @note Retransmits lost frames, enforces idle timeouts, sends keepalive PINGs,

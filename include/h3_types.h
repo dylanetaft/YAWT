@@ -14,7 +14,25 @@
 #include <stdbool.h>
 
 /**
+ * @defgroup H3_Connection Connection
  * @ingroup HTTP3
+ * @brief HTTP/3 connection object, event system, and callbacks.
+ */
+
+/**
+ * @defgroup H3_Headers Headers
+ * @ingroup HTTP3
+ * @brief HTTP/3 header field types and QPACK integration.
+ */
+
+/**
+ * @defgroup H3_Types Types
+ * @ingroup HTTP3
+ * @brief HTTP/3 protocol types, enums, frames, streams, and settings.
+ */
+
+/**
+ * @ingroup H3_Types
  * @brief Forward declaration — full type in quic.h
  */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
@@ -34,7 +52,7 @@ typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
  */
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief HTTP/3 frame types (RFC 9114 §7.2).
  * @note Named constants; YAWT_H3_Frame_t.type is kept as a raw uint64_t so
  *       unknown/reserved/greased types survive round-trip and are skipped
@@ -51,7 +69,7 @@ typedef enum {
 } YAWT_H3_FrameType_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Unidirectional wire format stream types.
  * @note RFC 9114 §6.2, RFC 9204 §4.2, draft-15. The first varint on a client
  *       uni stream selects its role; we read it once into the per-stream slot.
@@ -66,7 +84,7 @@ typedef enum {
 } YAWT_H3_WireStreamType_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Logical HTTP/3 stream types.
  */
 typedef enum {
@@ -79,7 +97,7 @@ typedef enum {
 } YAWT_H3_StreamType_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief SETTINGS identifiers.
  * @note RFC 9114 §7.2.4.1, RFC 9204, RFC 9220, RFC 9297, draft-ietf-webtrans-http3-15.
  *       Values are the on-the-wire identifiers.
@@ -94,7 +112,7 @@ typedef enum {
 } YAWT_H3_SettingId_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Internal return status for H3 functions.
  * @note Distinct from HTTP/3 *wire* error codes (RFC 9114 §8.1, e.g. H3_SETTINGS_ERROR)
  *       — those are added separately when GOAWAY / CONNECTION_CLOSE emission is built.
@@ -111,7 +129,7 @@ typedef enum {
 } YAWT_H3_Error_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Get a string representation of an H3 error code.
  * @param err The error code.
  * @return A static string describing the error.
@@ -131,7 +149,7 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
 }
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief The one H3 frame currently in flight on a stream.
  * @note Holds both the decoded result (type, payload_len, payload) and the
  *       byte-level decode scratch (hdr/hdr_size/accumulated). Only one frame
@@ -151,18 +169,18 @@ typedef struct {
 } YAWT_H3_Frame_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Forward declaration for ANB_Slab
  */
 typedef struct ANB_Slab ANB_Slab_t;
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Forward declaration for ANB_Blob
  */
 typedef struct ANB_Blob ANB_Blob_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Headers
  * @brief Header fields — backed by ANB_Slab internally.
  * @note huff_scratch (ANB_Blob_t) is used during QPACK decode of Huffman-encoded
  *       literals in header field lines; allocated upfront in YAWT_h3_header_fields_create
@@ -174,7 +192,7 @@ typedef struct {
 } YAWT_H3_HeaderFields_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Semantic HTTP request.
  * @note Holds a pointer to a header field section (allocated via YAWT_h3_header_section_create).
  *       NULL until headers are parsed. The lifecycle is managed by H3_Connection.
@@ -184,7 +202,7 @@ typedef struct {
 } YAWT_H3_Request_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Semantic HTTP response.
  * @note Holds a pointer to a header field section. NULL until headers are parsed.
  */
@@ -193,7 +211,7 @@ typedef struct {
 } YAWT_H3_Response_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Per-stream H3 parse state.
  * @note Lives in a preallocated slot pool on the H3 connection (slot index is NOT
  *       the stream id — ids are sparse and grow unbounded, so we store stream_id
@@ -219,7 +237,7 @@ typedef struct {
 } YAWT_H3_Stream_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Negotiated HTTP/3 settings.
  * @note One instance holds the values we advertise; another holds what the peer sent.
  */
@@ -233,7 +251,7 @@ typedef struct {
 } YAWT_H3_Settings_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Headers
  * @brief Public view of a header field.
  * @warning Points into slab memory, do not free or mutate.
  * @note i_static and i_name are QPACK static table indexes pre-resolved at add time.
@@ -248,13 +266,13 @@ typedef struct {
 } YAWT_H3_Header_Field_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Connection
  * @brief Forward declaration for H3 connection object
  */
 typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Connection
  * @brief H3 event taxonomy.
  * @note Fired by the H3 layer toward the app via YAWT_H3_EventHandler_t
  *       (set with YAWT_h3_set_event_handler).
@@ -267,7 +285,7 @@ typedef enum {
 } YAWT_H3_EventType_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Connection
  * @brief Per-event parameters for H3.
  * @warning Transience: ALL pointers in this union are valid ONLY for the duration
  *          of the handler call. They reference internal/transient storage that the
@@ -296,7 +314,7 @@ typedef union YAWT_H3_EventParam {
 } YAWT_H3_EventParam_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Connection
  * @brief App-level event callback for H3.
  */
 typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
@@ -304,7 +322,7 @@ typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
                                         YAWT_H3_EventParam_t param);
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Connection
  * @brief H3 connection object.
  * @note Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED,
  *       freed on EVT_CLOSE (which con_free guarantees fires once).
@@ -320,7 +338,7 @@ typedef struct YAWT_H3_Connection {
 } YAWT_H3_Connection_t;
 
 /**
- * @ingroup HTTP3
+ * @ingroup H3_Types
  * @brief Dynamic encoder instructions (RFC 9204 §4.3).
  * @note Not used yet.
  */
