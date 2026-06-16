@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <allocnbuffer/slab.h>
+#include <allocnbuffer/blob.h>
 
 /**
  * @defgroup H3_Connection Connection
@@ -31,10 +33,6 @@
  * @brief HTTP/3 protocol types, enums, frames, streams, and settings.
  */
 
-/**
- * @ingroup H3_Types
- * @brief Forward declaration — full type in quic.h
- */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
 #define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
@@ -59,13 +57,13 @@ typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
  *       generically rather than rejected.
  */
 typedef enum {
-  YAWT_H3_FRAME_DATA         = 0x00,
-  YAWT_H3_FRAME_HEADERS      = 0x01,
-  YAWT_H3_FRAME_CANCEL_PUSH  = 0x03,
-  YAWT_H3_FRAME_SETTINGS     = 0x04,
-  YAWT_H3_FRAME_PUSH_PROMISE = 0x05,
-  YAWT_H3_FRAME_GOAWAY       = 0x07,
-  YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d,
+  YAWT_H3_FRAME_DATA         = 0x00, /**< DATA frame — carries request/response body */
+  YAWT_H3_FRAME_HEADERS      = 0x01, /**< HEADERS frame — carries header field section */
+  YAWT_H3_FRAME_CANCEL_PUSH  = 0x03, /**< CANCEL_PUSH frame — abort a server push */
+  YAWT_H3_FRAME_SETTINGS     = 0x04, /**< SETTINGS frame — connection configuration */
+  YAWT_H3_FRAME_PUSH_PROMISE = 0x05, /**< PUSH_PROMISE frame — server push promise */
+  YAWT_H3_FRAME_GOAWAY       = 0x07, /**< GOAWAY frame — graceful shutdown */
+  YAWT_H3_FRAME_MAX_PUSH_ID  = 0x0d, /**< MAX_PUSH_ID frame — limit server push ID */
 } YAWT_H3_FrameType_t;
 
 /**
@@ -76,11 +74,11 @@ typedef enum {
  *       Bidi (request) streams have no such prefix.
  */
 typedef enum {
-  YAWT_H3_STREAM_WIRE_CONTROL      = 0x00,
-  YAWT_H3_STREAM_WIRE_PUSH         = 0x01,
-  YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02,
-  YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03,
-  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54,
+  YAWT_H3_STREAM_WIRE_CONTROL      = 0x00, /**< Control stream (RFC 9114 §6.2.1) */
+  YAWT_H3_STREAM_WIRE_PUSH         = 0x01, /**< Push stream (RFC 9114 §6.2.2) */
+  YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02, /**< QPACK encoder stream (RFC 9204 §4.2) */
+  YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03, /**< QPACK decoder stream (RFC 9204 §4.2) */
+  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54, /**< WebTransport stream (draft-15) */
 } YAWT_H3_WireStreamType_t;
 
 /**
@@ -88,12 +86,12 @@ typedef enum {
  * @brief Logical HTTP/3 stream types.
  */
 typedef enum {
-  YAWT_H3_STREAM_UNASSIGNED = 0, // not yet assigned
-  YAWT_H3_STREAM_FRAME,      // bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) 
-  YAWT_H3_STREAM_PUSH,       // push stream (RFC 9114 §6.2.2)
-  YAWT_H3_STREAM_CONTROL,    // control stream (RFC 9114 §6.2.1)
-  YAWT_H3_STREAM_QPACK,
-  YAWT_H3_STREAM_WEBTRANSPORT
+  YAWT_H3_STREAM_UNASSIGNED = 0, /**< Not yet assigned */
+  YAWT_H3_STREAM_FRAME,      /**< Bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) */
+  YAWT_H3_STREAM_PUSH,       /**< Push stream (RFC 9114 §6.2.2) */
+  YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
+  YAWT_H3_STREAM_QPACK,      /**< QPACK encoder/decoder stream */
+  YAWT_H3_STREAM_WEBTRANSPORT /**< WebTransport stream (draft-15) */
 } YAWT_H3_StreamType_t;
 
 /**
@@ -103,12 +101,12 @@ typedef enum {
  *       Values are the on-the-wire identifiers.
  */
 typedef enum {
-  YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01,
-  YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06,
-  YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07,
-  YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08,
-  YAWT_H3_SETTING_H3_DATAGRAM              = 0x33,
-  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000,
+  YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01, /**< QPACK dynamic table capacity (RFC 9204) */
+  YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06, /**< Maximum header field section size */
+  YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07, /**< QPACK blocked streams limit (RFC 9204) */
+  YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08, /**< Extended CONNECT protocol (RFC 9220) */
+  YAWT_H3_SETTING_H3_DATAGRAM              = 0x33, /**< HTTP datagrams (RFC 9297) */
+  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000, /**< WebTransport enabled (draft-15) */
 } YAWT_H3_SettingId_t;
 
 /**
@@ -118,14 +116,14 @@ typedef enum {
  *       — those are added separately when GOAWAY / CONNECTION_CLOSE emission is built.
  */
 typedef enum {
-  YAWT_H3_OK = 0,
-  YAWT_H3_ERR_SHORT_BUFFER,   // output buffer too small to encode
-  YAWT_H3_ERR_INCOMPLETE,     // not enough stream bytes yet — retry with more
-  YAWT_H3_ERR_MALFORMED,      // structurally invalid (e.g. odd SETTINGS pairs)
-  YAWT_H3_ERR_TOO_LARGE,      // frame exceeds the H3 buffer cap (security policy)
-  YAWT_H3_ERR_INVALID_PARAM,
-  YAWT_H3_ERR_NO_APP_HANDLER, // app handler not set via YAWT_h3_set_event_handler()
-  YAWT_H3_IGNORED,            // event was not handled (e.g. DATAGRAM, unknown QUIC event)
+  YAWT_H3_OK = 0,               /**< Success */
+  YAWT_H3_ERR_SHORT_BUFFER,     /**< Output buffer too small to encode */
+  YAWT_H3_ERR_INCOMPLETE,       /**< Not enough stream bytes yet — retry with more */
+  YAWT_H3_ERR_MALFORMED,        /**< Structurally invalid (e.g. odd SETTINGS pairs) */
+  YAWT_H3_ERR_TOO_LARGE,        /**< Frame exceeds the H3 buffer cap (security policy) */
+  YAWT_H3_ERR_INVALID_PARAM,    /**< Invalid parameter */
+  YAWT_H3_ERR_NO_APP_HANDLER,   /**< App handler not set via YAWT_h3_set_event_handler() */
+  YAWT_H3_IGNORED,              /**< Event was not handled (e.g. DATAGRAM, unknown QUIC event) */
 } YAWT_H3_Error_t;
 
 /**
@@ -167,17 +165,6 @@ typedef struct {
   uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
   uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
 } YAWT_H3_Frame_t;
-
-/**
- * @ingroup H3_Types
- * @brief Forward declaration for ANB_Slab
- */
-typedef struct ANB_Slab ANB_Slab_t;
-/**
- * @ingroup H3_Types
- * @brief Forward declaration for ANB_Blob
- */
-typedef struct ANB_Blob ANB_Blob_t;
 
 /**
  * @ingroup H3_Headers
@@ -278,10 +265,10 @@ typedef struct YAWT_H3_Connection YAWT_H3_Connection_t;
  *       (set with YAWT_h3_set_event_handler).
  */
 typedef enum {
-  YAWT_H3_EVT_HEADERS,    // HEADERS frame fully decoded; param has stream_id + headers
-  YAWT_H3_EVT_DATA,       // DATA frame payload chunk; stream_id + data/len + fin
-  YAWT_H3_EVT_SETTINGS,   // SETTINGS frame decoded; param has stream_id + settings ptr
-  YAWT_H3_EVT_CLOSE,      // H3-level error/close; param has error_code + reason
+  YAWT_H3_EVT_HEADERS,    /**< HEADERS frame fully decoded; param has stream_id + headers */
+  YAWT_H3_EVT_DATA,       /**< DATA frame payload chunk; stream_id + data/len + fin */
+  YAWT_H3_EVT_SETTINGS,   /**< SETTINGS frame decoded; param has stream_id + settings ptr */
+  YAWT_H3_EVT_CLOSE,      /**< H3-level error/close; param has error_code + reason */
 } YAWT_H3_EventType_t;
 
 /**
@@ -343,10 +330,10 @@ typedef struct YAWT_H3_Connection {
  * @note Not used yet.
  */
 typedef enum {
-    INSERT_WITH_NAME_REF,
-    INSERT_WITH_LITERAL_NAME,
-    SET_CAPACITY,
-    DUPLICATE,
-    UNKNOWN
+    INSERT_WITH_NAME_REF,    /**< Insert with name reference (RFC 9204 §4.3.2) */
+    INSERT_WITH_LITERAL_NAME, /**< Insert with literal name (RFC 9204 §4.3.3) */
+    SET_CAPACITY,            /**< Set dynamic table capacity (RFC 9204 §4.3.1) */
+    DUPLICATE,               /**< Duplicate entry (RFC 9204 §4.3.4) */
+    UNKNOWN                  /**< Unknown instruction */
 } YAWT_H3_QPACK_EncoderInstructionType_t;
 

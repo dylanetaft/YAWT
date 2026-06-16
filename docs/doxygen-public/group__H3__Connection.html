@@ -115,20 +115,20 @@ typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>YAWT_H3_Eve
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:gaf251a0d5a0aa9d92bfe8c345f35f1e1c" id="r_gaf251a0d5a0aa9d92bfe8c345f35f1e1c"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> { <b>YAWT_H3_EVT_HEADERS</b>
-, <b>YAWT_H3_EVT_DATA</b>
-, <b>YAWT_H3_EVT_SETTINGS</b>
-, <b>YAWT_H3_EVT_CLOSE</b>
+<tr class="memitem:gaf251a0d5a0aa9d92bfe8c345f35f1e1c" id="r_gaf251a0d5a0aa9d92bfe8c345f35f1e1c"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">YAWT_H3_EventType_t</a> { <a class="el" href="#ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca5c021f19fb6dddfbef25158e65a6177f">YAWT_H3_EVT_HEADERS</a>
+, <a class="el" href="#ggaf251a0d5a0aa9d92bfe8c345f35f1e1caaa0e5a9d2b930c471db04daf7a75ca4b">YAWT_H3_EVT_DATA</a>
+, <a class="el" href="#ggaf251a0d5a0aa9d92bfe8c345f35f1e1cad4ed58669182483df3980da843013baa">YAWT_H3_EVT_SETTINGS</a>
+, <a class="el" href="#ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca2001ead2d46481ac6236679095f5a67b">YAWT_H3_EVT_CLOSE</a>
  }</td></tr>
 <tr class="memdesc:gaf251a0d5a0aa9d92bfe8c345f35f1e1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 event taxonomy.  <a href="#gaf251a0d5a0aa9d92bfe8c345f35f1e1c">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:gae00c0fb2e9c83bd2e67c2adb4ebcdd22" id="r_gae00c0fb2e9c83bd2e67c2adb4ebcdd22"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae00c0fb2e9c83bd2e67c2adb4ebcdd22">YAWT_h3_on_event</a> (<a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="group__QUIC__Connection.html#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="group__QUIC__Connection.html#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td></tr>
+<tr class="memitem:gae00c0fb2e9c83bd2e67c2adb4ebcdd22" id="r_gae00c0fb2e9c83bd2e67c2adb4ebcdd22"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae00c0fb2e9c83bd2e67c2adb4ebcdd22">YAWT_h3_on_event</a> (<a class="el" href="group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *con, <a class="el" href="group__QUIC__Connection.html#ga8f207db1067de78b254ce521377215dd">YAWT_Q_EventType_t</a> event, <a class="el" href="group__QUIC__Connection.html#gaba54d7c0f161bc3e7f3efab411968712">YAWT_Q_EventParam_t</a> param)</td></tr>
 <tr class="memdesc:gae00c0fb2e9c83bd2e67c2adb4ebcdd22"><td class="mdescLeft">&#160;</td><td class="mdescRight">H3 event handler.  <br /></td></tr>
 <tr class="memitem:ga3ce2ca55acefa9441b5170a329cf1e4e" id="r_ga3ce2ca55acefa9441b5170a329cf1e4e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga3ce2ca55acefa9441b5170a329cf1e4e">YAWT_h3_set_event_handler</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con, <a class="el" href="#ga5d1d694f8c2f154003d76a186db6385b">YAWT_H3_EventHandler_t</a> handler)</td></tr>
 <tr class="memdesc:ga3ce2ca55acefa9441b5170a329cf1e4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Install an app-level event handler on an H3 connection.  <br /></td></tr>
-<tr class="memitem:ga85a672843f372e0c3bba9882f81e5ff1" id="r_ga85a672843f372e0c3bba9882f81e5ff1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga85a672843f372e0c3bba9882f81e5ff1">YAWT_h3_get_qcon</a> (const <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con)</td></tr>
+<tr class="memitem:ga85a672843f372e0c3bba9882f81e5ff1" id="r_ga85a672843f372e0c3bba9882f81e5ff1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga85a672843f372e0c3bba9882f81e5ff1">YAWT_h3_get_qcon</a> (const <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *con)</td></tr>
 <tr class="memdesc:ga85a672843f372e0c3bba9882f81e5ff1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying QUIC connection from an H3 connection.  <br /></td></tr>
 <tr class="memitem:ga0d77e7f0bbbbcfba39d415f25db9062e" id="r_ga0d77e7f0bbbbcfba39d415f25db9062e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga0d77e7f0bbbbcfba39d415f25db9062e">YAWT_h3_send_settings</a> (<a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *h3)</td></tr>
 <tr class="memdesc:ga0d77e7f0bbbbcfba39d415f25db9062e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open the server control stream and send a SETTINGS frame.  <br /></td></tr>
@@ -192,6 +192,16 @@ Functions</h2></td></tr>
 
 <p>H3 event taxonomy. </p>
 <dl class="section note"><dt>Note</dt><dd>Fired by the H3 layer toward the app via <a class="el" href="#ga5d1d694f8c2f154003d76a186db6385b" title="App-level event callback for H3.">YAWT_H3_EventHandler_t</a> (set with YAWT_h3_set_event_handler). </dd></dl>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca5c021f19fb6dddfbef25158e65a6177f" name="ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca5c021f19fb6dddfbef25158e65a6177f"></a>YAWT_H3_EVT_HEADERS&#160;</td><td class="fielddoc"><p>HEADERS frame fully decoded; param has stream_id + headers </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaf251a0d5a0aa9d92bfe8c345f35f1e1caaa0e5a9d2b930c471db04daf7a75ca4b" name="ggaf251a0d5a0aa9d92bfe8c345f35f1e1caaa0e5a9d2b930c471db04daf7a75ca4b"></a>YAWT_H3_EVT_DATA&#160;</td><td class="fielddoc"><p>DATA frame payload chunk; stream_id + data/len + fin </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaf251a0d5a0aa9d92bfe8c345f35f1e1cad4ed58669182483df3980da843013baa" name="ggaf251a0d5a0aa9d92bfe8c345f35f1e1cad4ed58669182483df3980da843013baa"></a>YAWT_H3_EVT_SETTINGS&#160;</td><td class="fielddoc"><p>SETTINGS frame decoded; param has stream_id + settings ptr </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca2001ead2d46481ac6236679095f5a67b" name="ggaf251a0d5a0aa9d92bfe8c345f35f1e1ca2001ead2d46481ac6236679095f5a67b"></a>YAWT_H3_EVT_CLOSE&#160;</td><td class="fielddoc"><p>H3-level error/close; param has error_code + reason </p>
+</td></tr>
+</table>
 
 </div>
 </div>
@@ -203,7 +213,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> * YAWT_h3_get_qcon </td>
+          <td class="memname"><a class="el" href="group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> * YAWT_h3_get_qcon </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d">YAWT_H3_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span></td><td>)</td>
           <td></td>
@@ -231,7 +241,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d">YAWT_H3_Error_t</a> YAWT_h3_on_event </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="group__H3__Types.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
+          <td class="paramtype"><a class="el" href="group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028">YAWT_Q_Connection_t</a> *</td>          <td class="paramname"><span class="paramname"><em>con</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>

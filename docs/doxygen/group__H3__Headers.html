@@ -727,7 +727,7 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>YAWT_QPACK_OK on success, or an error code. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Only static table entries and literal representations are supported. Huffman-encoded strings are decoded into out-&gt;huff_scratch (<a class="el" href="group__H3__Types.html#ga62c274fcc5cdb7f30bdcca7f45caf15e" title="Forward declaration for ANB_Blob.">ANB_Blob_t</a>). Name/value pairs are copied into out-&gt;slab using the existing header field storage. On error the section may be left partially populated; caller (h3 layer) typically destroys it. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Only static table entries and literal representations are supported. Huffman-encoded strings are decoded into out-&gt;huff_scratch (ANB_Blob_t). Name/value pairs are copied into out-&gt;slab using the existing header field storage. On error the section may be left partially populated; caller (h3 layer) typically destroys it. </dd></dl>
 
 </div>
 </div>

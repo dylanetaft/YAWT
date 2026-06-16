@@ -21,6 +21,7 @@ target_link_libraries(yawt_tests unity)
 
 target_include_directories(yawt_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${CMAKE_INSTALL_PREFIX}/include
     ${unity_SOURCE_DIR}/src
     ${unity_BINARY_DIR}
 )
