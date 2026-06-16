@@ -1,7 +1,7 @@
 PROJECT_NAME           = "YAWT"
 PROJECT_BRIEF          = "QUIC and HTTP/3 library for WebTransport (Public API)"
 INPUT                  = include
-RECURSIVE              = NO
+RECURSIVE              = YES
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
 OUTPUT_DIRECTORY       = docs/doxygen
