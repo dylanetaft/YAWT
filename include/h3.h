@@ -5,7 +5,6 @@
 
 /**
  * @defgroup HTTP3 
- * @ingroup H3_Connection
  * @brief Primary HTTP/3 API for connection management, frame parsing, and sending data/headers.
  */
 

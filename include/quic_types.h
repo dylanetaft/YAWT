@@ -15,29 +15,9 @@
 #include "logger.h"
 
 /**
- * @defgroup QUIC_Connection Connection
- * @ingroup QUIC
- * @brief QUIC connection lifecycle, state, and event system types.
- */
-
-/**
- * @defgroup QUIC_Wire Wire
- * @ingroup QUIC
- * @brief QUIC wire-format primitives: varints, packets, frames, and cursors.
- */
-
-/**
  * @ingroup QUIC_Connection
  * @brief Forward declaration for peer address.
  */
-
-
-/**
- * @defgroup QUIC_FRAME_TYPES Frame Types
- * @ingroup QUIC
- * @brief QUIC frame types and their parsed representations.
- */
-
 struct YAWT_Q_PeerAddr;
 typedef struct YAWT_Q_PeerAddr YAWT_Q_PeerAddr_t;
 

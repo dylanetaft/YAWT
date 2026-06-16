@@ -1,6 +1,5 @@
 var group__QUIC__Connection =
 [
-    [ "Frame Types", "group__QUIC__FRAME__TYPES.html", "group__QUIC__FRAME__TYPES" ],
     [ "YAWT_Q_FrameHandler_Res_t", "structYAWT__Q__FrameHandler__Res__t.html", null ],
     [ "YAWT_Q_StreamMeta_t", "structYAWT__Q__StreamMeta__t.html", null ],
     [ "YAWT_Q_ConnectionStats_t", "structYAWT__Q__ConnectionStats__t.html", null ],

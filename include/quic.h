@@ -5,19 +5,30 @@
 
 /**
  * @defgroup QUIC 
- * @ingroup QUIC
  * @brief Low-level QUIC protocol operations and utilities.
  */
 
+
 /**
- * @addtogroup QUIC_Connection
- * @brief QUIC event system, errors, and connection-level types.
+ * @defgroup QUIC_Connection Connection
+ * @ingroup QUIC
+ * @brief QUIC connection lifecycle, state, and event system types.
  */
 
 /**
- * @addtogroup QUIC_Wire
- * @brief QUIC wire-format operations: cursors, varints, packet/frame encode and parse.
+ * @defgroup QUIC_Wire Wire
+ * @ingroup QUIC
+ * @brief QUIC wire-format primitives: varints, packets, frames, and cursors.
  */
+
+
+
+/**
+ * @defgroup QUIC_FRAME_TYPES Frame Types
+ * @ingroup QUIC
+ * @brief QUIC frame types and their parsed representations.
+ */
+
 
 #pragma once
 #include <stdint.h>

@@ -1,6 +1,5 @@
 var group__H3__Connection =
 [
-    [ "HTTP3", "group__HTTP3.html", "group__HTTP3" ],
     [ "YAWT_H3_EventParam", "unionYAWT__H3__EventParam.html", null ],
     [ "YAWT_H3_Connection", "structYAWT__H3__Connection.html", null ],
     [ "YAWT_H3_Connection_t", "group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d", null ],
