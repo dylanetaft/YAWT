@@ -9,13 +9,12 @@ var searchData=
   ['yawt_5fh3_5fwirestreamtype_5ft_6',['YAWT_H3_WireStreamType_t',['../group__H3__Types.html#ga1feb87ab2d5c3769763990325a4c89bb',1,'h3_types.h']]],
   ['yawt_5flog_5flevel_5ft_7',['YAWT_log_level_t',['../group__Logging.html#ga521369fb39c5dbfe6c60f82705a9db70',1,'logger.h']]],
   ['yawt_5fq_5fencryption_5flevel_5ft_8',['YAWT_Q_Encryption_Level_t',['../group__Crypt.html#gad8dc02c9b7f257e748ebe6069b1171cf',1,'crypt.h']]],
-  ['yawt_5fq_5ferror_5ft_9',['YAWT_Q_Error_t',['../group__QUIC__Connection.html#ga2850b37ee3121eafdc74262c04bf59f2',1,'quic.h']]],
-  ['yawt_5fq_5feventtype_5ft_10',['YAWT_Q_EventType_t',['../group__QUIC__Connection.html#ga8f207db1067de78b254ce521377215dd',1,'quic_types.h']]],
+  ['yawt_5fq_5ferror_5ft_9',['YAWT_Q_Error_t',['../group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2',1,'quic.h']]],
+  ['yawt_5fq_5feventtype_5ft_10',['YAWT_Q_EventType_t',['../group__QUIC.html#ga8f207db1067de78b254ce521377215dd',1,'quic_types.h']]],
   ['yawt_5fq_5fframe_5ftype_5ft_11',['YAWT_Q_Frame_Type_t',['../group__QUIC.html#ga57a79159b86da14e34eb450d26fe6072',1,'quic_types.h']]],
   ['yawt_5fq_5fkey_5fstate_5ft_12',['YAWT_Q_Key_State_t',['../group__Crypt.html#ga48425992a747587ed8f2602c35e3aff0',1,'crypt.h']]],
   ['yawt_5fq_5flong_5fpacket_5ftype_5ft_13',['YAWT_Q_Long_Packet_Type_t',['../group__QUIC.html#ga84c95fc076cafaaed9f9f8997703e454',1,'quic_types.h']]],
-  ['yawt_5fq_5fpacket_5ftype_5ft_14',['YAWT_Q_Packet_Type_t',['../group__QUIC.html#ga7f26dad2b0638cc66f8ef1cc1423a481',1,'quic_types.h']]],
-  ['yawt_5fq_5fstream_5ftype_5ft_15',['YAWT_Q_Stream_Type_t',['../group__QUIC.html#ga18527349c2d3f9f52c1600abc554b8b6',1,'quic_types.h']]],
-  ['yawt_5fqpack_5ferror_5ft_16',['YAWT_QPACK_Error_t',['../group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938',1,'qpack.h']]],
-  ['yawt_5fqpack_5ffieldlinereptype_5ft_17',['YAWT_QPACK_FieldLineRepType_t',['../group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983',1,'qpack.h']]]
+  ['yawt_5fq_5fstream_5ftype_5ft_14',['YAWT_Q_Stream_Type_t',['../group__QUIC.html#ga18527349c2d3f9f52c1600abc554b8b6',1,'quic_types.h']]],
+  ['yawt_5fqpack_5ferror_5ft_15',['YAWT_QPACK_Error_t',['../group__H3__Headers.html#gaa448f7106436f267aefc54638cdf5938',1,'qpack.h']]],
+  ['yawt_5fqpack_5ffieldlinereptype_5ft_16',['YAWT_QPACK_FieldLineRepType_t',['../group__H3__Headers.html#ga97a706f643bc583a45449dc90aca0983',1,'qpack.h']]]
 ];

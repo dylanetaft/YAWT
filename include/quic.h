@@ -4,7 +4,7 @@
  */
 
 /**
- * @defgroup QUIC 
+ * @defgroup QUIC QUIC
  * @brief Low-level QUIC protocol operations and utilities.
  */
 
@@ -29,6 +29,16 @@
  * @brief QUIC frame types and their parsed representations.
  */
 
+/**
+ * @defgroup QUIC_Drive Drive Functions
+ * @ingroup QUIC
+ * @brief Functions the user must call from their event loop to drive the QUIC stack.
+ * @details The QUIC library is not self-running. The user owns the event loop
+ *          and must call these two functions each iteration:
+ *          - YAWT_q_con_rx() on incoming UDP data
+ *          - YAWT_q_con_maintain() on a timer (see YAWT_q_con_get_maint_config())
+ */
+
 
 #pragma once
 #include <stdint.h>
@@ -36,20 +46,12 @@
 #include <allocnbuffer/slab.h>
 #include "quic_types.h"
 
-/**
- * @ingroup QUIC_Wire
- * @brief Forward declaration — full type in crypt.h
- */
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys YAWT_Q_Level_Keys_t;
-/**
- * @ingroup QUIC_Connection
- * @brief Forward declaration — full type in quic_connection.h
- */
 typedef struct YAWT_Q_Connection YAWT_Q_Connection_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief Process-wide event handler.
  * @note Lifetime: a single global, installed via YAWT_q_con_set_event_handler().
  *       Threading: the QUIC layer is single-threaded (one libev loop). The handler
@@ -72,7 +74,7 @@ typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
 //UNIMPLEMENTED: Packet coalescing
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief QUIC error codes.
  */
 typedef enum {
@@ -88,7 +90,7 @@ typedef enum {
 } YAWT_Q_Error_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief Get a string representation of a QUIC error code.
  * @param err The error code.
  * @return A static string describing the error.
@@ -150,6 +152,7 @@ typedef struct {
 } YAWT_Q_WireFrame_t;
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Result from processing frames in a packet.
  */
@@ -159,9 +162,10 @@ typedef struct {
 } YAWT_Q_FrameHandler_Res_t;
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
- * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
+ * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free
  */
 typedef struct {
   uint64_t stream_id;
@@ -293,10 +297,6 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
  */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
-/**
- * @ingroup QUIC
- * @brief Forward declaration for crypto context
- */
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto YAWT_Q_Crypto_t;
 

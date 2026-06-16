@@ -5,7 +5,6 @@ var h3__types_8h =
     [ "YAWT_H3_Connection_t", "group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d", null ],
     [ "YAWT_H3_EventHandler_t", "group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b", null ],
     [ "YAWT_H3_EventParam_t", "group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30", null ],
-    [ "YAWT_Q_Connection_t", "group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028", null ],
     [ "YAWT_H3_Error_t", "group__H3__Types.html#gaee3588bbd1d2ab017fac2184d2424e1d", [
       [ "YAWT_H3_OK", "group__H3__Types.html#ggaee3588bbd1d2ab017fac2184d2424e1dafd704c85274cc0346e812b65ed1cdc9e", null ],
       [ "YAWT_H3_ERR_SHORT_BUFFER", "group__H3__Types.html#ggaee3588bbd1d2ab017fac2184d2424e1dab8878526fa7e33f758df9fe6f3f900f3", null ],

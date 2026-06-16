@@ -330,6 +330,7 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
   }
 }
 
+// This function parses and dispatches rx quic frames
 static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                                                   YAWT_Q_Packet_t *pkt) {
   YAWT_Q_FrameHandler_Res_t res = { .err = YAWT_Q_OK, .requires_ack = 0 };

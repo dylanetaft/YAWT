@@ -40,6 +40,7 @@ typedef struct YAWT_Q_Cid {
 } YAWT_Q_Cid_t;
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Set a Connection ID.
  * @param dst Destination CID struct.
@@ -56,6 +57,7 @@ static inline void YAWT_q_cid_set(YAWT_Q_Cid_t *dst, const uint8_t *id, uint8_t 
 }
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Format a CID as a hex string.
  * @param cid The Connection ID to format.
@@ -71,6 +73,7 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
 }
 
 /**
+ * @internal
  * @ingroup QUIC
  * @brief QUIC packet types (all 5 forms).
  * @note Long-header forms match the 2-bit long-packet type field (RFC 9000 §17.2).
@@ -141,7 +144,7 @@ typedef enum {
 } YAWT_Q_Long_Packet_Type_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief Flat packet struct — all packet types collapsed into one.
  * @warning Transience: when produced by YAWT_q_parse_packet, the pointer fields below
  * (payload, raw, and extra.*.token) borrow INTO the input datagram buffer.
@@ -293,10 +296,10 @@ typedef struct YAWT_Q_Frame_BufferedStream {
 } YAWT_Q_Frame_BufferedStream_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief Scatter/gather buffer element for sending.
  */
-typedef struct YAWT_Q_IoVec {
+typedef struct {
   const uint8_t *buf;
   size_t len;
 } YAWT_Q_IoVec_t;
@@ -445,7 +448,7 @@ typedef struct {
 } YAWT_Q_Frame_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief QUIC event taxonomy.
  * @note New events extend this enum AND add a matching `P_<eventtype>` substruct
  * to YAWT_Q_EventParam_t below. The 1:1 mapping between enum suffix and union
@@ -460,14 +463,14 @@ typedef enum {
 } YAWT_Q_EventType_t;
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC
  * @brief Per-event parameters.
  * @warning Transience: ALL pointers in this union are valid ONLY for the duration
  * of the handler call. They reference internal/transient storage (the input datagram
  * buffer, a slab item, or an encode scratch buffer) that the QUIC layer reuses
  * immediately after the handler returns. Copy anything you need to retain.
  */
-typedef union YAWT_Q_EventParam {
+typedef union {
   struct { } P_EVT_CONNECTED;
 
   struct {

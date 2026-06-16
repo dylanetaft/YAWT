@@ -1,8 +1,8 @@
 var quic_8h =
 [
-    [ "YAWT_Q_EventHandler_t", "group__QUIC__Connection.html#ga82409f8be34321b9774adf65b5422dbb", null ],
-    [ "YAWT_Q_Error_t", "group__QUIC__Connection.html#ga2850b37ee3121eafdc74262c04bf59f2", null ],
-    [ "YAWT_q_err_str", "group__QUIC__Connection.html#ga3529a3999b7f32b60683abbe952fcc7f", null ],
+    [ "YAWT_Q_EventHandler_t", "group__QUIC.html#ga82409f8be34321b9774adf65b5422dbb", null ],
+    [ "YAWT_Q_Error_t", "group__QUIC.html#ga2850b37ee3121eafdc74262c04bf59f2", null ],
+    [ "YAWT_q_err_str", "group__QUIC.html#ga3529a3999b7f32b60683abbe952fcc7f", null ],
     [ "YAWT_q_encode_frame_padding", "group__QUIC__Wire.html#gae09b3e40e67523c96371995784ed56d8", null ],
     [ "YAWT_q_enqueue_frame_crypto", "group__QUIC__Wire.html#gac400a6915d5eaefacc963251f3249f4f", null ],
     [ "YAWT_q_enqueue_frame_ack", "group__QUIC__Wire.html#gaa66d3cdc0cf860dc6b9c05ff3b2866be", null ],

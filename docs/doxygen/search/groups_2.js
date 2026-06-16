@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['headers_0',['Headers',['../group__H3__Headers.html',1,'']]],
-  ['http3_1',['HTTP3',['../group__HTTP3.html',1,'']]]
+  ['frame_20types_0',['Frame Types',['../group__QUIC__FRAME__TYPES.html',1,'']]],
+  ['functions_1',['Drive Functions',['../group__QUIC__Drive.html',1,'']]]
 ];

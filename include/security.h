@@ -5,7 +5,6 @@
 
 /**
  * @defgroup Security Security
- * @ingroup Security
  * @brief Security policy and flow control configuration for QUIC and HTTP/3.
  */
 

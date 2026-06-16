@@ -2,7 +2,6 @@ var h3__types_8h =
 [
     [ "H3_FRAME_MAX_HEADER_BYTES", "h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d", null ],
     [ "H3_STREAM_TYPE_MAX_BYTES", "h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b", null ],
-    [ "YAWT_Q_Connection_t", "group__QUIC__Connection.html#ga48eeb291f8b1aa1867e90dbd40b71028", null ],
     [ "YAWT_H3_Connection_t", "group__H3__Connection.html#gad8cfc8dc2cc50e7e7d79514ea1c6bf5d", null ],
     [ "YAWT_H3_EventParam_t", "group__H3__Connection.html#ga2b447d0a9609cf9651dd797c0fcd9f30", null ],
     [ "YAWT_H3_EventHandler_t", "group__H3__Connection.html#ga5d1d694f8c2f154003d76a186db6385b", null ],

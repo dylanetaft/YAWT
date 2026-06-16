@@ -17,7 +17,7 @@
 #include "crypt.h"
 
 /**
- * @ingroup QUIC_Connection_Connection
+ * @ingroup QUIC_Connection 
  * @brief Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).
  */
 typedef struct YAWT_Q_PeerAddr {
@@ -88,8 +88,11 @@ typedef struct {
 // ---------------------------------------------------------------------------
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Create a QUIC connection.
+ * @details This is created in response to an incoming quic packet
+ * with an unrecognized CID, managed by the QUIC library
  * @param info Connection creation parameters.
  * @return Pointer to the new connection, or NULL on failure.
  * @note Registers it in the CID hash. Lifetime: until YAWT_q_con_free.
@@ -105,8 +108,10 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
 YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 
 /**
+ * @internal
  * @ingroup QUIC_Connection
  * @brief Destroy a connection.
+ * @details This is used by the QUIC library to free connections after close/idle expiration
  * @param con Pointer to the connection pointer. Sets *con = NULL.
  * @note SINGLE close chokepoint: emits EVT_CLOSE exactly once before teardown.
  *       Idempotent against NULL (double-free safe).
@@ -122,7 +127,7 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con);
 void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con);
 
 /**
- * @ingroup QUIC_Connection
+ * @ingroup QUIC_Drive
  * @brief Single ingress for received UDP datagrams.
  * @param data The datagram payload (borrowed for the call).
  * @param len The datagram length.
@@ -191,7 +196,7 @@ static inline void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
  * @brief Initiate graceful close.
  * @param con The QUIC connection.
  * @param error_code The error code to send.
- * @note Idempotent: a no-op if already closing. Enqueues CONNECTION_CLOSE.
+ * @note No-op if already closing. Enqueues CONNECTION_CLOSE.
  *       The actual free (→ EVT_CLOSE) happens later, after ~3x PTO.
  */
 void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code);
@@ -204,12 +209,14 @@ void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code);
 const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void);
 
 /**
- * @ingroup QUIC_Connection
- * @brief Unified maintenance pass over all connections.
+ * @ingroup QUIC_Drive
+ * @brief Maintenance function for quic
+ * @details Userspace is responsible for calling this periodically
+ * on a frequency defined by YAWT_q_con_get_maint_config()->min_maint_interval
+ * see examples for usage
  * @param now Current time (e.g., from ev_now()).
  * @note Retransmits lost frames, enforces idle timeouts, sends keepalive PINGs,
  *       and flushes queued packets (emits EVT_TX). May free connections whose
  *       close/idle has expired, each emitting EVT_CLOSE via YAWT_q_con_free.
- *       Call periodically from the event loop.
  */
 void YAWT_q_con_maintain(double now);

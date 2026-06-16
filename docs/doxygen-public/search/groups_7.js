@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['wire_0',['Wire',['../group__QUIC__Wire.html',1,'']]]
+  ['types_0',['Types',['../group__QUIC__FRAME__TYPES.html',1,'Frame Types'],['../group__H3__Types.html',1,'Types']]]
 ];
