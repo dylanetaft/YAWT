@@ -1,0 +1,793 @@
+RFC 9000|3.1|Sending stream states modeled with explicit state machine enum|N|YAWT uses implicit state via tx_next_offset/tx_fin_sent flags rather than explicit state machine per Figure 2
+RFC 9000|3.1|Stream starts in "Ready" state (able to accept application data)|Y|Streams begin with tx_next_offset=0 and tx_fin_sent=0, representing the Ready state
+RFC 9000|3.1|First STREAM frame transitions stream from Ready to "Send" state|PARTIAL|Implicit: tx_next_offset advances from 0 when STREAM frame is enqueued, but no explicit state transition check exists
+RFC 9000|3.1|STREAM with FIN bit transitions stream to "Data Sent" state|PARTIAL|tx_fin_sent flag is set, but no explicit state guard prevents further data after FIN
+RFC 9000|3.1|All acknowledged data transitions stream to "Data Recvd" terminal state|N|No tracking of per-stream acknowledgment; tx_fin_sent is the only FIN-related flag, no DATA_RECVD terminal state exists
+RFC 9000|3.1|RESET_STREAM frame support for abrupt stream termination|N|RESET_STREAM frame type (0x04) is defined in enum but encoder, sender, and receiver handlers are entirely absent
+RFC 9000|3.1|RESET_STREAM sent transitions stream to "Reset Sent" state|N|Not implemented; no RESET_STREAM sending code exists
+RFC 9000|3.1|RESET_STREAM acknowledged transitions stream to "Reset Recvd" terminal state|N|Not implemented
+RFC 9000|3.1|MUST NOT send STREAM/STREAM_DATA_BLOCKED from terminal states|N|No state-based validation: _handle_frames in quic_connection.c accepts STREAM frames without checking if stream is in a terminal state
+RFC 9000|3.1|MAY send RESET_STREAM as first frame mentioning a stream|N|No RESET_STREAM encoder or sender exists
+RFC 9000|3.1|Endpoint in "Send" state respects flow control and processes MAX_STREAM_DATA|Y|_drain_tx checks tx_next_offset against tx_max_data; MAX_STREAM_DATA frames are parsed and applied to per-stream limits
+RFC 9000|3.1|In "Data Sent" state, no need to check flow control or send STREAM_DATA_BLOCKED|N|Flow control is still checked in _drain_tx even when tx_fin_sent is set; STREAM_DATA_BLOCKED frames are never generated
+RFC 9000|3.2|Receiving part starts in "Recv" state when first STREAM/STREAM_DATA_BLOCKED/RESET_STREAM received|PARTIAL|Streams are created on first STREAM frame receipt in _handle_frames, but no explicit state tracking
+RFC 9000|3.2|Bidirectional stream receiving part enters "Recv" when sending part enters "Ready"|PARTIAL|Stream metadata is created in _stream_meta_add when send_stream is called, but no explicit bidirectional coordination
+RFC 9000|3.2|In "Recv" state, endpoint buffers and reassembles data for correct delivery order|Y|_drain_stream_rx handles in-order delivery and out-of-order buffering in stream_rx slab
+RFC 9000|3.2|Receiving endpoint MUST be able to deliver data as ordered byte stream|PARTIAL|Out-of-order buffering and reassembly is implemented, but delivery depends on application consuming EVT_STREAM
+RFC 9000|3.2|STREAM with FIN transitions receiving part to "Size Known" state|N|rx_fin and rx_fin_offset are set on FIN, but there is no distinct Size Known state with corresponding behavior changes
+RFC 9000|3.2|In "Size Known" state, endpoint no longer sends MAX_STREAM_DATA and only receives retransmissions|N|No MAX_STREAM_DATA sending code exists at all; retransmission filtering after FIN is not implemented
+RFC 9000|3.2|All data received transitions to "Data Recvd" state|N|No per-stream tracking of "all data received"; only rx_fin flag and rx_next_offset exist
+RFC 9000|3.2|Data delivered to application transitions to "Data Read" terminal state|N|No mechanism tracks whether application has consumed data; EVT_STREAM fires immediately with no read acknowledgment
+RFC 9000|3.2|RESET_STREAM received in Recv or Size Known transitions to "Reset Recvd" state|N|RESET_STREAM frame receiver handler is completely absent
+RFC 9000|3.2|Application signal of stream reset transitions to "Reset Read" terminal state|N|Not implemented (depends on RESET_STREAM support)
+RFC 9000|3.2|Endpoint sends MAX_STREAM_DATA frames as data is consumed and buffer space becomes available|N|No MAX_STREAM_DATA encoder or sender exists; flow control is one-way (receiving MAX_STREAM_DATA only)
+RFC 9000|3.2|STREAM_DATA_BLOCKED frames generated when sender is blocked by flow control|N|STREAM_DATA_BLOCKED frame type defined but never encoded or sent
+RFC 9000|3.3|Sender sends only STREAM, STREAM_DATA_BLOCKED, and RESET_STREAM frames|PARTIAL|STREAM frames are implemented and sent via YAWT_q_con_send_stream; STREAM_DATA_BLOCKED and RESET_STREAM frame types are declared in enums but no encoder/sender function exists
+RFC 9000|3.3|Sender MUST NOT send frames from terminal state ("Data Recvd" or "Reset Recvd")|PARTIAL|STREAM send checks tx_fin_sent to prevent sending after FIN (maps to "Data Sent" state), but no "Data Recvd" or "Reset Recvd" terminal state tracking exists for outgoing frames
+RFC 9000|3.3|Sender MUST NOT send STREAM or STREAM_DATA_BLOCKED after sending RESET_STREAM|N|RESET_STREAM encoding and sending is not implemented in the codebase
+RFC 9000|3.3|Receiver may receive STREAM, STREAM_DATA_BLOCKED, RESET_STREAM in any state due to delayed delivery|Y|Frame processing in quic_connection.c does not reject these frames based on stream state; STREAM frames are accepted and processed regardless of current state
+RFC 9000|3.3|Receiver sends MAX_STREAM_DATA and STOP_SENDING frames|PARTIAL|MAX_STREAM_DATA is decoded from peer but no function to send MAX_STREAM_DATA frames is implemented; STOP_SENDING frame type declared in enum but no sender exists
+RFC 9000|3.3|Receiver only sends MAX_STREAM_DATA in "Recv" state|N|No MAX_STREAM_DATA sending function exists, so this requirement cannot be enforced
+RFC 9000|3.3|Receiver MAY send STOP_SENDING in any state except "Reset Recvd" or "Reset Read"|N|STOP_SENDING frame type declared but no encoder or sender function is implemented
+RFC 9000|3.4|Bidirectional streams composed of separate sending and receiving parts|PARTIAL|YAWT_Q_StreamMeta_t tracks both tx_* (sending) and rx_* (receiving) state fields separately, but does not model them as explicit composable components
+RFC 9000|3.4|Composite state model: "open" when either part is non-terminal, "closed" when both terminal|N|No composite open/closed state derived from combining tx and rx terminal states; streams lack explicit open/closed classification
+RFC 9000|3.4|Complex composite state mapping per Table 2 (idle, open, half-closed remote, half-closed local, closed)|N|No HTTP/2-style composite state enumeration or mapping table implemented; streams use implicit state via flags only
+RFC 9000|3.4|Multiple sending/receiving states mapped to same composite state|N|No state mapping exists; each tx/rx field tracked independently without combining into composite classifications
+RFC 9000|3.4|Data must be acknowledged before transitioning to closed or half-closed state|N|No per-stream acknowledgment tracking; transition from sending to terminal depends only on tx_fin_sent flag, not on peer ack of data
+RFC 9000|3.4|Idle state: stream not yet created or receiving part in Recv without having received frames|N|Streams are created eagerly on first STREAM frame arrival via _stream_meta_add with no idle concept; rx_next_offset starts at 0 with no distinction between "no frames received" and "frames received but consumed"
+RFC 9000|3.5|Application can abort reading a stream and specify an application error code|N|No API exists for the application to abort a stream and specify an error code
+RFC 9000|3.5|STOP_SENDING frame sent when stream in "Recv" or "Size Known" state to prompt closure|N|STOP_SENDING frame type defined in enum but encoder, sender, and receiver handlers are entirely absent
+RFC 9000|3.5|STREAM frames received after sending STOP_SENDING still counted toward flow control|N|No STOP_SENDING or RESET_STREAM handling exists; flow control does not account for aborted streams
+RFC 9000|3.5|Endpoint receiving STOP_SENDING MUST send RESET_STREAM if stream in "Ready" or "Send" state|N|STOP_SENDING receiver handler is completely absent
+RFC 9000|3.5|Endpoint receiving STOP_SENDING MAY defer RESET_STREAM if stream in "Data Sent" state|N|No STOP_SENDING receiver handler exists; deferred RESET_STREAM logic absent
+RFC 9000|3.5|Endpoint SHOULD send RESET_STREAM instead of retransmitting if outstanding data declared lost|N|No STOP_SENDING handler or loss-based RESET_STREAM logic exists
+RFC 9000|3.5|Endpoint SHOULD copy error code from STOP_SENDING to RESET_STREAM|N|No STOP_SENDING or RESET_STREAM frame handling exists at all
+RFC 9000|3.5|Endpoint sending STOP_SENDING MAY ignore error code in subsequent RESET_STREAM frames|N|No STOP_SENDING or RESET_STREAM sending code exists
+RFC 9000|3.5|STOP_SENDING SHOULD only be sent for stream not already reset by peer|N|No stream reset state tracking or STOP_SENDING sending code exists
+RFC 9000|3.5|STOP_SENDING is most useful for streams in "Recv" or "Size Known" state|N|No explicit stream state machine tracks Recv or Size Known states
+RFC 9000|3.5|Endpoint expected to resend STOP_SENDING if packet containing previous STOP_SENDING is lost|N|No STOP_SENDING sending or retransmission logic exists
+RFC 9000|3.5|Sending STOP_SENDING unnecessary once all stream data or RESET_STREAM received|N|No STOP_SENDING or RESET_STREAM handling exists; stream completion state not tracked
+RFC 9000|3.5|Endpoint can terminate both directions of bidirectional stream via RESET_STREAM + STOP_SENDING|N|Neither RESET_STREAM nor STOP_SENDING sending or receiving is implemented
+RFC 9000|4.1|Limit-based flow control scheme with per-stream and per-connection limits|Y|YAWT_Q_FlowControl_t stores max_data and max_stream_data_* fields for both levels
+RFC 9000|4.1|Stream flow control limits data per stream to prevent single stream consuming entire buffer|Y|YAWT_Q_StreamMeta_t.tx_max_data stores per-stream limit, checked in _drain_tx before sending STREAM frames
+RFC 9000|4.1|Connection flow control limits total bytes across all streams to prevent exceeding receiver buffer capacity|Y (sender side)/N (receiver side)|Sender enforces con->stats.tx_count_bytes against con->peer_fc.max_data in _drain_tx; no receiver-side cumulative check exists
+RFC 9000|4.1|Senders MUST NOT send data in excess of stream or connection limits|Y (partially)|_drain_tx skips STREAM frames exceeding limits, but no explicit FLOW_CONTROL_ERROR is emitted on violation
+RFC 9000|4.1|Initial flow control limits for streams set via transport parameters during handshake|Y|_stream_meta_add sets tx_max_data from peer_fc.max_stream_data_bidi_local/remote/un based on stream type
+RFC 9000|4.1|Initial connection flow control limit set via initial_max_data transport parameter|Y|Peer max_data decoded from transport parameters in crypt.c case 0x04
+RFC 9000|4.1|Receiver advertises larger stream limits by sending MAX_STREAM_DATA frames|N|MAX_STREAM_DATA frames are parsed when received from peer, but no encoder or sender function exists in the codebase
+RFC 9000|4.1|Receiver advertises larger connection limits by sending MAX_DATA frames|N|MAX_DATA frames are parsed when received from peer, but no encoder or sender function exists in the codebase
+RFC 9000|4.1|MAX_STREAM_DATA frame indicates maximum absolute byte offset of a stream|Y|YAWT_Q_Frame_Max_Stream_Data_t struct has stream_id and max_stream_data fields; parsed in quic.c
+RFC 9000|4.1|MAX_DATA frame indicates maximum of sum of absolute byte offsets of all streams|Y|YAWT_Q_Frame_Max_Data_t struct has max_data field; parsed in quic.c
+RFC 9000|4.1|Receiver maintains cumulative sum of bytes received on all streams to check against advertised limits|N|rx_count_bytes is incremented but never checked against con->peer_fc.max_data for violation detection
+RFC 9000|4.1|MUST close connection with FLOW_CONTROL_ERROR if sender violates advertised limits|N|No FLOW_CONTROL_ERROR error handling or flow control violation detection in sender path
+RFC 9000|4.1|Sender MUST ignore MAX_STREAM_DATA or MAX_DATA frames that do not increase limits|Y|Both handlers check new value > current value before updating (greater-than comparison)
+RFC 9000|4.1|Sender SHOULD send STREAM_DATA_BLOCKED or DATA_BLOCKED frames when blocked by flow control|N|Frame structs and enum values defined in quic_types.h, but no encoder or sender function exists
+RFC 9000|4.1|Sender SHOULD periodically send DATA_BLOCKED/STREAM_DATA_BLOCKED when flow control limited with no ack-eliciting packets in flight|N|Blocked frame sending is not implemented at all
+RFC 9000|4.1|Advertising a smaller limit after a larger limit is not an error but has no effect|Y|Both MAX_DATA and MAX_STREAM_DATA handlers only update if new value is strictly greater than current
+RFC 9000|4.2|Receiver may send MAX_STREAM_DATA or MAX_DATA frames multiple times within a round trip to avoid blocking sender|N|No MAX_DATA or MAX_STREAM_DATA encoder or sender exists in the codebase; frame structs are defined but never instantiated for transmission
+RFC 9000|4.2|Frequently sending small-increment MAX_STREAM_DATA/MAX_DATA frames is undesirable due to control overhead|UNKNOWN|No flow control frame sending is implemented at all, so the trade-off is not exercised
+RFC 9000|4.2|A receiver can use an autotuning mechanism to tune frequency and amount of advertised credit based on RTT and application consumption rate|N|No autotuning logic exists in the codebase; no function to send MAX_DATA or MAX_STREAM_DATA frames exists
+RFC 9000|4.2|An endpoint could send flow control frames only when there are other frames to send to avoid extra packets|N|No MAX_DATA or MAX_STREAM_DATA sender exists; flow control frames are never generated
+RFC 9000|4.2|Receiver MUST NOT wait for STREAM_DATA_BLOCKED or DATA_BLOCKED frames before sending MAX_STREAM_DATA or MAX_DATA|N|YAWT does not send any MAX_DATA or MAX_STREAM_DATA frames; the requirement cannot be fulfilled
+RFC 9000|4.2|Implementation decides when and how much credit to advertise in MAX_STREAM_DATA and MAX_DATA frames|PARTIAL|YAWT has flow control data structures (YAWT_Q_FlowControl_t, tx_max_data per stream) and parses received frames, but no logic to compute or advertise credit to peers exists
+RFC 9000|4.3|If peer flow control credit < bandwidth-delay product, receive throughput is limited by flow control|N|YAWT uses fixed 1MB initial limits (security.c) with no dynamic BDP tracking to ensure credit stays above bandwidth-delay product.
+RFC 9000|4.3|Packet loss can cause gaps in receive buffer preventing application from freeing flow control space|N|YAWT tracks reassembly positions (impl/quic_types.h) but has no explicit mechanism to handle receive-buffer gaps from packet loss.
+RFC 9000|4.3|Endpoints SHOULD send timely flow control limit updates to improve performance|N|No enqueue_frame_max_data or enqueue_frame_max_stream_data functions exist; MAX_DATA/MAX_STREAM_DATA frames are never sent outbound.
+RFC 9000|4.3|Sending packets solely for flow control updates increases network load and hurts performance|N|YAWT does not send any flow control update packets at all, so this warning does not apply.
+RFC 9000|4.3|Flow control updates should be sent along with other frames (e.g. ACK) to reduce overhead|N|While _drain_tx packs frames together, no MAX_DATA or MAX_STREAM_DATA frames are ever generated for inclusion.
+RFC 9000|4.4|Endpoints must agree on flow control credit consumed on every stream|Y|Both parties track final_size via send_final_size and RXFC to ensure agreement on credit consumption.
+RFC 9000|4.4|On receipt of RESET_STREAM, tear down state for matching stream|Y|depack_do_frame_reset_stream() calls ossl_quic_rstream_free() to free the receive stream buffer and set recv_state to RESET_RECVD.
+RFC 9000|4.4|On receipt of RESET_STREAM, ignore further data arriving on that stream|Y|In depack_do_frame_stream(), when recv_state is RESET_RECVD, incoming STREAM frames are silently ignored (return 1).
+RFC 9000|4.4|RESET_STREAM terminates one direction of a stream abruptly|Y|Send part transitions to RESET_SENT (when we send) or RESET_RECVD (when we receive), freeing the sstream buffer.
+RFC 9000|4.4|RESET_STREAM has no effect on data flow in the opposite direction of bidirectional streams|Y|Send and receive state machines are separate; receiving RESET_STREAM only resets recv_state, leaving send_state and sstream unaffected.
+RFC 9000|4.4|Both endpoints MUST maintain flow control state for the unterminated direction until terminal|Y|TXFC credit consumed is tracked via send_final_size (line 486 quic_stream_map.c and line 2464-2465 quic_txp.c); stream remains active for flow control per line 359-365 quic_stream_map.c.
+RFC 9000|4.5|Final size is one higher than the largest offset sent (or zero if no bytes sent)|Y|rx_fin_offset is set to offset+data_len when FIN bit is received in quic_connection.c line 292 and lines 454-456, correctly computing the final size.
+RFC 9000|4.5|Sender communicates final size via STREAM frame FIN (Offset+Length) or RESET_STREAM Final Size field|PARTIAL|STREAM frames with FIN correctly compute final_size via rx_fin_offset when parsed in quic_connection.c lines 454-456; YAWT_Q_Frame_Reset_Stream_t struct exists with final_size field (quic_types.h:236) but no encoder, decoder, sender, or receiver handler exists for RESET_STREAM frames.
+RFC 9000|4.5|Final size communicated reliably guarantees both endpoints agree on flow control credit consumed|PARTIAL|rx_fin_offset is tracked when FIN is received (quic_connection.c:454-456) but there is no enforcement that connection-level flow control uses the final size, and RESET_STREAM final_size path is entirely missing.
+RFC 9000|4.5|Endpoint knows final size when receiving part enters "Size Known" state|PARTIAL|rx_fin and rx_fin_offset are set when FIN is received in _handle_frames (quic_connection.c:454-456), but there is no distinct "Size Known" stream state or state machine; behavior is implicit rather than explicit.
+RFC 9000|4.5|Endpoint knows final size when receiving part enters "Reset Recvd" state|N|RESET_STREAM frame receiver handler is entirely absent in _handle_frames (quic_connection.c:359-539), so "Reset Recvd" state and its final size from RESET_STREAM's Final Size field are never processed.
+RFC 9000|4.5|Receiver MUST use final size to account for all bytes in connection-level flow controller|N|The receiver tracks total rx bytes (con->stats.rx_count_bytes) and enforces connection-level flow control on the sender side (con->peer_fc.max_data at line 688), but there is no code that uses the per-stream final size (rx_fin_offset) to account for bytes in the connection-level flow controller.
+RFC 9000|4.5|Once final size is known, it cannot change|PARTIAL|rx_fin_offset is set on FIN receipt but there is no guard preventing a second FIN or RESET_STREAM from overwriting it, and no state tracking to verify final size immutability.
+RFC 9000|4.5|If RESET_STREAM or STREAM frame indicates a different final size, SHOULD generate FINAL_SIZE_ERROR|N|No FINAL_SIZE_ERROR error code is defined in YAWT's error handling, no FINAL_SIZE_ERROR frame type is handled in _handle_frames, and no final size comparison/validation logic exists anywhere in the codebase.
+RFC 9000|4.5|Receiver SHOULD treat data at or beyond final size as FINAL_SIZE_ERROR, even after stream closed|N|In _handle_frames, duplicate data is silently skipped (quic_connection.c line 446: `if (end <= meta->rx_next_offset) break`), but there is no check against rx_fin_offset (the final size) for data beyond it, and no FINAL_SIZE_ERROR is generated.
+RFC 9000|4.6|Endpoint limits cumulative number of incoming streams a peer can open using max_streams * 4 + first_stream_id formula|PARTIAL|Code checks count >= limit for outgoing stream creation but does not implement the RFC's stream ID formula (max_streams * 4 + first_stream_id_of_type) nor validates incoming stream IDs against local limits
+RFC 9000|4.6|Initial stream limits set via transport parameters 0x08 (max_streams_bidi) and 0x09 (max_streams_uni)|Y|Decoded in crypt.c; defaults of 16/16 set in security.c
+RFC 9000|4.6|Subsequent stream limits advertised using MAX_STREAMS frames (0x12 bidi, 0x13 uni)|PARTIAL|Frame types defined and decoding implemented; no enqueue/send function for MAX_STREAMS frames found
+RFC 9000|4.6|Separate limits apply to unidirectional and bidirectional streams|Y|Separate max_streams_bidi and max_streams_uni fields used throughout
+RFC 9000|4.6|Values greater than 2^60 in max_streams transport parameter close connection with TRANSPORT_PARAMETER_ERROR|N|No 2^60 validation present in crypt.c transport parameter decoding
+RFC 9000|4.6|Values greater than 2^60 in MAX_STREAMS frame close connection with FRAME_ENCODING_ERROR|N|No 2^60 validation present in frame handling code
+RFC 9000|4.6|Endpoints MUST NOT exceed peer's stream limit|PARTIAL|Only checks limit for outgoing stream creation in YAWT_q_con_send_stream; no validation for incoming streams exceeding local limit
+RFC 9000|4.6|Receiving frame with stream ID exceeding local limit treated as STREAM_LIMIT_ERROR|N|No STREAM_LIMIT_ERROR error code or validation logic exists in codebase
+RFC 9000|4.6|Once limit advertised, smaller limits ignored; MAX_STREAMS frames that do not increase limit must be ignored|Y|Code only updates when received value > current value (greater-than check)
+RFC 9000|4.6|Endpoints SHOULD send STREAMS_BLOCKED frame when unable to open new stream|N|Frame type constants defined but no send/send-streams-blocked logic found
+RFC 9000|4.6|Receiver MUST NOT wait for STREAMS_BLOCKED signal before advertising additional stream credit|N|No proactive MAX_STREAMS advertisement or STREAMS_BLOCKED-based credit flow exists
+RFC 9000|5.1|Each connection possesses a set of connection IDs that can identify the connection|Y|Connection struct tracks local `cid` and remote `peer_cid` via hash tables
+RFC 9000|5.1|Connection IDs are independently selected by endpoints|Y|Local CID generated randomly via YAWT_q_crypto_random_nonce in con_create
+RFC 9000|5.1|Connection ID primary function is to ensure lower-layer address changes don't cause mis-delivery|Y|YAWT_q_con_find_by_cid matches incoming packets by DCID to connections
+RFC 9000|5.1|Multiple connection IDs for observer privacy (cannot identify same connection)|N|Only one peer CID tracked per connection; no CID pool maintained
+RFC 9000|5.1|Connection IDs MUST NOT contain correlating information|Y|CIDs are randomly generated; no obvious correlation patterns
+RFC 9000|5.1|Same connection ID MUST NOT be issued more than once|N|No mechanism to issue NEW_CONNECTION_ID frames to peer exists
+RFC 9000|5.1|Long header packets include Source Connection ID and Destination Connection ID fields|Y|_encode_long_header encodes both SCID and DCID with length prefix
+RFC 9000|5.1|Short header packets only include Destination Connection ID without explicit length|Y|_encode_pkt_1rtt and _parse_pkt_1rtt use fixed YAWT_Q_CID_LEN without length byte
+RFC 9000|5.1|Version Negotiation packets echo connection IDs selected by the client|N|No version negotiation packet support found in codebase
+RFC 9000|5.1|Zero-length connection ID support|N|All CIDs use fixed YAWT_Q_CID_LEN (20 bytes); zero-length not handled
+RFC 9000|5.1|Non-zero-length CIDs require NEW_CONNECTION_ID frame to supply additional CIDs|PARTIAL|NEW_CONNECTION_ID parsing implemented but no encoding/issuing function exists
+RFC 9000|5.1.1|Each connection ID has an associated sequence number|PARTIAL|stats.cid_seq_num tracks highest seen seq_num but no per-CID sequence tracking
+RFC 9000|5.1.1|Initial connection ID sequence number is 0|N|Initial CID sent during handshake but sequence number 0 not explicitly tracked/advertised
+RFC 9000|5.1.1|preferred_address transport parameter connection ID has sequence number 1|N|No preferred_address transport parameter support found
+RFC 9000|5.1.1|Additional connection IDs via NEW_CONNECTION_ID frames with monotonically increasing sequence numbers|N|NEW_CONNECTION_ID frame encoding/sending not implemented
+RFC 9000|5.1.1|Client DCID and Retry packet CIDs are not assigned sequence numbers|UNKNOWN|Cannot verify; insufficient code to determine behavior
+RFC 9000|5.1.1|Endpoint MUST accept packets carrying an issued connection ID until retired|PARTIAL|CIDs are added to hash table but no explicit active/inactive lifecycle tracking
+RFC 9000|5.1.1|active_connection_id_limit transport parameter advertised by endpoints|N|Neither sent nor received; not in transport parameter handling
+RFC 9000|5.1.1|Endpoint MUST NOT provide more CIDs than peer's limit|N|No CID issuance mechanism exists at all
+RFC 9000|5.1.1|SHOULD supply new connection ID when peer retires one|N|No retirement or replacement mechanism implemented
+RFC 9000|5.1.1|Endpoint selecting zero-length CID cannot issue new connection IDs|N|Zero-length CIDs not supported at all
+RFC 9000|5.1.2|Endpoint maintains a set of connection IDs received from its peer|PARTIAL|Only one `peer_cid` stored; no set/pool of peer CIDs
+RFC 9000|5.1.2|RETIRE_CONNECTION_ID frame to indicate CID removal|N|RETIRE_CONNECTION_ID frame type defined but no encoding/sending or processing implemented
+RFC 9000|5.1.2|SHOULD retire CIDs when no longer using the associated address|N|No address-based retirement logic found
+RFC 9000|5.1.2|NEW_CONNECTION_ID with increased Retire Prior To can request peer to retire old CIDs|PARTIAL|Parsed on receive but not generated on send
+RFC 9000|5.1.2|Peer MUST stop using retired CIDs and send RETIRE_CONNECTION_ID before using new CID|N|Retire-before-use ordering not implemented
+RFC 9000|5.1.2|SHOULD allow tracking at least twice the active_connection_id_limit unacked retirements|N|No retirement tracking mechanism exists
+RFC 9000|5.1.2|MUST NOT forget a connection ID without retiring it|PARTIAL|Hash table provides lookup but no explicit forget-with-retire enforcement
+RFC 9000|5.1.2|SHOULD NOT issue Retire Prior To updates before receiving acks for prior retirements|N|No retirement flow control implemented
+RFC 9000|5.2|Incoming packets classified on receipt to existing or new connections|Y|YAWT_q_con_rx classifies packets and routes them via YAWT_q_con_find_by_cid or creates new connections for Initial packets
+RFC 9000|5.2|Match non-zero-length DCID to existing connection via hash table|Y|YAWT_q_con_find_by_cid searches _hash_cid and _hash_odcid hash tables by DCID
+RFC 9000|5.2|Match zero-length DCID using addressing info (IP/port)|N|YAWT only matches by DCID via hash tables; no IP/port-based matching for zero-length CIDs
+RFC 9000|5.2|Send Stateless Reset for packets unmatched to any connection|N|When no connection found, YAWT logs a warning and silently drops the packet (line 577-579 of quic_connection.c)
+RFC 9000|5.2|Discard packets inconsistent with connection state (version mismatch, decryption failure)|PARTIAL|Decryption failure handled (keys checked), but no explicit version mismatch check before processing frames
+RFC 9000|5.2|Invalid packets lacking strong integrity protection MAY be discarded|Y|Invalid/unmatched packets are silently dropped with error logging
+RFC 9000|5.2|MUST generate connection error on discovering processing error or fully revert changes|PARTIAL|CONNECTION_CLOSE sent for CRYPTO_BUFFER_EXCEEDED but not all processing errors trigger connection errors
+RFC 9000|5.2.1|Client discards packets not matching existing DCID or local address/port|N|YAWT is server-only; no client packet handling code exists
+RFC 9000|5.2.1|Client MAY buffer packets encrypted with keys not yet computed|PARTIAL|YAWT skips (continues) packets when keys are unavailable but does not buffer them for later processing
+RFC 9000|5.2.1|Client MUST discard packets with version different from initially selected|N|No version mismatch check exists in packet processing; con->version is set but never compared against incoming packet version
+RFC 9000|5.2.2|Server sends Version Negotiation packet for unsupported version|N|No version negotiation packet encoding or sending logic found anywhere in the codebase
+RFC 9000|5.2.2|Server MAY limit number of Version Negotiation packets sent|N|No version negotiation support at all, so no limit mechanism exists
+RFC 9000|5.2.2|Server MUST drop smaller packets specifying unsupported versions|PARTIAL|Smaller unmatched packets are silently dropped but there is no explicit check for unsupported versions before this point
+RFC 9000|5.2.2|Match supported-version packets by connection ID or local address/port|PARTIAL|Matching by connection ID is implemented via hash tables; address/port-based matching is absent
+RFC 9000|5.2.2|Server proceeds with handshake if Initial packet fully conforming|Y|New connections created for Initial packets (line 563-575 of quic_connection.c); handshake proceeds via crypto feed
+RFC 9000|5.2.2|Server sends CONNECTION_CLOSE with CONNECTION_REFUSED if refusing new connection|N|No CONNECTION_REFUSED error code or refusal-sending logic found; all Initial packets create connections
+RFC 9000|5.2.2|Server MAY buffer limited 0-RTT packets in anticipation of late Initial|PARTIAL|0-RTT packet parser exists (_parse_pkt_0rtt) but no buffering logic; packets are skipped when keys unavailable
+RFC 9000|5.2.2|Server MUST ignore Handshake packets from client before server response|PARTIAL|0-RTT parser exists but there is no enforcement that servers ignore Handshake packets from clients at this stage
+RFC 9000|5.2.2|Server MUST drop incoming packets under all other unmatched circumstances|Y|Packets that are not Initial and do not match any connection are silently dropped (line 577-579 of quic_connection.c)
+RFC 9000|5.2.3|disable_active_migration transport parameter|N|No disable_active_migration transport parameter or field found in transport parameter handling
+RFC 9000|5.2.3|preferred_address transport parameter|N|No preferred_address transport parameter implementation found anywhere in the codebase
+RFC 9000|5.3|Client can open a QUIC connection (begins handshake exchange)|Y|YAWT_q_con_create() creates connections and YAWT_q_crypto_start() initiates TLS handshake; the API supports both client and server roles via is_server flag in YAWT_Q_Con_Create_Info_t.
+RFC 9000|5.3|Client can enable Early Data (0-RTT) when available|N|0-RTT packet type and encryption level are defined in enums, but crypt.h explicitly states EARLY: 0-RTT secrets are "not implemented"; no client-facing Early Data API exists.
+RFC 9000|5.3|Client can be informed when Early Data is accepted or rejected by a server|N|Not implemented; no event or callback for Early Data acceptance/rejection exists, and 0-RTT crypto itself is not implemented.
+RFC 9000|5.3|Server can listen for incoming connections|PARTIAL|No explicit listen API exists; server connections are created reactively in YAWT_q_con_rx() when an unrecognized Initial packet arrives, but there is no dedicated server listen/bind function in the API.
+RFC 9000|5.3|Server can embed application-controlled data in TLS resumption ticket for Early Data|N|Not implemented; no API for embedding application data in TLS session tickets.
+RFC 9000|5.3|Server can retrieve application-controlled data from client resumption ticket and accept/reject Early Data|N|Not implemented; no resumption ticket processing or Early Data accept/reject mechanism exists.
+RFC 9000|5.3|Application can configure minimum initial number of permitted streams of each type via transport parameters|Y|YAWT_Q_FlowControl_t provides max_streams_bidi and max_streams_uni fields, passed through YAWT_Q_Con_Create_Info_t.local_fc and encoded into transport parameters in crypt.c.
+RFC 9000|5.3|Application can control receive buffer resource allocation by setting flow control limits for streams and connection|Y|YAWT_Q_FlowControl_t includes max_data (connection-level), max_stream_data_bidi_local, max_stream_data_bidi_remote, and max_stream_data_uni (per-stream limits); passed via local_fc and advertised via transport parameters.
+RFC 9000|5.3|Application can identify whether the handshake has completed successfully or is still ongoing|Y|YAWT_q_crypto_is_handshake_complete() function is implemented and checked in _handle_frames() to gate EVT_CONNECTED and HANDSHAKE_DONE emission.
+RFC 9000|5.3|Application can keep a connection from silently closing by generating PING frames|Y|YAWT_q_enqueue_frame_ping() encodes PING frames; idle timeout keepalive PING is automatically sent in _maint_ping() when approaching the idle timeout with an empty tx_buffer.
+RFC 9000|5.3|Application can request that the transport send additional frames before the idle timeout expires|Y|The idle timeout is configurable via max_idle_timeout in YAWT_Q_FlowControl_t; the effective idle timeout is computed in _effective_idle_timeout() considering both local and peer limits with a configurable security floor via min_idle_timeout_ms.
+RFC 9000|5.3|Application can immediately close the connection|Y|YAWT_q_con_close() enqueues a CONNECTION_CLOSE frame, records the close state with DBL_MAX, and the connection is freed after ~3x PTO via _maint_kill(), emitting EVT_CLOSE exactly once.
+RFC 9000|6.1|Server responds with Version Negotiation packet when client version is not acceptable|N|No VERSION_NEGOTIATION packet type exists in YAWT_Q_Packet_Type_t enum and no VN packet parsing or sending code found in src/ or include/
+RFC 9000|6.1|Version Negotiation packet includes list of supported versions the server will accept|N|No VN packet encoding function exists; the connection struct has no supported-versions list field
+RFC 9000|6.1|An endpoint MUST NOT send a Version Negotiation packet in response to receiving one|N|No VN packet received or processed at all, so this prohibition cannot be enforced
+RFC 9000|6.1|Version Negotiation allows stateless server processing of unsupported versions|N|All incoming packets with long headers are parsed into stateful connections; no stateless VN response path exists
+RFC 9000|6.1|A server MAY limit the number of Version Negotiation packets it sends|N|No VN support exists, so no rate-limiting or counting mechanism for VN packets is implemented
+RFC 9000|6.1|Server may choose not to send VN packets in response to 0-RTT packets|N|No VN support exists and 0-RTT packet handling is not implemented (YAWT_Q_PKT_TYPE_0RTT exists as an enum value but 0-RTT keys and processing are absent)
+RFC 9000|6.2|Client MUST abandon connection attempt on receiving a Version Negotiation packet if it only supports this version of QUIC|N|No Version Negotiation packet handling code exists; version 0x00000000 is not checked anywhere in the codebase
+RFC 9000|6.2|Client MUST discard a Version Negotiation packet if it has already received and successfully processed any other packet|N|No VN packet reception or processing logic exists in the codebase at all
+RFC 9000|6.2|Client MUST discard a Version Negotiation packet that lists the QUIC version selected by the client|N|No VN packet parsing or version-list checking is implemented; VN packets (version 0x00000000) are not recognized as a distinct packet type
+RFC 9000|6.3|Reserved version numbers (0x?a?a?a?a pattern, low four bits of each byte = 1010 binary) defined in Section 15 are available for version negotiation testing|N|No definition or detection of the reserved version bit pattern exists anywhere in the codebase; the pattern is never referenced or checked.
+RFC 9000|6.3|Endpoints MAY add reserved versions to fields where unknown/unsupported versions are ignored, to test peer correct behavior|N|No testing mechanism for reserved versions is implemented; no code adds reserved versions to any field.
+RFC 9000|6.3|Endpoints MAY include a reserved version in a Version Negotiation packet|N|Version Negotiation packet encoding and sending is not implemented (also found missing in prior section reviews).
+RFC 9000|6.3|Endpoints MAY send packets with a reserved version to test that a peer correctly discards the packet|N|No logic to construct or send packets with reserved version numbers exists; the version field is always set to the negotiated version from the peer's Initial packet.
+RFC 9000|7.1|Cryptographic handshake is used to agree on cryptographic keys|Y|TLS handshake via GnuTLS manages key agreement; keys are derived per encryption level in crypt.c.
+RFC 9000|7.1|Cryptographic handshake is carried in Initial and Handshake packets|Y|Initial and Handshake packet types are defined and CRYPTO frames are enqueued and processed in those packet types.
+RFC 9000|7.1|Client sends Initial packet containing CRYPTO frame with ClientHello|Y|YAWT_q_crypto_start() initiates TLS handshake producing ClientHello; _push_crypto_frames() enqueues CRYPTO frames into Initial packets.
+RFC 9000|7.1|Server sends Initial packet containing CRYPTO frame with ServerHello and ACK|Y|Server receives CRYPTO frames via YAWT_q_crypto_feed(), produces ServerHello via GnuTLS, and ACK frames are generated for ack-eliciting packets.
+RFC 9000|7.1|Server sends Handshake packet containing CRYPTO frame with Finished|Y|Handshake packet encoding (_encode_pkt_handshake) and CRYPTO frame support exist; GnuTLS handshake state produces handshake output at the Handshake level.
+RFC 9000|7.1|Server sends 1-RTT packet containing STREAM frame (0.5-RTT data)|PARTIAL|1-RTT packet type and STREAM frame encoding exist, but no explicit "0.5-RTT data" sending mechanism is implemented during handshake — STREAM frames are only sent after handshake completes and EVT_CONNECTED fires.
+RFC 9000|7.1|Client sends Initial packet containing ACK frame for server's Initial|Y|ACK frames are generated in response to ack-eliciting packets; _process_ack() and ACK encoding/decoding are implemented.
+RFC 9000|7.1|Client sends Handshake packet containing CRYPTO FIN and ACK|Y|Handshake packet support with CRYPTO frame reassembly (rx_crypto_buf) is implemented; TLS Finished is produced and sent as a CRYPTO frame.
+RFC 9000|7.1|Client sends 1-RTT packet containing STREAM frame and ACK for server|Y|1-RTT packet encoding (_encode_pkt_1rtt) and STREAM frame support are implemented; streams can be sent after handshake completion.
+RFC 9000|7.1|Server sends Handshake packet containing ACK|Y|Handshake packet type and ACK frame support exist; ACKs are generated for ack-eliciting frames including Handshake-level CRYPTO.
+RFC 9000|7.1|Server sends 1-RTT packet containing HANDSHAKE_DONE frame and STREAM data|Y|YAWT_q_enqueue_frame_handshake_done() encodes HANDSHAKE_DONE frame (type 0x1e) and it is queued in 1-RTT (APPLICATION level) packets after handshake completes.
+RFC 9000|7.1|Multiple QUIC packets of different types can be coalesced into a single UDP datagram|N|No packet coalescing logic found in the codebase; each packet is encoded and sent separately.
+RFC 9000|7.1|0-RTT handshake: client sends 0-RTT packets containing STREAM data|N|0-RTT packet type (YAWT_Q_PKT_TYPE_0RTT) and parser/encoder stubs exist, but crypt.h explicitly states EARLY/0-RTT secrets are "not implemented"; no 0-RTT data sending is functional.
+RFC 9000|7.1|Server acknowledges 0-RTT data in 1-RTT packets|N|0-RTT is not implemented (no 0-RTT secrets), so 0-RTT acknowledgement in 1-RTT packets is not implemented.
+RFC 9000|7.1|Packet numbers for 0-RTT packets share the same space as 1-RTT packets|N|0-RTT packet number space is not implemented; packet numbers are tracked per encryption level (pkt_num_tx[4], pkt_num_rx[4]) but 0-RTT/EARLY level keys are absent.
+RFC 9000|7.2|DCID chosen by recipient of packet for consistent routing|Y|Server generates random CID stored in con->cid, client sends SCID used by server
+RFC 9000|7.2|After processing first Initial, endpoint sets DCID to received SCID|PARTIAL|Server sets peer_cid from client SCID; client-side DCID update after receiving server Initial not fully visible
+RFC 9000|7.2|Client populates DCID with unpredictable value of at least 8 bytes|PARTIAL|Cryptographic validation (dcid->len >= 8) exists in crypt.c; client-side random DCID generation not visible in codebase
+RFC 9000|7.2|Client must use same DCID on all packets until receiving from server|PARTIAL|Peer CID stored in connection state but no explicit enforcement or state tracking found
+RFC 9000|7.2|First Initial packet's DCID determines packet protection keys for Initial packets|Y|YAWT_q_crypto_derive_initial_keys derives keys from dcid in crypt.c per RFC 9001 §5.2
+RFC 9000|7.2|Client populates SCID field with value of its choosing|Y|Client generates random CID via YAWT_q_crypto_random_nonce in quic_connection.c line 105
+RFC 9000|7.2|0-RTT packets use same DCID and SCID as client's first Initial|N|0-RTT/early data support not implemented (marked as UNIMPLEMENTED in quic.h comments)
+RFC 9000|7.2|Client uses server's SCID as DCID for subsequent packets after receiving Initial/Retry|PARTIAL|Server side: peer_cid updated from client SCID; client side: DCID update logic not visible
+RFC 9000|7.2|Client may change DCID twice (Retry response + Initial response) during connection establishment|N|No Retry DCID change logic or 0-RTT handling found
+RFC 9000|7.2|Client must change DCID only in response to first received Initial or Retry|N|No explicit guard against subsequent DCID changes from extra Initial packets found
+RFC 9000|7.2|Server sets DCID for sending based on first received Initial packet|Y|Server uses con->cid (server-generated) for sending; receives client CID in Initial SCID
+RFC 9000|7.2|Further DCID changes only permitted via NEW_CONNECTION_ID frames|PARTIAL|Frame parsing and peer_cid update exist for NEW_CONNECTION_ID; frame encoding function not found; no Retire Connection ID support
+RFC 9000|7.2|Discard subsequent Initial packets with different Source Connection ID|N|No validation against multiple SCIDs in received Initial packets found
+RFC 9000|7.2|retry_source_connection_id transport parameter sent by server after Retry|N|Not implemented in _tp_send transport parameter encoder
+RFC 9000|7.2|Transport parameter authentication of connection IDs (initial_source_connection_id)|Y|Both endpoints send initial_source_connection_id (0x0f) in _tp_send (crypt.c line 310)
+RFC 9000|7.2|Transport parameter authentication of connection IDs (original_destination_connection_id)|Y|Server includes original_destination_connection_id (0x00) in _tp_send (crypt.c line 305)
+RFC 9000|7.2|Transport parameter validation that received values match used connection IDs|PARTIAL|Transport params parsed in _tp_recv but explicit CID-vs-param mismatch validation not fully implemented
+RFC 9000|7.3|Connection IDs authenticated by including their values in transport parameters for cryptographic handshake authentication|Y|Both endpoints include connection ID values in transport parameters sent via TLS extension (crypt.c _tp_send)
+RFC 9000|7.3|Each endpoint includes initial_source_connection_id transport parameter with the Source Connection ID from the first Initial packet it sent|Y|Both endpoints send initial_source_connection_id (0x0f) in _tp_send using crypto->our_cid (crypt.c line 311)
+RFC 9000|7.3|Server includes original_destination_connection_id transport parameter with the Destination Connection ID from the first Initial packet it received|Y|Server includes original_destination_connection_id (0x00) in _tp_send using crypto->original_dcid (crypt.c line 306)
+RFC 9000|7.3|If server sends a Retry packet, original_destination_connection_id refers to the DCID from the first Initial received before the Retry|N|Retry packet support not implemented; no handling to track pre-Retry DCID separately
+RFC 9000|7.3|If server sends a Retry packet, it includes retry_source_connection_id transport parameter with the SCID from the Retry packet|N|retry_source_connection_id (0x10) not encoded in _tp_send and no Retry support present
+RFC 9000|7.3|Values in these transport parameters MUST match the values sent in Destination and Source Connection ID fields of Initial packets|PARTIAL|Transport params are sent with CIDs but received transport params do not include parsing of connection ID params in _tp_recv for validation
+RFC 9000|7.3|Endpoints MUST validate that received transport parameters match received connection ID values|N|The _tp_recv function does not parse connection ID transport params or compare them against the actual Initial packet CIDs
+RFC 9000|7.3|Absence of initial_source_connection_id transport parameter from either endpoint is a TRANSPORT_PARAMETER_ERROR|PARTIAL|Server sends it; client sending logic exists but no validation that peer includes it
+RFC 9000|7.3|Absence of original_destination_connection_id from the server is a TRANSPORT_PARAMETER_ERROR|N|Server always sends it in _tp_send but client-side absence validation not implemented
+RFC 9000|7.3|Absence of retry_source_connection_id from server after receiving a Retry packet is a TRANSPORT_PARAMETER_ERROR|N|No Retry support and no validation of this parameter
+RFC 9000|7.3|Presence of retry_source_connection_id when no Retry packet was received is a TRANSPORT_PARAMETER_ERROR|N|No Retry support and no validation of this parameter
+RFC 9000|7.3|Mismatch between transport parameter values and corresponding DCID/SCID fields of Initial packets is a TRANSPORT_PARAMETER_ERROR or PROTOCOL_VIOLATION|N|No comparison of received transport param CID values against the actual parsed Initial packet CIDs
+RFC 9000|7.3|Zero-length connection IDs use transport parameters with zero-length values|PARTIAL|The _tp_append function handles zero-length values but no explicit test or check for zero-length CIDs
+RFC 9000|7.3|Authentication prevents attackers from influencing connection ID choice by injecting packets with attacker-chosen CIDs during handshake|Y|This security property is achieved by the combination of CID-in-TP encoding and TLS cryptographic authentication of transport parameters
+RFC 9000|7.4|Both endpoints make authenticated declarations of transport parameters during connection establishment|Y|Transport parameters are sent via GnuTLS TLS extension (crypt.c _tp_send/_tp_recv using GNUTLS_EXT_APPLICATION callback)
+RFC 9000|7.4|Endpoints are required to comply with the restrictions each transport parameter defines|UNKNOWN|No explicit per-parameter restriction enforcement found, though defaults are set in security.c
+RFC 9000|7.4|Transport parameters are declarations made unilaterally by each endpoint, independent of peer values|Y|Local transport parameters are built from local_fc in _tp_send without consulting peer values
+RFC 9000|7.4|Transport parameters use varint-based encoding (ID + length + value)|Y|Encoding done via YAWT_q_varint_encode in _tp_send; decoding via YAWT_q_varint_decode in _tp_recv (crypt.c)
+RFC 9000|7.4|Transport parameters are included in the cryptographic handshake|Y|Registered as GnuTLS extension type 0x0039 applied at application data level (GNUTLS_EXT_FLAG_APPLICATION)
+RFC 9000|7.4|Once the handshake completes, the peer's transport parameters are available|Y|Decoded transport parameters stored in crypto->peer_fc which points to connection's peer_fc after handshake
+RFC 9000|7.4|Each endpoint validates the values provided by its peer|N|No validation logic found in _tp_recv beyond basic varint decoding; no checks for parameter validity ranges or consistency
+RFC 9000|7.4|Receipt of a transport parameter with an invalid value MUST be treated as a connection error of type TRANSPORT_PARAMETER_ERROR|N|No TRANSPORT_PARAMETER_ERROR error code defined in YAWT_Q_Error_t; no error handling on invalid parameter values in _tp_recv
+RFC 9000|7.4|An endpoint MUST NOT send a transport parameter more than once in a given extension|PARTIAL|_tp_send sends each parameter ID exactly once, but no runtime mechanism enforces this invariant against future code changes
+RFC 9000|7.4|Receipt of duplicate transport parameters SHOULD be treated as a connection error of type TRANSPORT_PARAMETER_ERROR|N|No duplicate detection in _tp_recv; unknown parameter IDs are silently ignored via default: break
+RFC 9000|7.4|Endpoints use transport parameters to authenticate the negotiation of connection IDs during the handshake|Y|Both initial_source_connection_id and original_destination_connection_id are encoded in transport parameters sent via TLS (crypt.c _tp_send lines 306-313)
+RFC 9000|7.4|Transport parameters that a client includes apply to all application protocols the client offers|PARTIAL|ALPN is set to "h3" only (crypt.c line 389), so multi-protocol support is not tested
+RFC 9000|7.5|Implementations MUST buffer at least 4096 bytes of out-of-order CRYPTO data|Y|Default max_crypto_buffer_bytes is 65536 bytes, well above the 4096 minimum
+RFC 9000|7.5|Implementations MAY buffer more than the minimum during the handshake|Y|max_crypto_buffer_bytes configurable, defaults to 65536 bytes
+RFC 9000|7.5|Buffer exceeded during handshake: endpoint MUST close with CRYPTO_BUFFER_EXCEEDED on failure|Y|Returns YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED and sends CONNECTION_CLOSE error code 0x0D/0x06
+RFC 9000|7.5|Buffer exceeded during handshake: endpoint MAY expand buffer temporarily to complete handshake|PARTIAL|Code always returns error and closes connection; no temporary buffer expansion logic
+RFC 9000|7.5|Post-handshake: endpoint MAY discard CRYPTO frames instead of closing on buffer full|PARTIAL|Implementation always closes connection with CRYPTO_BUFFER_EXCEEDED; no discard path exists
+RFC 9000|7.5|Post-handshake: endpoint MAY close with CRYPTO_BUFFER_EXCEEDED on buffer full|Y|CRYPTO_BUFFER_EXCEEDED error and CONNECTION_CLOSE sent regardless of handshake state
+RFC 9000|7.5|Packets containing discarded CRYPTO frames MUST be acknowledged|Y|requires_ack flag is set before frame processing, so ACK is queued even when buffer exceeded
+RFC 9000|7.5|Maintain a buffer for out-of-order CRYPTO frames|Y|rx_crypto_buf slab stores out-of-order CRYPTO frames, drained via _drain_crypto_buf when contiguous
+RFC 9000|8.1|Receipt of Handshake-protected packet implicitly validates peer address|Y|Code uses `YAWT_q_crypto_is_handshake_complete()` to gate post-handshake actions after receiving Handshake packet
+RFC 9000|8.1|MAY consider peer validated if connection ID has ≥64 bits entropy|Y|CID length is 16 bytes (128 bits), satisfying the 64-bit threshold implicitly
+RFC 9000|8.1|Client validates server address via Destination Connection ID in first Initial packet|Y|Initial packet keys derived from the DCID (crypt.c line 590 comment confirms RFC 9001 §5.2 key derivation from DCID)
+RFC 9000|8.1|Servers MUST NOT send more than 3x bytes received before client address is validated (anti-amplification limit)|N|No amplification limit tracking or enforcement found in codebase; no sent/received byte counters for this purpose
+RFC 9000|8.1|Clients MUST pad Initial packets to at least 1200 bytes UDP payload|Y|PADDING calculation for 1200-byte minimum is implemented in quic.c line 300-303
+RFC 9000|8.1|Clients MUST send Initial/Handshake packet on PTO to prevent deadlock|PARTIAL|Generic retransmit logic exists (`_maint_retransmit`), but no specific PTO-driven Initial/Handshake retransmission logic for address validation deadlock prevention; retransmits only buffered frames
+RFC 9000|8.1|Token from Retry packet MUST be repeated by client in all subsequent Initial packets|N|Client always sends `token_len=0` for Initial packets (quic_connection.c line 723-724); no retry token storage or re-inclusion mechanism
+RFC 9000|8.1|Server MUST NOT send another Retry packet after receiving one containing a Retry token|N|No Retry packet generation implemented on the server side
+RFC 9000|8.1|Server MUST include original_destination_connection_id transport parameter when using Retry|Y|Server includes `original_destination_connection_id` (0x00) in transport parameters (crypt.c line 305-306)
+RFC 9000|8.1|Server SHOULD close connection with INVALID_TOKEN error on invalid Retry token|N|No INVALID_TOKEN error code handling or token validation found
+RFC 9000|8.1|Server MAY provide address validation token via NEW_TOKEN frame for future connections|N|NEW_TOKEN frame (0x07) is declared in types but has no parsing, encoding, or enqueue implementation
+RFC 9000|8.1|Client MUST include NEW_TOKEN token in all Initial packets for future connections|N|No token storage or client-side token-in-Initial logic exists
+RFC 9000|8.1|Token SHOULD have an expiration time|N|No token expiration mechanism implemented
+RFC 9000|8.1|Server MUST ensure every NEW_TOKEN frame is unique across all clients|N|NEW_TOKEN frame not implemented at all
+RFC 9000|8.1|NEW_TOKEN token MUST NOT include linkable information unless encrypted|N|NEW_TOKEN frame not implemented at all
+RFC 9000|8.1|Token from NEW_TOKEN is applicable to any server the connection is authoritative for|N|NEW_TOKEN frame not implemented at all
+RFC 9000|8.1|Client MUST NOT include token not applicable to the connecting server|N|Token system not implemented at all
+RFC 9000|8.1|Client SHOULD NOT reuse NEW_TOKEN token for different connection attempts|N|Token system not implemented at all
+RFC 9000|8.1|Server MUST attempt to validate received token in Initial packets|N|No token validation in received Initial packets
+RFC 9000|8.1|Address validation token MUST be difficult to guess (≥128 bits entropy)|N|No token generation or entropy enforcement implemented
+RFC 9000|8.1|Token MUST be covered by integrity protection against modification|N|Token integrity protection not implemented
+RFC 9000|8.1|Retry tokens SHOULD include source IP address and port for verification|N|No retry token generation or address-binding logic
+RFC 9000|8.1|NEW_TOKEN tokens MUST include client IP address for verification|N|Token system not implemented at all
+RFC 9000|8.1|Servers MUST prevent or limit replay of tokens|N|No token replay prevention implemented
+RFC 9000|8.1|Retry tokens SHOULD be accepted only for a short time|N|No retry token lifetime enforcement
+RFC 9000|8.1|NEW_TOKEN tokens SHOULD NOT be accepted multiple times (single-use encouraged)|N|Token system not implemented at all
+RFC 9000|8.2|Path validation is used to verify reachability after address change during connection migration|Y|Basic PATH_CHALLENGE/PATH_RESPONSE frame parsing and handling implemented
+RFC 9000|8.2|Path validation tests that packets sent on a path are received by the peer|Y|PATH_CHALLENGE/PATH_RESPONSE frame types and wire formats defined
+RFC 9000|8.2|Path validation ensures packets from migrating peer do not carry spoofed source address|N|No anti-spoofing verification or path binding beyond frame echo
+RFC 9000|8.2|Path validation does not validate return direction via ACKs (insufficient entropy)|N|No return-path validation mechanism exists in codebase
+RFC 9000|8.2|Endpoints can include other frames with PATH_CHALLENGE and PATH_RESPONSE|N|No mechanism to co-locate frames with PATH_CHALLENGE/PATH_RESPONSE found
+RFC 9000|8.2|An endpoint can include PADDING frames with PATH_CHALLENGE for PMTUD|N|No PATH_CHALLENGE enqueue function exists
+RFC 9000|8.2|An endpoint can include its own PATH_CHALLENGE when sending PATH_RESPONSE|N|Not implemented
+RFC 9000|8.2|An endpoint uses a new connection ID for probes from a new local address|N|No connection ID management for path probing
+RFC 9000|8.2|Sending NEW_CONNECTION_ID and PATH_CHALLENGE in same packet ensures peer has unused CID|N|Not implemented
+RFC 9000|8.2|An endpoint can simultaneously probe multiple paths|N|No multi-path probing support found
+RFC 9000|8.2.1|To initiate path validation, endpoint sends PATH_CHALLENGE with unpredictable payload|N|No YAWT_q_enqueue_frame_path_challenge function exists to send PATH_CHALLENGE
+RFC 9000|8.2.1|Endpoint MAY send multiple PATH_CHALLENGE frames to guard against packet loss|N|No PATH_CHALLENGE sending capability
+RFC 9000|8.2.1|Endpoint SHOULD NOT send multiple PATH_CHALLENGE frames in a single packet|UNKNOWN|Cannot verify without PATH_CHALLENGE sending logic
+RFC 9000|8.2.1|Endpoint SHOULD NOT probe new path more frequently than Initial packet rate|N|No rate limiting on path probing found
+RFC 9000|8.2.1|Endpoint MUST use unpredictable data in every PATH_CHALLENGE frame|N|No PATH_CHALLENGE sending; YAWT_q_crypto_random_nonce exists but unused for challenges
+RFC 9000|8.2.1|Endpoint MUST expand datagrams containing PATH_CHALLENGE to at least 1200 bytes|PARTIAL|1200-byte expansion only applied to Initial packets (quic.c:300-303), not to PATH_CHALLENGE on other paths
+RFC 9000|8.2.1|If anti-amplification limit prevents 1200-byte datagram, MUST perform second validation later|N|No anti-amplification tracking; no deferred MTU validation
+RFC 9000|8.2.1|Endpoints MUST NOT discard small datagrams containing PATH_CHALLENGE or PATH_RESPONSE|N|No minimum-size protection logic for PATH_CHALLENGE/PATH_RESPONSE packets found
+RFC 9000|8.2.2|On receiving PATH_CHALLENGE, endpoint MUST respond by echoing data in PATH_RESPONSE|Y|Implemented in quic_connection.c:518-520 — echoes 8-byte data back
+RFC 9000|8.2.2|Endpoint MUST NOT delay PATH_RESPONSE transmission unless constrained by congestion control|PARTIAL|PATH_RESPONSE is enqueued but not sent immediately; subject to general tx_buffer processing
+RFC 9000|8.2.2|PATH_RESPONSE MUST be sent on the network path where PATH_CHALLENGE was received|PARTIAL|PATH_RESPONSE is always sent on APPLICATION level (f.level = 3 per quic.c:821), not bound to the receiving path
+RFC 9000|8.2.2|Endpoint MUST expand datagrams containing PATH_RESPONSE to at least 1200 bytes|PARTIAL|1200-byte expansion only applies to Initial packets, not PATH_RESPONSE on other paths
+RFC 9000|8.2.2|Endpoint MUST NOT expand PATH_RESPONSE datagram if exceeding anti-amplification limit|N|No anti-amplification limit tracking or enforcement
+RFC 9000|8.2.2|Endpoint MUST NOT send more than one PATH_RESPONSE per PATH_CHALLENGE|Y|The enqueue function exists and is called once per challenge, but no duplicate check is enforced
+RFC 9000|8.2.3|Path validation succeeds when PATH_RESPONSE with matching data is received|N|PATH_RESPONSE received data is logged as "ignored — no pending challenge" (quic_connection.c:524), never matched against sent challenges
+RFC 9000|8.2.3|PATH_RESPONSE on any network path validates the path where PATH_CHALLENGE was sent|N|No path state tracking to correlate challenge and response paths
+RFC 9000|8.2.3|If PATH_CHALLENGE not expanded to 1200 bytes and validates peer, MUST initiate second expanded validation|N|No second-validation mechanism for MTU when first validation succeeds unexpanded
+RFC 9000|8.2.3|Acknowledgment of PATH_CHALLENGE packet is not adequate validation|N|ACK-based validation is not implemented; actual validation via PATH_RESPONSE is also not functional
+RFC 9000|8.2.4|Path validation fails when endpoint abandons the attempt|N|No abandon logic or abandonment state for path validation
+RFC 9000|8.2.4|Endpoints SHOULD abandon based on timer: 3x larger of current PTO or PTO for new path|N|No path validation timer or PTO-based timeout mechanism found
+RFC 9000|8.2.4|Timeout allows multiple PTOs to expire before failing|N|No timeout mechanism for path validation
+RFC 9000|8.2.4|When abandoned, endpoint determines path is unusable|N|No path unusability state tracking
+RFC 9000|8.2.4|Endpoint MAY signal NO_VIABLE_PATH connection error if no valid path|N|NO_VIABLE_PATH error code (0x10) not defined or used in codebase
+RFC 9000|8.2.4|Path validation might be abandoned if connection migration to new path initiated|N|No coordination between path validation and connection migration
+RFC 9000|9.1|An endpoint MAY probe for peer reachability from a new local address using path validation prior to migrating|N|No path validation initiation or connection migration logic exists in the codebase
+RFC 9000|9.1|Failure of path validation means the new path is not usable but does not end the connection unless no alternative paths are available|N|No path validation state machine or failure handling exists
+RFC 9000|9.1|PATH_CHALLENGE and PATH_RESPONSE frames are defined as "probing frames"|Y|Frame types YAWT_Q_FRAME_PATH_CHALLENGE and YAWT_Q_FRAME_PATH_RESPONSE are defined and parsed; PATH_RESPONSE echo on receive is implemented
+RFC 9000|9.1|NEW_CONNECTION_ID and PADDING frames are defined as "probing frames"|PARTIAL|PADDING frames are implemented and parsed; NEW_CONNECTION_ID frame type is defined and parsed but no enqueue function exists to send them
+RFC 9000|9.1|All frames other than PATH_CHALLENGE, PATH_RESPONSE, NEW_CONNECTION_ID, and PADDING are "non-probing frames"|N|No classification of frames into probing vs non-probing exists in the codebase
+RFC 9000|9.1|A packet containing only probing frames is a "probing packet"|N|No concept of probing packets exists; packets are not classified by their frame contents
+RFC 9000|9.1|A packet containing any non-probing frame is a "non-probing packet"|N|No concept of non-probing packets exists; packets are not classified by their frame contents
+RFC 9000|9.2|An endpoint can migrate a connection to a new local address by sending packets containing non-probing frames from that address|N|No migration API or local address switching logic exists in the codebase; connection structure tracks only a single peer_addr with no concept of a new local address
+RFC 9000|9.2|A migrating endpoint can send to its peer without re-validating the peer's address since it was validated during connection establishment|N|No explicit peer-address-validated flag or tracking mechanism exists; the codebase does not model address validation state
+RFC 9000|9.2|An endpoint initiates path validation on the new path to establish reachability|N|Path validation is not functional; PATH_RESPONSE received data is logged as ignored (quic_connection.c:524) and never matched against sent challenges, and no new-path validation is triggered on migration
+RFC 9000|9.2|An endpoint MAY defer path validation until after a peer sends the next non-probing frame to its new address|N|No deferred path validation mechanism exists; path validation as a whole is not implemented
+RFC 9000|9.2|When migrating, the endpoint resets its congestion controller and RTT estimate|N|No congestion controller is implemented in the codebase; no congestion reset or RTT estimate reset logic exists
+RFC 9000|9.2|The endpoint validates ECN capability on the new path|N|No ECN capability tracking or validation mechanism exists in the codebase; while ACK_ECN frame types are parsed, no capability tracking is performed
+RFC 9000|9.2|Non-probing frame classification is required to determine when a packet triggers migration vs probing behavior|N|No classification of frames into probing vs non-probing exists in the codebase; packets are not classified by their frame contents
+RFC 9000|9.3|Detect peer migration when receiving packet from new peer address with non-probing frame|N|No address comparison logic exists; peer_addr is set once at connection creation and never updated
+RFC 9000|9.3|MUST send subsequent packets to new peer address after permitting migration|N|All packets are always sent to con->peer_addr which is never updated after creation
+RFC 9000|9.3|MUST initiate path validation (Section 8.2) for new peer address if not already underway|N|No code initiates path validation proactively; PATH_CHALLENGE frames are never sent by the implementation
+RFC 9000|9.3|Only change address in response to highest-numbered non-probing packet to prevent reordering issues|N|No migration address update logic exists at all; packet numbers are tracked per level but not used for address decisions
+RFC 9000|9.3|MAY send data to unvalidated peer address but MUST protect against attacks per Sections 9.3.1 and 9.3.2|N|No send rate limits or attack protection for unvalidated addresses exist
+RFC 9000|9.3|MAY skip validation if peer address has been seen recently|N|No address history tracking or skip-validation logic exists
+RFC 9000|9.3.1|Validate peer's new address to confirm peer's possession of the address|N|No address validation mechanism is implemented; no PATH_CHALLENGE is ever initiated
+RFC 9000|9.3.1|Limit amount of data sent to unvalidated address per Section 8|N|No send-rate limiting for unvalidated paths; congestion control is path-unaware
+RFC 9000|9.3.2|MUST revert to last validated peer address when validation of new address fails|N|No state for last validated address exists; no revert logic on validation failure
+RFC 9000|9.3.2|Receipt of higher packet numbers from legitimate peer address triggers another connection migration|N|No migration re-triggering logic based on packet number changes from a different address
+RFC 9000|9.3.2|MUST close connection silently if no state about last validated peer address|PARTIAL|Connection has a close path (YAWT_q_con_free) but no specific silent-close path triggered by validation failure with no validated address state
+RFC 9000|9.3.3|Non-probing packet on original path increasing max received PN causes endpoint to move back to that path|N|No original-path tracking or rollback logic exists
+RFC 9000|9.3.3|MUST validate previously active path using PATH_CHALLENGE frame after apparent migration|N|No proactive PATH_CHALLENGE sending logic exists anywhere in the codebase
+RFC 9000|9.3.3|SHOULD send non-probing packet in response to PATH_CHALLENGE on active path|Y|PATH_CHALLENGE frames are received and matched with PATH_RESPONSE in _handle_frames (line 518-520 of quic_connection.c)
+RFC 9000|9.4|Packets sent on the old path MUST NOT contribute to congestion control or RTT estimation for the new path|N|No congestion controller or RTT estimator exists in the codebase; all such tracking is absent
+RFC 9000|9.4|On confirming peer ownership of new address, endpoint MUST immediately reset congestion controller and RTT estimator for new path to initial values|N|No congestion controller or RTT estimator exists; no reset mechanism for these non-existent components
+RFC 9000|9.4|Port-only address change: endpoint MAY retain congestion control state and RTT estimate instead of reverting to initial values|N|Not applicable — no congestion control or RTT estimation is implemented in the codebase
+RFC 9000|9.4|Apparent reordering at receiver when multiple paths with different RTTs are used during migration|N|No path state tracking or RTT per-path tracking exists to handle reordering from concurrent paths
+RFC 9000|9.4|Single congestion control context and single loss recovery context could be adequate during migration|N|No congestion control or loss recovery contexts exist at all in the codebase
+RFC 9000|9.4|Sender can make exceptions for probe packets so their loss detection is independent and does not unduly reduce congestion window|N|No PATH_CHALLENGE sending mechanism exists and no separate probe packet loss detection logic is implemented
+RFC 9000|9.4|Endpoint might set a separate timer for PATH_CHALLENGE, canceled if PATH_RESPONSE is received, with restart on timeout|N|No PATH_CHALLENGE timer mechanism exists; PATH_CHALLENGE frames are never sent by the implementation
+RFC 9000|9.4|PATH_CHALLENGE timer SHOULD be set per [QUIC-RECOVERY] Section 6.2.1 and MUST NOT be more aggressive|N|No probe timer exists; this normative requirement cannot be satisfied without a timer implementation
+RFC 9000|9.5|Different connection IDs used when sending from different local addresses to prevent observer correlation|N|Only a single peer_cid is tracked per connection; no per-path CID assignment or pool exists
+RFC 9000|9.5|Endpoints MAY change the Destination Connection ID to one not used on another path|N|No logic to track which CIDs were used on which paths or to rotate DCIDs on migration
+RFC 9000|9.5|An endpoint MUST NOT reuse a connection ID when sending from more than one local address|N|No per-path CID tracking exists; only one peer_cid is maintained; no local address switching logic is implemented
+RFC 9000|9.5|An endpoint MUST NOT reuse a connection ID when sending to more than one destination address|N|No destination-address tracking for CID reuse prevention is implemented
+RFC 9000|9.5|Different connection IDs for both directions on each new network path eliminates CID-based linkability|N|No implementation of per-direction CID management or per-path CID tracking
+RFC 9000|9.5|Header protection ensures packet numbers cannot be used to correlate activity|PARTIAL|Header protection is implemented for 1-RTT packets, but the full interaction with path migration is not exercised
+RFC 9000|9.5|An endpoint SHOULD NOT initiate migration with a peer that has requested a zero-length connection ID|N|No zero-length CID tracking or migration prevention logic exists in the codebase
+RFC 9000|9.5|Client MAY reduce linkability by switching to a new connection ID, source UDP port, or IP address after inactivity|N|No mechanism exists for client-initiated address/CID rotation after inactivity periods
+RFC 9000|9.5|An endpoint that exhausts available connection IDs cannot probe or migrate|PARTIAL|NEW_CONNECTION_ID frame parsing exists but no CID pool or supply-limit enforcement is implemented
+RFC 9000|9.5|Endpoints SHOULD provide new connection IDs before peers migrate to ensure migration is possible|N|No proactive NEW_CONNECTION_ID supply logic before peer migration exists
+RFC 9000|9.5|A migrating endpoint could include a NEW_CONNECTION_ID frame in all packets sent on a new network path|N|No migration path exists; no NEW_CONNECTION_ID frames are sent on new paths
+RFC 9000|9.6|Servers can accept connections on one IP and migrate to a preferred address after the handshake|N|No preferred_address transport parameter support exists; connection has only a single immutable peer_addr
+RFC 9000|9.6|Client SHOULD discard packets from a new server address if migration was not initiated|N|No mechanism to detect or reject unexpected server address changes; all packets are accepted
+RFC 9000|9.6.1|Server conveys a preferred address via the preferred_address transport parameter in the TLS handshake|N|The preferred_address (0x0d) transport parameter is not encoded in _tp_send() nor parsed in _tp_recv()
+RFC 9000|9.6.1|Servers MAY communicate both IPv4 and IPv6 preferred addresses to allow client selection|N|No preferred_address transport parameter encoding exists at all
+RFC 9000|9.6.1|After handshake is confirmed, client SHOULD select an address and initiate path validation (Section 8.2)|N|Path validation as described in Section 8.2 is not implemented; no code initiates path validation
+RFC 9000|9.6.1|Client constructs packets using an active connection ID from preferred_address transport parameter or NEW_CONNECTION_ID frame|N|The preferred_address CID is never parsed or used; NEW_CONNECTION_ID is only received (not issued)
+RFC 9000|9.6.1|On path validation success, client SHOULD begin sending to the new server address and discontinue the old one|N|No address migration logic exists; peer_addr is set once at connection creation and never changed
+RFC 9000|9.6.1|On path validation failure, client MUST continue sending to the server's original IP address|N|Path validation failure handling is not implemented at all
+RFC 9000|9.6.2|Client MUST validate the preferred address before migrating to it|N|No address validation logic exists in the codebase
+RFC 9000|9.6.2|Server sends PATH_RESPONSE when receiving PATH_CHALLENGE on its preferred address|PARTIAL|PATH_RESPONSE is always sent on PATH_CHALLENGE receipt (quic_connection.c:520), but no concept of "preferred address" path exists to differentiate
+RFC 9000|9.6.2|Server MUST send non-probing packets from its original address until receiving a non-probing packet from client at preferred address and path is validated|N|No dual-path sending logic or non-probing packet classification exists
+RFC 9000|9.6.2|Server MUST probe on the path toward the client from its preferred address|N|The server never initiates path validation proactively; no PATH_CHALLENGE sending code exists
+RFC 9000|9.6.2|After path validation completes and server receives non-probing packet with new largest PN on preferred address, it sends exclusively from preferred IP|N|No exclusive sending logic or address-specific packet routing exists
+RFC 9000|9.6.2|Server SHOULD drop newer packets received on the old IP address after migration|N|No address-based packet filtering or dropping logic exists
+RFC 9000|9.6.2|Server MAY continue processing delayed packets received on the old IP address after migration|N|No such logic exists
+RFC 9000|9.6.2|Preferred addresses in preferred_address transport parameter are only valid for the connection they were provided in|N|No connection-scoped preferred address tracking exists
+RFC 9000|9.6.2|Client MUST NOT use preferred addresses for other connections including resumed connections|N|No such restriction is enforced
+RFC 9000|9.6.3|Client SHOULD perform path validation to both original and preferred server address concurrently when already migrating|N|No concurrent path validation logic exists; path validation is not implemented at all
+RFC 9000|9.6.3|If path validation of preferred address succeeds, client MUST abandon validation of original address and migrate|N|No abandoned path validation handling exists
+RFC 9000|9.6.3|If preferred address validation fails but original succeeds, client MAY migrate to its new address and continue to original server address|N|Client connection migration is not implemented
+RFC 9000|9.6.3|Server MUST protect against attacks if preferred address receives packets from a different source address than observed during handshake (per Sections 9.3.1 and 9.3.2)|N|No cross-reference to Sections 9.3.1/9.3.2 protection exists; no address-validated tracking mechanism
+RFC 9000|9.6.3|Server SHOULD initiate path validation to the client's new address upon receiving a probe packet from a different address|PARTIAL|The framework for responding to PATH_CHALLENGE exists, but no proactive path validation initiation exists
+RFC 9000|9.6.3|Client that migrates to a new address SHOULD use a preferred address from the same address family|N|No address family preference or checking logic exists
+RFC 9000|9.6.3|Connection ID from preferred_address transport parameter may be used on any path, not just the preferred address|N|The preferred_address transport parameter is not implemented
+RFC 9000|9.7|IPv6 flow labels SHOULD be applied in compliance with RFC 6437 when sending data over IPv6|N|No IPv6 socket code exists in the project; example uses only AF_INET
+RFC 9000|9.7|Flow label generation MUST minimize chances of linkability with previously used flow labels|N|No IPv6 or flow label code is implemented
+RFC 9000|9.7|RFC 6437 suggests deriving flow labels using a pseudorandom function|N|No flow label generation code exists
+RFC 9000|9.7|Flow labels SHOULD include the Destination Connection ID along with source/destination addresses|N|No flow label implementation exists; connection IDs are used at the QUIC layer only
+RFC 9000|9.7|A cryptographic hash combining inputs with a local secret is one recommended approach for flow label generation|N|No flow label generation code exists
+RFC 9000|10.1|Connection silently closed when idle time exceeds min of both endpoints' max_idle_timeout|Y|Implemented via _maint_kill() which checks elapsed time since last rx against effective idle timeout and frees connection on expiry.
+RFC 9000|10.1|Effective idle timeout computed as min of locally advertised and peer advertised max_idle_timeout values|Y|Implemented in _effective_idle_timeout() which takes the min of local and peer values, or the sole non-zero value.
+RFC 9000|10.1|Endpoint commits to initiating immediate close if abandoning connection prior to effective idle timeout|Y|Implicit in implementation — idle timeout triggers _record_close() which enters closing state.
+RFC 9000|10.1|Idle timer restarted when a packet from peer is received and processed successfully|Y|con->stats.last_rx set to current time at line 610 after successful decryption and frame processing.
+RFC 9000|10.1|Idle timer restarted when sending ack-eliciting packet if no other ack-eliciting packets sent since last rx|PARTIAL|last_tx is set unconditionally during _drain_tx (line 740) but does not check whether the packet is ack-eliciting or whether other ack-eliciting packets were already sent since last rx.
+RFC 9000|10.1|MUST increase idle timeout to at least 3x current PTO|PARTIAL|A fixed security policy floor (min_idle_timeout_ms = 5000ms) is enforced, but it is not dynamically calculated as 3x PTO as the RFC requires.
+RFC 9000|10.1.1|Endpoint can send PING or ack-eliciting frame to test connection liveness when peer could time out soon (within PTO)|PARTIAL|_maint_ping() sends PING when idle exceeds 1/3 of effective timeout, using a simplified threshold instead of PTO-based proximity check.
+RFC 9000|10.1.2|Implementation may provide application option to defer idle timeout via periodic PING|PARTIAL|Keepalive PING is sent automatically by _maint_ping(), but no explicit application-level API for deferring idle timeout is exposed.
+RFC 9000|10.1.2|Sending PING frame causes peer to restart its idle timeout|Y|PING is an ack-eliciting frame, so receiving it triggers last_rx update, restarting the peer's idle timer.
+RFC 9000|10.2|CONNECTION_CLOSE frame terminates the connection immediately|Y|Implemented: YAWT_q_con_close enqueues CONNECTION_CLOSE frame and sets closing_at to DBL_MAX
+RFC 9000|10.2|All streams become closed when CONNECTION_CLOSE is sent/received|PARTIAL|Streams are not explicitly marked closed; they are implicitly closed when the connection is freed during closing period
+RFC 9000|10.2|After sending CONNECTION_CLOSE, endpoint enters closing state|Y|closing_at set to DBL_MAX (pending flush), then stamped with timestamp after first flush in _maint_kill
+RFC 9000|10.2|After receiving CONNECTION_CLOSE, endpoint enters draining state|Y|closing_at set to DBL_MAX upon receiving CONNECTION_CLOSE frame; treated same as closing state
+RFC 9000|10.2|Closing/drain states persist for at least 3x PTO interval|Y|_maint_kill waits until now - closing_at > pto where pto = retransmit_initial * 3.0
+RFC 9000|10.2|Endpoints MAY end closing/drain states earlier with alternative late-packet handling|N|No alternative early-exit mechanism implemented; always uses fixed 3x PTO timeout
+RFC 9000|10.2|Once closing/drain state ends, endpoint SHOULD discard all connection state|Y|YAWT_q_con_free destroys all buffers, slab allocations, and hash entries
+RFC 9000|10.2|Endpoint MAY send Stateless Reset after exiting closing/drain state|N|No stateless reset support implemented in the codebase
+RFC 9000|10.2.1|In closing state, endpoint sends CONNECTION_CLOSE in response to any incoming packet|N|No response-to-incoming-packets logic in closing state; packets are handled normally until connection is reaped
+RFC 9000|10.2.1|Endpoint SHOULD limit rate of packets generated in closing state|N|No rate limiting on closing-state packet responses implemented
+RFC 9000|10.2.1|Connection ID and QUIC version sufficient to identify packets in closing state|Y|Packet identification uses CID fields; other state remains available but not required for closing state operation
+RFC 9000|10.2.1|Endpoint MAY retain packet protection keys to read incoming CONNECTION_CLOSE|Y|Packet protection keys are not dropped upon entering closing state; they are freed only in YAWT_q_con_free
+RFC 9000|10.2.1|Endpoint MAY drop packet protection keys and send response to any UDP datagram|N|Not implemented; keys are retained and only decrypted packets are processed
+RFC 9000|10.2.1|MUST limit cumulative sent size to 3x received when keys dropped (amplification protection)|N|No amplification size tracking or limiting implemented anywhere
+RFC 9000|10.2.1|Exception: retransmission of closing packet allowed without new packet number|N|No special packet number reuse for closing packets; every packet uses _next_pn incrementing
+RFC 9000|10.2.1|MUST discard packets from unvalidated address or limit sends to 3x received from that address|N|No source address validation tracking in closing state
+RFC 9000|10.2.2|In draining state, endpoint MUST NOT send any packets|Y|YAWT_q_con_maintain skips _drain_tx when con->stats.closing_at != 0, preventing all transmission
+RFC 9000|10.2.2|Endpoint MAY send single CONNECTION_CLOSE before entering draining state|PARTIAL|A single CONNECTION_CLOSE is queued on receive but no logic prevents sending more than one
+RFC 9000|10.2.2|Endpoint MAY transition from closing to draining if CONNECTION_CLOSE received while closing|PARTIAL|closing_at is set to DBL_MAX on CONNECTION_CLOSE receive, but no explicit closing->draining state transition or end-time adjustment exists
+RFC 9000|10.2.3|CONNECTION_CLOSE should be sent in highest available packet protection level|PARTIAL|YAWT_q_con_close sends in APPLICATION (1-RTT) level only; no multi-level sending during handshake
+RFC 9000|10.2.3|Before handshake confirmed, server SHOULD send CONNECTION_CLOSE in both Handshake and 1-RTT packets|N|No multi-level CONNECTION_CLOSE emission during handshake
+RFC 9000|10.2.3|Before handshake confirmed, endpoint SHOULD send CONNECTION_CLOSE in both Handshake and 1-RTT packets|N|No multi-level CONNECTION_CLOSE emission during handshake
+RFC 9000|10.2.3|CONNECTION_CLOSE type 0x1d MUST be replaced by 0x1c in Initial/Handshake packets|N|No type conversion logic; reason phrase clearing is also not implemented
+RFC 9000|10.2.3|Endpoints MAY discard packets rather than immediately close for unauthenticated packet errors|N|All errors result in CONNECTION_CLOSE enqueue or error return, not packet discarding
+RFC 9000|10.2.3|Endpoint with no connection state does not enter closing/drain period|UNKNOWN|Cannot determine from code; this depends on server-side error handling path not fully visible
+RFC 9000|10.3|Endpoint MAY send Stateless Reset when receiving unidentifiable packet|N|No code exists to send stateless reset packets; no `srs_send` or equivalent function found in src/.
+RFC 9000|10.3|Stateless reset NOT appropriate for active connection errors — MUST use CONNECTION_CLOSE|MUST use CONNECTION_CLOSE if available|PARTIAL|YAWT supports sending/receiving CONNECTION_CLOSE frames but does not enforce the MUST rule that active connections use CONNECTION_CLOSE instead of stateless reset.
+RFC 9000|10.3|Stateless reset token is 16-byte hard-to-guess value|Y|`stateless_reset_token[16]` field exists in `YAWT_Q_Frame_New_Connection_ID_t` structure.
+RFC 9000|10.3|Token is specific to a connection ID|Y|Token is included within each NEW_CONNECTION_ID frame which carries a specific CID.
+RFC 9000|10.3|Tokens issued via NEW_CONNECTION_ID frame Stateless Reset Token field|Y|Parsing of the 16-byte token from NEW_CONNECTION_ID frames is implemented in `YAWT_q_parse_frame()`.
+RFC 9000|10.3|Server issues stateless_reset_token transport parameter during handshake|N|The `_tp_send()` function in `crypt.c` does not include the `stateless_reset_token` (TP type 0x02) transport parameter.
+RFC 9000|10.3|Clients cannot use stateless_reset_token transport parameter|Y|Not applicable — YAWT does not implement sending this transport parameter at all.
+RFC 9000|10.3|Tokens invalidated when associated CID is retired via RETIRE_CONNECTION_ID|N|No token lifecycle management exists; RETIRE_CONNECTION_ID frame type is defined but not handled in frame processing.
+RFC 9000|10.3|Stateless Reset packet has Fixed Bits (2) + Unpredictable Bits + 128-bit token|N|No code constructs the specific stateless reset packet format with fixed bits and trailing token.
+RFC 9000|10.3|Stateless Reset uses entire UDP datagram with unpredictable bytes indistinguishable from random|N|No code generates random bytes or assembles stateless reset datagrams.
+RFC 9000|10.3|Unpredictable Bits field must include at least 38 bits (5 bytes minus 2 fixed bits)|N|No stateless reset packet generation exists to enforce this.
+RFC 9000|10.3|Minimum stateless reset size is 21 bytes|N|No stateless reset sending logic exists.
+RFC 9000|10.3|Endpoint SHOULD send packets at least 22 bytes longer than minimum requested CID length|N|No implementation of size-padding logic relative to CID length.
+RFC 9000|10.3|Endpoint SHOULD send stateless reset one byte shorter than received packet for packets ≤43 bytes|N|No stateless reset sending logic exists.
+RFC 9000|10.3|MUST NOT send stateless reset 3× or more larger than received packet (amplification prevention)|N|No stateless reset sending logic exists.
+RFC 9000|10.3|MUST discard packets too small to be valid QUIC packets (e.g., <21 bytes for short header)|N|No minimum packet size check in `YAWT_q_con_rx()` or packet parsing.
+RFC 9000|10.3|MUST send stateless resets formatted as packet with short header|N|No stateless reset sending logic exists at all.
+RFC 9000|10.3|MUST treat any packet ending in valid stateless reset token as a Stateless Reset|N|No incoming packet detection of stateless reset tokens; no handler checks for trailing token pattern.
+RFC 9000|10.3|An endpoint MAY send stateless reset in response to a long header packet|N|No stateless reset sending logic exists at all.
+RFC 9000|11.1|Connection errors MUST be signaled using a CONNECTION_CLOSE frame|Y|Both sending (YAWT_q_enqueue_frame_connection_close) and receiving (connection_close case) are implemented.
+RFC 9000|11.1|Application-specific errors use CONNECTION_CLOSE with frame type 0x1d|Y|YAWT_Q_FRAME_CONNECTION_CLOSE_APP = 0x1d defined and handled in parse/process paths.
+RFC 9000|11.1|Transport-specific errors use CONNECTION_CLOSE with frame type 0x1c|Y|YAWT_Q_FRAME_CONNECTION_CLOSE = 0x1c defined and encoded in wire format.
+RFC 9000|11.1|Endpoint SHOULD retransmit CONNECTION_CLOSE if more packets received on terminated connection|N|The retransmit loop skips connections with closing_at != 0, preventing CONNECTION_CLOSE retransmission after termination.
+RFC 9000|11.1|Stateless reset as fallback for missed CONNECTION_CLOSE on terminated connection|N|No stateless reset send or receive logic found; only the stateless_reset_token field exists in NEW_CONNECTION_ID parsing.
+RFC 9000|11.1|Endpoint MAY discard invalid Initial packets even where connection error mandated|N|No code found to explicitly discard invalid Initial packets as a DoS mitigation measure.
+RFC 9000|11.2|Endpoint can send RESET_STREAM frame with error code to terminate a single stream on application-level error|N|Frame type enum and struct are defined (YAWT_Q_FRAME_RESET_STREAM, YAWT_Q_Frame_Reset_Stream_t), but frame encoding, parsing, and frame dispatch handling are completely unimplemented—falls through to unhandled/default case.
+RFC 9000|11.2|RESET_STREAM MUST only be instigated by the application protocol that uses QUIC|N|No enforcement mechanism exists since RESET_STREAM frame construction and sending are fully unimplemented.
+RFC 9000|11.2|The semantics of the application error code carried in RESET_STREAM are defined by the application protocol|N|The app_error_code field exists in YAWT_Q_Frame_Reset_Stream_t but is never encoded, parsed, or processed.
+RFC 9000|11.2|Only the application protocol is able to cause a stream to be terminated|N|No stream termination mechanism of any kind exists; stream metadata tracks fin but has no reset state.
+RFC 9000|11.2|A local instance of the application protocol uses a direct API call to terminate a stream|N|No public API function exists for resetting or terminating a local stream.
+RFC 9000|11.2|A remote instance uses the STOP_SENDING frame, which triggers an automatic RESET_STREAM|N|STOP_SENDING frame type is defined (YAWT_Q_FRAME_STOP_SENDING, YAWT_Q_Frame_Stop_Sending_t) but neither parsing nor dispatch handling is implemented.
+RFC 9000|11.2|Application protocols SHOULD define rules for handling streams that are prematurely canceled by either endpoint|N|No stream cancellation or premature termination handling exists in the codebase.
+RFC 9000|12.1|Packets have different levels of cryptographic protection based on packet type|Y|Codebase defines distinct packet types (INITIAL, 0RTT, HANDSHAKE, RETRY, 1RTT) with corresponding encryption levels (INITIAL, EARLY, HANDSHAKE, APPLICATION).
+RFC 9000|12.1|Version Negotiation packets have no cryptographic protection|N|No Version Negotiation packet type exists in the codebase; the packet type enum lacks a VERSION_NEGOTIATION variant and no VP encoding/parsing logic is present.
+RFC 9000|12.1|Retry packets use an AEAD function to protect against accidental modification|PARTIAL|Retry packets support parsing and encoding of a 16-byte retry_integrity_tag, but the tag is passed through without AEAD computation as required by the RFC.
+RFC 9000|12.1|Initial packets use AEAD with keys derived from a wire-visible value and lack effective confidentiality protection|Y|Initial keys are derived from the DCID using AES-128-GCM AEAD (crypt.c:613, quic_connection.c:585-587); header protection and AEAD encrypt are applied to Initial packet payloads.
+RFC 9000|12.1|Handshake, 0-RTT, and 1-RTT packets are protected with keys from the cryptographic handshake providing strong confidentiality and integrity|Y|These packet types use AEAD encryption (GNUTLS_CIPHER_AES_128_GCM or negotiated cipher) via YAWT_q_crypto_protect_packet with handshake-derived traffic keys.
+RFC 9000|12.1|Packet Number field receives alternative confidentiality protection via header protection|Y|Header protection is fully implemented in YAWT_q_crypto_unprotect_header (crypt.c:642) using AES-ECB sampling of ciphertext to XOR-mask the packet number and header type bits.
+RFC 9000|12.2|Initial, 0-RTT, and Handshake packets contain a Length field that determines the packet end|Y|Parsed in `_parse_pkt_initial`, `_parse_pkt_0rtt`, and `_parse_pkt_handshake` via `YAWT_q_varint_decode` for the Length field.
+RFC 9000|12.2|Senders can coalesce multiple QUIC packets into one UDP datagram to reduce datagram count|N|The sender encodes and emits one packet per `EVT_TX` callback invocation; no coalescing logic exists on the transmit path.
+RFC 9000|12.2|Receivers MUST be able to process coalesced packets|Y|`YAWT_q_con_rx()` has a `while` loop parsing packets sequentially from the datagram buffer via advancing `ReadCursor_t`.
+RFC 9000|12.2|Coalescing packets in order of increasing encryption levels (Initial, 0-RTT, Handshake, 1-RTT) is recommended|UNKNOWN|The receiver processes each packet independently regardless of order; no explicit ordering guidance is enforced or recommended.
+RFC 9000|12.2|Short header (1-RTT) packets without a Length field can only be the last packet in a UDP datagram|Y|`_parse_pkt_1rtt` uses `rc->len` as packet end; the code comment explicitly references RFC 9000 §12.2.
+RFC 9000|12.2|Endpoints SHOULD include multiple frames in a single packet at the same encryption level instead of coalescing packets at the same level|Y|`_drain_tx()` collects multiple frames at the same encryption level into a single packet payload before encoding.
+RFC 9000|12.2|Receivers MAY route based on the first packet in a UDP datagram|PARTIAL|The first Initial packet determines connection creation, but subsequent packets look up by their own DCID without reference to the first packet's DCID.
+RFC 9000|12.2|Senders MUST NOT coalesce QUIC packets with different connection IDs|N|The sender always uses consistent `con->peer_cid` and `con->cid`; however, no explicit validation enforces this constraint against mixed-CID coalescing.
+RFC 9000|12.2|Receivers SHOULD ignore subsequent packets with a different Destination Connection ID than the first packet|N|Each packet in the coalesced datagram is independently looked up by its own DCID; no comparison to the first packet's DCID is performed.
+RFC 9000|12.2|Every coalesced QUIC packet is separate and complete, individually processed and separately acknowledged|Y|The while loop processes each packet independently with separate frame handling and per-packet ACK generation.
+RFC 9000|12.2|If decryption fails for a coalesced packet, receiver MUST attempt to process remaining packets|Y|The `continue` at line 607 when `YAWT_q_crypto_unprotect_packet` fails allows the while loop to proceed to subsequent packets.
+RFC 9000|12.2|Retry, Version Negotiation, and short header packets do not contain a Length field and cannot be followed by other packets in the same UDP datagram|PARTIAL|`_parse_pkt_retry` consumes the remaining buffer as the Retry packet, effectively preventing further parsing; however, there is no explicit validation that such packets must not be followed by others in the same datagram.
+RFC 9000|12.3|Packet numbers are integers in range 0 to 2^62-1|PARTIAL|Code uses uint64_t for counters with an upper-bound check in _reconstruct_pn, but no explicit enforcement that senders stop at 2^62-1
+RFC 9000|12.3|Packet number is used for determining cryptographic nonce|Y|Nonce is constructed as iv XOR packet_number in YAWT_q_crypto_decrypt_payload
+RFC 9000|12.3|Each endpoint maintains separate packet number for sending and receiving|Y|Separate pkt_num_tx[4] and pkt_num_rx[4] arrays track per-level TX and RX counters
+RFC 9000|12.3|Packet numbers encoded in 1 to 4 bytes in long or short header|Y|packet_number_length field is 1-4 bytes, encoded/decoded in quic.c and crypt.c
+RFC 9000|12.3|Version Negotiation and Retry packets do not include a packet number|PARTIAL|Retry packets are parsed without a PN, but Version Negotiation packets are not implemented at all (no YAWT_Q_PKT_TYPE_VERSION enum value)
+RFC 9000|12.3|Three packet number spaces: Initial, Handshake, Application data|PARTIAL|Code uses 4 encryption levels (INITIAL, EARLY, HANDSHAKE, APPLICATION) as separate counters; RFC requires 0-RTT and 1-RTT to share the Application data space but they have separate counters (EARLY=1 vs APPLICATION=3)
+RFC 9000|12.3|Each packet type uses different protection keys|Y|Keys are tracked per YAWT_Q_Encryption_Level_t in the crypto state
+RFC 9000|12.3|Packet numbers in each space start at 0|Y|pkt_num_tx and pkt_num_rx arrays are zero-initialized at connection creation
+RFC 9000|12.3|Subsequent packets MUST increase packet number by at least one|Y|Counter incremented by 1 on each send via pkt_num_tx[level]++
+RFC 9000|12.3|0-RTT and 1-RTT data exist in the same packet number space|N|0-RTT (YAWT_Q_LEVEL_EARLY, index 1) and 1-RTT (YAWT_Q_LEVEL_APPLICATION, index 3) have separate pkt_num arrays instead of sharing a single space
+RFC 9000|12.3|MUST NOT reuse a packet number within the same packet number space in one connection|PARTIAL|Counter monotonically increments but there is no explicit wraparound prevention or check against the 2^62-1 ceiling
+RFC 9000|12.3|If sending packet number reaches 2^62-1 sender MUST close connection|N|No check exists before sending to detect when the counter reaches the limit; only a defensive guard in _reconstruct_pn during receive-side decoding
+RFC 9000|12.3|Receiver MUST discard newly unprotected packets with duplicate packet numbers after removing protection|N|Code updates pkt_num_rx[level] when full_pn > current but never checks or discards duplicates
+RFC 9000|12.3|Endpoints risk excessive state tracking all individual packets for duplicate detection|N|No state-limiting mechanism (e.g., minimum packet number below which packets are dropped) is implemented
+RFC 9000|12.3|Packet number encoding/decoding described in Section 17.1|Y|_reconstruct_pn implements RFC 9000 Appendix A algorithm for reconstructing full PN from truncated value
+RFC 9000|12.4|Packet payload after removing protection consists of a sequence of complete frames|Y|Implemented via YAWT_q_parse_frame which iterates over decrypted payload bytes sequentially.
+RFC 9000|12.4|Version Negotiation, Stateless Reset, and Retry packets do not contain frames|Y|YAWT does not include VERSION_NEGOTIATE/STATELESS_RESET in packet type enum; Retry packets are handled separately and do not go through frame parsing.
+RFC 9000|12.4|Packet payload MUST contain at least one frame|N|The _handle_frames loop exits silently when payload is empty without raising PROTOCOL_VIOLATION.
+RFC 9000|12.4|Receipt of packet with no frames MUST be treated as PROTOCOL_VIOLATION|N|No validation exists; empty payload results in loop exiting with YAWT_Q_OK (no error raised).
+RFC 9000|12.4|Packet payload MAY contain multiple frames|Y|Implemented: while loop in _handle_frames iterates and parses frames sequentially from the payload buffer.
+RFC 9000|12.4|Packet payload MAY contain multiple frame types|Y|The frame parsing switch statement handles all 20 defined QUIC frame types within the same loop iteration.
+RFC 9000|12.4|Frames always fit within a single QUIC packet and cannot span multiple packets|Y|Implemented by construction: YAWT_q_parse_frame reads the entire frame from the current cursor position within one payload buffer.
+RFC 9000|12.4|Each frame begins with a Frame Type field followed by type-dependent fields|Y|YAWT_q_parse_frame reads a varint-encoded Frame Type first, then dispatches to type-specific parsing.
+RFC 9000|12.4|All 20 frame types (0x00–0x1e) are defined (Table 3)|Y|All frame types are defined in YAWT_Q_Frame_Type_t enum with correct type values matching the RFC.
+RFC 9000|12.4|ACK, STREAM, MAX_STREAMS, STREAMS_BLOCKED, and CONNECTION_CLOSE use Frame Type to carry frame-specific flags|Y|ACK uses type 0x02 vs 0x03 for ECN; STREAM (0x08–0x0f) encodes OFF/LEN/FIN in low 3 bits; CONNECTION_CLOSE (0x1c) encodes error type in frame_type sub-field.
+RFC 9000|12.4|Other frames use Frame Type solely to identify the frame|Y|All non-flag-bearing frame types (PING, CRYPTO, etc.) have fixed single-byte type values with no flag bits.
+RFC 9000|12.4|Receipt of frame in a disallowed packet type MUST be treated as PROTOCOL_VIOLATION|PARTIAL|Section 12.5 frame-to-packet restrictions exist in code for ack-eliciting classification, but no explicit validation enforces frame-in-packet-type restrictions (e.g., STREAM in Initial).
+RFC 9000|12.4|Receipt of unknown frame type MUST be treated as FRAME_ENCODING_ERROR|PARTIAL|YAWT sets rc->err = YAWT_Q_ERR_INVALID_PACKET for unknown frame types in the default case, but does not set the specific FRAME_ENCODING_ERROR connection error code (0x07).
+RFC 9000|12.4|All frames are idempotent (no side effects when received more than once)|UNKNOWN|No explicit idempotency assertions or tests found; behavior depends on handler implementations but no documentation confirms idempotent design.
+RFC 9000|12.4|Frame Type field uses variable-length integer encoding|Y|YAWT_q_varint_decode is called to read Frame Type in YAWT_q_parse_frame.
+RFC 9000|12.4|Frame type MUST use shortest possible encoding (single-byte for defined types)|Y|All enqueue functions (enqueue_frame_crypto, enqueue_frame_ack, enqueue_frame_stream, enqueue_frame_ping, enqueue_frame_connection_close) encode frame types as single bytes.
+RFC 9000|12.4|Receipt of frame type with longer-than-necessary encoding MAY be treated as PROTOCOL_VIOLATION|N|No validation in YAWT_q_parse_frame checks whether the incoming Frame Type was encoded with its shortest possible varint form.
+RFC 9000|12.5|PADDING, PING, and CRYPTO frames MAY appear in any packet number space|PARTIAL|PING and PADDING are hardcoded to level=3 (1-RTT only) and never sent in Initial/Handshake; CRYPTO uses caller-provided level and is sent at correct levels
+RFC 9000|12.5|CONNECTION_CLOSE (type 0x1c) MAY appear in any packet number space|Y|Enqueue function accepts a level parameter and assigns frame to that level for packet placement
+RFC 9000|12.5|CONNECTION_CLOSE (type 0x1d) MUST only appear in application data packet number space|Y|Used at YAWT_Q_LEVEL_APPLICATION only via _record_close; not enqueued at other levels
+RFC 9000|12.5|ACK frames MAY appear in any packet number space but can only acknowledge packets in that space|Y|ACK frames are tagged with the level of the received packet and only placed in matching-level packets in _drain_tx
+RFC 9000|12.5|0-RTT packets cannot contain ACK frames|Y|ACK frames always assigned level=3 (APPLICATION) and _drain_tx filters by level, so no ACK reaches 0-RTT
+RFC 9000|12.5|All other frame types (STREAM, MAX_*, NEW_CONNECTION_ID, etc.) MUST only be sent in application data packet number space|PARTIAL|STREAM, PATH_RESPONSE, HANDSHAKE_DONE, and DATAGRAM are level=3 (1-RTT only), but NEW_TOKEN and RETIRE_CONNECTION_ID frames have no enqueue implementation at all
+RFC 9000|12.5|ACK, CRYPTO, HANDSHAKE_DONE, NEW_TOKEN, PATH_RESPONSE, and RETIRE_CONNECTION_ID cannot be sent in 0-RTT packets|PARTIAL|HANDSHAKE_DONE, PATH_RESPONSE, NEW_TOKEN, and RETIRE_CONNECTION_ID are level=3 and cannot reach 0-RTT; ACK is also level=3; CRYPTO can theoretically be level=1 via caller parameter but TLS prevents early crypto; no explicit guard prevents level=1 CRYPTO
+RFC 9000|12.5|Server MAY treat receipt of prohibited frames in 0-RTT packets as PROTOCOL_VIOLATION connection error|N|The _handle_frames function in quic_connection.c has no validation that certain frames (ACK, CRYPTO, HANDSHAKE_DONE, etc.) are absent from 0-RTT packets
+RFC 9000|13.1|Packet MUST NOT be acknowledged until packet protection removed and all frames processed|Y|Decryption via YAWT_q_crypto_unprotect_packet occurs at line 604, frames processed by _handle_frames at line 630, ACK enqueued only after at line 634.
+RFC 9000|13.1|STREAM frame data must be enqueued/buffered before acknowledgment|Y|In _handle_frames, STREAM data is either delivered in-order to app (line 448) or buffered in slab (line 469); ACK is enqueued after all frame processing completes.
+RFC 9000|13.1|ACK frames must contain the packet number of the received packet|Y|YAWT_q_enqueue_frame_ack is called with pkt.packet_num as largest_ack, included in the ACK frame wire encoding at quic.c:689.
+RFC 9000|13.1|Endpoint SHOULD detect and treat spurious ACKs (ACK for packet it did not send) as PROTOCOL_VIOLATION|N|No code checks whether received ACK packet numbers correspond to packets actually sent; _process_ack only removes tx_buffer frames matching acknowledged ranges without cross-validating against sent set.
+RFC 9000|13.1|Receiver acknowledges by sending ACK frames after packet fully processed|Y|After _handle_frames returns, if res.requires_ack is set, YAWT_q_enqueue_frame_ack is called immediately (line 634), and _drain_tx flushes the buffer (line 639).
+RFC 9000|13.2|Endpoints acknowledge all packets they receive and process|Y|ACK frames are enqueued after processing ack-eliciting packets in `_handle_frames` and flushed via `_drain_tx`
+RFC 9000|13.2|Only ack-eliciting packets cause an ACK frame within the max_ack_delay|Y|Code checks `res.requires_ack` flag in `_handle_frames` (line 353-357) to determine if ACK is needed, and ACK is only enqueued when that flag is true (line 633)
+RFC 9000|13.2|Non-ack-eliciting packets are only acknowledged when ACK sent for other reasons|Y|ACK is only generated in response to ack-eliciting frames, not for ACK-only or PADDING packets
+RFC 9000|13.2|When sending a packet, endpoint SHOULD include ACK if one not sent recently|PARTIAL|ACK is enqueued when ack-eliciting frames are received, but there is no "recently sent" tracking or timer to coalesce ACKs with outgoing data
+RFC 9000|13.2.1|Every packet SHOULD be acknowledged at least once|Y|ACK frames are enqueued for every ack-eliciting packet received
+RFC 9000|13.2.1|ACK-eliciting Initial and Handshake packets MUST be acknowledged immediately|Y|ACK is enqueued immediately in the same receive path, before the function returns (line 633-634)
+RFC 9000|13.2.1|ACK-eliciting 0-RTT and 1-RTT packets MUST be acknowledged within max_ack_delay|N|No `max_ack_delay` transport parameter is parsed, stored, or enforced; ACK is sent immediately regardless
+RFC 9000|13.2.1|Prior to handshake confirmation, endpoints may buffer packets until keys are available|Y|Key availability check at line 583; if no keys for level, packet is skipped and not processed, effectively buffering
+RFC 9000|13.2.1|MUST NOT send more than one ACK-only packet per ack-eliciting packet received|Y|Only one ACK frame is enqueued per ack-eliciting packet; ACK frames are popped immediately after sending (line 762-764)
+RFC 9000|13.2.1|MUST NOT send non-ack-eliciting packet in response to non-ack-eliciting packet|Y|ACK is only enqueued when `res.requires_ack` is true, which is only set when an ack-eliciting frame is received (line 353-357)
+RFC 9000|13.2.1|SHOULD generate ACK without delay when receiving out-of-order or gap packets|PARTIAL|ACK is always sent immediately on any ack-eliciting packet, but there is no specific gap/out-of-order detection logic as described in the RFC
+RFC 9000|13.2.1|ECN CE codepoint packets SHOULD be acknowledged immediately|N|No ECN processing or CE codepoint detection exists in the codebase
+RFC 9000|13.2.2|SHOULD send ACK after receiving at least two ack-eliciting packets|PARTIAL|ACK is sent after every single ack-eliciting packet (more frequent than the recommended "at least two"), which satisfies the guidance but is more aggressive
+RFC 9000|13.2.2|MAY process multiple available packets before determining whether to send ACK|PARTIAL|The receive loop processes all packets in the buffer, but triggers an ACK per ack-eliciting packet rather than batching before deciding
+RFC 9000|13.2.3|SHOULD always acknowledge the most recently received packets|Y|ACK frame always includes `largest_ack` set to the highest received packet number
+RFC 9000|13.2.3|Older ACK ranges omitted if ACK frame does not fit in packet|N|ACK frame implementation always sends a single range (largest_ack with no additional ranges); no multi-range logic or size truncation exists
+RFC 9000|13.2.3|Receiver limits number of ACK Ranges to avoid resource exhaustion|N|No ACK range count limit is enforced; the code only tracks a single range (largest_ack)
+RFC 9000|13.2.3|MUST retain ACK Range unless packets in that range can no longer be accepted|N|No ACK range retention logic; only the largest acknowledged packet number is tracked per level
+RFC 9000|13.2.3|MUST retain largest packet number for packet number recovery|Y|`con->stats.pkt_num_rx[level]` tracks the largest received packet number per encryption level (line 615), used by `_reconstruct_pn`
+RFC 9000|13.2.3|SHOULD include largest received packet number in every ACK frame|Y|ACK frames always include `largest_ack` as the current maximum received PN per level
+RFC 9000|13.2.4|Save Largest Acknowledged from sent ACK frames and stop tracking when ack received|N|No tracking of sent ACK frame Largest Acknowledged values; ACKs are treated as one-shot and popped after sending
+RFC 9000|13.2.4|Send PING or small ack-eliciting frame occasionally when only non-ack-eliciting packets sent|PARTIAL|`_maint_ping()` sends keepalive PING when idle approaches timeout, but not specifically triggered by ACK frame loss scenarios as described in the RFC
+RFC 9000|13.2.5|Measure acknowledgment delay between receiving largest packet and sending ACK|N|ACK delay is hardcoded to 0 (line 694 in quic.c); no real timestamp-based delay measurement exists
+RFC 9000|13.2.5|MUST NOT include delays not under endpoint's control in ACK Delay field|N|No ACK delay measurement at all, so the constraint is not applicable
+RFC 9000|13.2.5|SHOULD include buffering delays from unavailability of decryption keys|N|No buffering delay measurement; packets without keys are simply skipped, not buffered with timing tracked
+RFC 9000|13.2.5|When measured delay exceeds max_ack_delay, SHOULD report the measured delay|N|No `max_ack_delay` tracking or delay reporting logic exists
+RFC 9000|13.2.6|ACK frames MUST only be carried in packets with the same packet number space as the acknowledged packet|Y|ACK is enqueued with the same `level` parameter derived from `_pkt_type_to_level(pkt->type)` (line 634)
+RFC 9000|13.2.7|PADDING frames are considered in flight for congestion control|N|No congestion window tracking, no `in_flight` byte accounting, or PTO timer exists in the codebase
+RFC 9000|13.2.7|Sender SHOULD send other frames periodically with PADDING to avoid deadlock|N|No congestion window deadlock prevention logic; PADDING-only packets are not tracked for congestion control purposes
+RFC 9000|13.3|Lost packets are not retransmitted whole; information is sent again in new frames|Y|The _maint_retransmit function processes individual frames from the tx_buffer rather than retransmitting whole packets, and _process_ack removes acknowledged frames from the buffer.
+RFC 9000|13.3|CRYPTO frames retransmitted per [QUIC-RECOVERY] rules until acknowledged, discarded when keys discarded|PARTIAL|CRYPTO frames are pushed into tx_buffer and retransmitted via the generic retransmit loop, but there is no explicit CRYPTO key-discarding logic that causes CRYPTO data to be discarded when keys are discarded.
+RFC 9000|13.3|STREAM frames retransmitted unless RESET_STREAM sent for that stream|N|STREAM frame type and RESET_STREAM frame type are defined in the enum but neither encoding, sending, nor dispatch handling is implemented.
+RFC 9000|13.3|ACK frames carry most recent acks and ack delay from largest acknowledged packet|PARTIAL|ACK frames are retransmitted via generic mechanism but ACK frames are popped from tx_buffer immediately after sending (one-shot behavior); ack delay from largest acknowledged is not tracked or included.
+RFC 9000|13.3|Delaying ACK or resending old ACK can inflate RTT or disable ECN|Y|ACK frames are popped after sending rather than left for retransmit timer, implementing one-shot behavior to avoid stale acks.
+RFC 9000|13.3|RESET_STREAM frame retransmitted until acknowledged or stream reaches Data Recvd/Reset Recvd state|N|RESET_STREAM frame type is defined but encoding, sending, and state-machine tracking are completely unimplemented.
+RFC 9000|13.3|RESET_STREAM content MUST NOT change when sent again|N|RESET_STREAM frame is not implemented at all.
+RFC 9000|13.3|STOP_SENDING frame retransmitted until receiving part enters Data Recvd or Reset Recvd state|N|STOP_SENDING frame type is defined but neither encoding nor handling is implemented.
+RFC 9000|13.3|CONNECTION_CLOSE signals not resent when packet loss is detected|Y|CONNECTION_CLOSE is excluded from the ack-eliciting frame check and not requeued in the retransmit loop.
+RFC 9000|13.3|MAX_DATA frame resent when lost or when limit is updated|PARTIAL|MAX_DATA frames are parsed on receive and flow-control state updated, but there is no explicit enqueue logic for sending MAX_DATA frames on loss.
+RFC 9000|13.3|MAX_STREAM_DATA frame sent on loss or limit update, SHOULD stop at Size Known/Reset Recvd|N|MAX_STREAM_DATA frames are parsed on receive but there is no enqueue logic for sending them.
+RFC 9000|13.3|MAX_STREAMS frame sent on loss or limit update|N|MAX_STREAMS frames are parsed on receive but there is no enqueue logic for sending them.
+RFC 9000|13.3|DATA_BLOCKED, STREAM_DATA_BLOCKED, STREAMS_BLOCKED frames resent when lost while blocked|N|None of these blocked-frame types are implemented (no encoding, sending, or dispatch).
+RFC 9000|13.3|PATH_CHALLENGE sent periodically with different payload each time until matching PATH_RESPONSE received|N|PATH_CHALLENGE frames are parsed on receive, but there is no YAWT_q_enqueue_frame_path_challenge function to send them; no unpredictable payload is generated.
+RFC 9000|13.3|PATH_RESPONSE sent just once|Y|PATH_RESPONSE is enqueued in response to received PATH_CHALLENGE via YAWT_q_enqueue_frame_path_response and handled by the generic retransmit loop.
+RFC 9000|13.3|NEW_CONNECTION_ID frames retransmitted if lost, retransmissions carry same sequence number|PARTIAL|NEW_CONNECTION_ID frame type is defined and parsed on receive, but no enqueue/sending implementation or retransmit-specific sequence number handling exists.
+RFC 9000|13.3|RETIRE_CONNECTION_ID frames retransmitted if lost|N|RETIRE_CONNECTION_ID frame type is defined but no enqueue/sending or dispatch implementation exists.
+RFC 9000|13.3|NEW_TOKEN frames retransmitted if lost, deduplicated by direct content comparison|N|NEW_TOKEN frame has no enqueue/sending implementation at all.
+RFC 9000|13.3|Lost PING and PADDING frames do not require repair|Y|PING is handled as a non-ack-eliciting frame (not requiring ack from peer), PADDING is non-ack-eliciting, and both have no special retransmit logic for content repair.
+RFC 9000|13.3|HANDSHAKE_DONE frame MUST be retransmitted until acknowledged|PARTIAL|HANDSHAKE_DONE is enqueued once when connected (server), but there is no explicit retransmit-until-acknowledged loop for it.
+RFC 9000|13.3|Endpoints SHOULD prioritize retransmission over sending new data|PARTIAL|The _drain_tx function iterates tx_buffer which holds both pending and unacknowledged frames, but no explicit priority mechanism reorders retransmission ahead of new data.
+RFC 9000|13.3|Receiver MUST accept packets containing outdated frames|Y|The codebase does not reject frames with stale values; e.g., MAX_DATA is simply updated to whatever value the peer sends (line 483).
+RFC 9000|13.3|Sender SHOULD avoid retransmitting once packets are acknowledged|Y|_process_ack pops acknowledged frames from tx_buffer after processing, preventing further retransmission of their data.
+RFC 9000|13.3|Sender SHOULD retain information about lost packets to handle reordering|PARTIAL|The tx_buffer retains frames with last_sent set until acknowledged or retransmit max reached, but there is no explicit PTO-based discard timer.
+RFC 9000|13.3|Sender MUST take congestion control action upon detecting losses|N|No congestion control implementation exists in the codebase (no congestion_state, cwnd, or loss-triggered rate adjustment).
+RFC 9000|13.4|Endpoints can use ECN to detect and respond to network congestion by setting ECT codepoints in IP packets|N|ECN marking (setting ECT codepoints in IP headers) is not implemented; no setsockopt IP_TOS or IP_TCLASS calls exist
+RFC 9000|13.4|Sending endpoint must determine whether a path supports ECN marking and whether the peer reports ECN values|N|No ECN determination or path capability detection exists
+RFC 9000|13.4.1|Receiving endpoint reads ECN field from received IP packets to obtain ECT(0), ECT(1), and ECN-CE values|N|No code to read ECN fields from received IP packets exists
+RFC 9000|13.4.1|Even without setting ECT, endpoint MUST report ECN markings it receives if accessible|N|No ECN counting or reporting logic is implemented anywhere
+RFC 9000|13.4.1|On receiving an IP packet with ECT(0), ECT(1), or ECN-CE, increment the corresponding ECN count|N|No ECN counter tracking per packet number space exists
+RFC 9000|13.4.1|ECN counts are included in subsequent ACK frames|PARTIAL|ACK ECN frame type (0x03) and YAWT_Q_Frame_ACK_ECN_t struct are defined but YAWT_q_enqueue_frame_ack only encodes plain ACK (0x02) with no ECN counts
+RFC 9000|13.4.1|Each packet number space maintains separate ECN counts|N|No per-encryption-level ECN counters exist in the connection struct
+RFC 9000|13.4.1|Coalesced QUIC packets share the same IP header so ECN counts are incremented once per coalesced QUIC packet|N|No coalesced-packet awareness in ECN counting since ECN counting is entirely unimplemented
+RFC 9000|13.4.1|ECN counts are only incremented when QUIC packets are processed; duplicate packets do not increase ECN counts|N|No duplicate detection for ECN purposes exists
+RFC 9000|13.4.2|Endpoint sets ECT(0) codepoint in IP headers of early outgoing packets on a new path for ECN validation|N|No IP TOS/ECN marking in send path; no ECT(0) codepoint setting exists
+RFC 9000|13.4.2|Endpoint monitors whether all ECT-marked packets are deemed lost, indicating ECN validation failure|N|No ECN validation state or monitoring logic exists
+RFC 9000|13.4.2|ECN validation is attempted for each new connection, on switching to preferred address, and on active migration to new path|N|No ECN validation is performed at any point
+RFC 9000|13.4.2.1|Endpoint validates received ECN counts against packets it sent with ECT marking|N|No ECN count validation logic exists
+RFC 9000|13.4.2.1|If newly acknowledged packet was sent with ECT, ECN validation fails if corresponding ECN counts are not present in the ACK frame|N|ACK-ECN (0x03) frames are not parsed at all in YAWT_q_parse_frame; no validation occurs
+RFC 9000|13.4.2.1|ECN validation fails if increase in ECT(0)+ECN-CE counts is less than number of newly acknowledged ECT(0) packets|N|No ECN validation logic exists
+RFC 9000|13.4.2.1|ECN validation fails if increase in ECT(1)+ECN-CE counts is less than number of newly acknowledged ECT(1) packets|N|No ECN validation logic exists
+RFC 9000|13.4.2.1|ACK frames that do not increase largest acknowledged packet number must not cause ECN validation to fail|N|No ECN validation logic exists
+RFC 9000|13.4.2.1|ECN validation fails if received ECT(0) or ECT(1) total count exceeds total packets sent with that codepoint|N|No ECN validation logic exists
+RFC 9000|13.4.2.2|If ECN validation fails, endpoint MUST disable ECN by stopping ECT codepoint setting|N|No ECN enable/disable mechanism exists
+RFC 9000|13.4.2.2|Endpoint MAY revalidate ECN for the same path at any later time in the connection|N|No revalidation mechanism exists
+RFC 9000|13.4.2.2|Upon successful validation, endpoint MAY continue setting ECT codepoint|N|No ECN enable mechanism exists
+RFC 9000|14.1|Client MUST expand all UDP datagrams carrying Initial packets to at least 1200 bytes UDP payload|Y|Implemented in _encode_pkt_initial via PADDING frames to reach 1200 bytes (quic.c:300-303)
+RFC 9000|14.1|Expansion achieved by adding PADDING frames|Y|PADDING frames are encoded via YAWT_q_encode_frame_padding when base_total < 1200 (quic.c:328-333)
+RFC 9000|14.1|Expansion achieved by coalescing Initial packets|N|No coalescing mechanism found in the codebase
+RFC 9000|14.1|Initial packets may be coalesced with invalid packets for expansion purposes|N|No coalescing mechanism found in the codebase
+RFC 9000|14.1|Initial packets may be coalesced with invalid packets for expansion purposes|N|No coalescing mechanism found in the codebase
+RFC 9000|14.1|Server MUST expand datagrams carrying ack-eliciting Initial packets to at least 1200 bytes|PARTIAL|All Initial packets are padded to 1200 bytes regardless of ack-eliciting status (quic.c:300-303), which is functionally safe but not precisely scoped
+RFC 9000|14.1|Datagrams containing Initial packets MAY exceed 1200 bytes if path and peer support it|Y|Padding is only applied when base_total < 1200, allowing larger datagrams
+RFC 9000|14.1|Server MUST discard Initial packets in UDP datagrams smaller than 1200 bytes|N|No receive-side datagram size validation for Initial packets found in YAWT_q_con_rx (quic_connection.c:549-645)
+RFC 9000|14.1|Server MAY send CONNECTION_CLOSE with PROTOCOL_VIOLATION for undersized Initial datagrams|N|No PROTOCOL_VIOLATION error handling for undersized datagrams found
+RFC 9000|14.1|Server MUST limit bytes sent before validating client address|N|No anti-amplification byte budget tracking found in the codebase
+RFC 9000|14.2|Endpoints SHOULD use DPLPMTUD or PMTUD to discover path max datagram size|N|No DPLPMTUD or PMTUD mechanism found anywhere in the codebase
+RFC 9000|14.2|In absence of PMTUD/DPLPMTUD endpoints SHOULD NOT send datagrams larger than 1200 bytes|PARTIAL|Only Initial packets are padded to 1200 bytes; non-Initial packets use fixed 1350-byte max without path-size awareness
+RFC 9000|14.2|PMTU probes are datagrams larger than the current maximum datagram size|N|No PMTU probe packet generation mechanism found
+RFC 9000|14.2|All non-probe QUIC packets SHOULD be sized to fit within the maximum datagram size|N|All packet encoders use fixed 1350-byte allocation with no datagram-size-based sizing
+RFC 9000|14.2|Endpoint MUST cease sending if PMTU falls below 1200 bytes (except probes and CONNECTION_CLOSE)|N|No PMTU monitoring or cease-send logic exists
+RFC 9000|14.2|Endpoint MAY terminate connection if alternative path cannot be found|N|No path alternation or PMTU-triggered connection termination found
+RFC 9000|14.2|Implementations SHOULD maintain a maximum datagram size per local/remote address pair|N|Connection struct tracks only a single peer_addr with no per-path datagram size
+RFC 9000|14.2|ICMP message handling by PMTUD|N|No ICMP message reception or processing found in the codebase
+RFC 9000|14.3|DPLPMTUD relies on tracking loss or acknowledgment of QUIC packets carried in PMTU probes|N|No DPLPMTUD mechanism or PMTU probe packet tracking exists in the codebase
+RFC 9000|14.3|PMTU probes for DPLPMTUD use PADDING frames to implement probing using padding data|N|No PMTU probe generation mechanism exists; PADDING frames are only used for 1200-byte Initial packet padding
+RFC 9000|14.3|Endpoints SHOULD set the initial value of BASE_PLPMTU consistent with QUIC's smallest allowed maximum datagram size|N|No BASE_PLPMTU variable or PMTU discovery state tracking exists
+RFC 9000|14.3|MIN_PLPMTU is the same as BASE_PLPMTU|N|No MIN_PLPMTU concept exists in the codebase
+RFC 9000|14.3|Endpoints implementing DPLPMTUD maintain a DPLPMTUD MPS per local/remote IP address pair|N|No per-path MPS tracking exists; only a global YAWT_Q_MAX_PKT_SIZE constant of 1350 bytes
+RFC 9000|14.3|DPLPMTUD MPS corresponds to the maximum datagram size|N|No dynamic datagram size management; all packet sizes use fixed constants
+RFC 9000|14.3.1|QUIC is treated as an acknowledged Packetization Layer (PL)|N|No DPLPMTUD state machine (BASE state or otherwise) is implemented
+RFC 9000|14.3.1|A QUIC sender can enter the DPLPMTUD BASE state when the QUIC handshake has been completed|N|No DPLPMTUD state transitions occur at any point in the codebase
+RFC 9000|14.3.2|A QUIC sender does not implement a DPLPMTUD CONFIRMATION_TIMER while in SEARCH_COMPLETE state|N|No CONFIRMATION_TIMER or SEARCH_COMPLETE state exists since DPLPMTUD is not implemented
+RFC 9000|14.3.3|An endpoint using DPLPMTUD requires validation of received ICMP PTB messages before using the PTB information|N|No ICMP message reception or processing exists anywhere in the codebase
+RFC 9000|14.3.3|QUIC validates ICMP messages using PL information such as connection IDs in the quoted packet|N|No ICMP handling or connection ID validation of ICMP messages is implemented
+RFC 9000|14.3.3|Considerations for processing ICMP messages in Section 14.2.1 apply to DPLPMTUD|N|No ICMP handling exists, so these considerations cannot apply
+RFC 9000|14.4|PMTU probes are ack-eliciting packets|N|No PMTU probe mechanism exists in the codebase; PING frames are ack-eliciting but there is no probe construction logic.
+RFC 9000|14.4|PMTU probes could be limited to PING and PADDING frames|N|PING and PADDING frame types exist, but no PMTU probe generation uses them for this purpose.
+RFC 9000|14.4|Loss of a packet in a PMTU probe SHOULD NOT trigger a congestion control reaction|N|No congestion control is implemented at all (noted as UNIMPLEMENTED in quic.h line 79), so this rule cannot be exercised.
+RFC 9000|14.4|PMTU probes consume congestion window|N|No congestion window mechanism exists in the codebase.
+RFC 9000|14.4.1|PMTU probes should include connection ID for routing ICMP messages back to the correct endpoint|N|No PMTU probe mechanism or ICMP message handling exists in the codebase.
+RFC 9000|14.4.1|Only long header packets contain the Source Connection ID field|Y|Long header packets (Initial, Handshake) are implemented and contain source connection ID fields.
+RFC 9000|14.4.1|Long header packets are not decrypted or acknowledged by the peer after the handshake is complete|Y|Post-handshake, only short header 1-RTT packets are used for acknowledgment; long header packet handling reflects this behavior.
+RFC 9000|14.4.1|PMTU probes can be constructed by coalescing a long header packet with a short header packet in a single UDP datagram|N|Packet coalescing is explicitly marked UNIMPLEMENTED in quic.h line 80.
+RFC 9000|14.4.1|In a coalesced PMTU probe, the long header packet will be ignored but the short header packet will be acknowledged|N|Requires coalescing implementation, which is not present.
+RFC 9000|14.4.1|The Source Connection ID in the quoted portion of an ICMP message can be used for routing or validation|N|No ICMP message reception or processing exists in the codebase.
+RFC 9000|17.1|Packet numbers are integers in range 0 to 2^62-1|Y|Packet numbers stored as uint64_t in per-encryption-level counters (pkt_num_tx/rx[4]).
+RFC 9000|17.1|Packet numbers encoded in 1 to 4 bytes in long/short packet headers|Y|packet_number_length field computed as (b0 & 3) + 1 on receive; set to 4 on transmit.
+RFC 9000|17.1|Only least significant bits of packet number included in wire encoding|Y|Encoder shifts right by (length - 1 - i) to place only LSBs on wire.
+RFC 9000|17.1|Encoded packet number is protected via header protection|Y|Header protection applied to packet number field in YAWT_q_crypto_protect_packet.
+RFC 9000|17.1|Full packet number MUST be sent prior to receiving acknowledgment for a packet number space|PARTIAL|Sender always uses 4-byte (full 32-bit) encoding; does not dynamically shrink after ACKs per RFC guidance.
+RFC 9000|17.1|After acknowledgment, sender MUST use packet number size able to represent >2x the range difference|N|packet_number_length is hardcoded to 4 in _drain_tx; no adaptive sizing logic.
+RFC 9000|17.1|Endpoint SHOULD use large enough encoding to allow recovery even if packet arrives after later packets|PARTIAL|Always using 4 bytes provides max range but no dynamic adjustment based on unacked count.
+RFC 9000|17.1|Size of encoding is at least one bit more than base-2 log of contiguous unacknowledged packets|N|No calculation of encoding size based on unacknowledged packet count.
+RFC 9000|17.1|At receiver, header protection removed prior to recovering full packet number|Y|Header unprotection called before PN read in YAWT_q_crypto_unprotect_packet.
+RFC 9000|17.1|Full packet number reconstructed from significant bits, their value, and largest successfully authenticated packet|Y|_reconstruct_pn function implements this with pn_win, pn_hwin, and pn_mask logic.
+RFC 9000|17.1|Recovering full packet number is necessary to complete removal of packet protection|Y|PN is read and used to build nonce for AEAD decryption after header unprotection.
+RFC 9000|17.1|Packet number decoded by finding value closest to next expected packet on receiver|Y|_reconstruct_pn compares candidate against expected_pn using half-window logic.
+RFC 9000|17.1|Next expected packet defined as highest received packet number plus one|Y|expected_pn = largest_pn + 1 in _reconstruct_pn.
+RFC 9000|17.2|Long header format: Header Form bit (MSB=1) is set to 1 in all long header packets|Y|`_encode_long_header` sets `(1 << 7)`; parser checks `(b0 >> 7) & 1`
+RFC 9000|17.2|Fixed Bit must be 1 for all long header packets (except Version Negotiation) and packets with Fixed Bit=0 MUST be discarded|Y|Parser at line 83-84 of quic.c sets `YAWT_Q_ERR_INVALID_PACKET` if fixed_bit is 0
+RFC 9000|17.2|Reserved Bits (2 bits, mask 0x0c) MUST be set to 0 before header protection; non-zero after unprotection is a PROTOCOL_VIOLATION|PARTIAL|Reserved bits are read and encoded but not validated as zero; no PROTOCOL_VIOLATION check after unprotect
+RFC 9000|17.2|Packet Number Length field encoded in lower 2 bits of byte 0 as (length_in_bytes - 1)|Y|Encoded as `(pkt->packet_number_length - 1) & 3`; parsed as `(b0 & 3) + 1`
+RFC 9000|17.2|Destination Connection ID Length field is 8-bit unsigned integer|Y|Parsed and encoded as single byte at line 101, 264 of quic.c
+RFC 9000|17.2|Destination Connection ID field (0-160 bits, max 20 bytes in v1); packet MUST be dropped if length exceeds 20|Y|Checked via `pkt->dest_cid.len > sizeof(pkt->dest_cid.id)` mapping to 20-byte max
+RFC 9000|17.2|Source Connection ID Length field is 8-bit unsigned integer|Y|Parsed and encoded as single byte at lines 110, 271 of quic.c
+RFC 9000|17.2|Source Connection ID field (0-160 bits, max 20 bytes in v1); packet MUST be dropped if length exceeds 20|Y|Checked via `pkt->src_cid.len > sizeof(pkt->dest_cid.id)` mapping to 20-byte max
+RFC 9000|17.2|Length field (variable-length integer) encodes length of Packet Number + Payload in bytes|Y|Encoded and parsed as varint in all long header packet parsers and encoders
+RFC 9000|17.2|Packet Number field is 1-4 bytes long, protected by header protection|Y|Length stored in `packet_number_length` field, encrypted via `YAWT_q_crypto_protect_packet`
+RFC 9000|17.2|Four long header packet types defined: Initial (0x00), 0-RTT (0x01), Handshake (0x02), Retry (0x03)|Y|All four types defined in `YAWT_Q_Long_Packet_Type_t` enum and handled in parse/encode switch statements
+RFC 9000|17.2.1|Version Negotiation packet has Version field set to 0x00000000|N|No Version Negotiation packet parsing or generation implemented
+RFC 9000|17.2.1|Version Negotiation packet has no Packet Number or Length fields and consumes an entire UDP datagram|N|Not implemented
+RFC 9000|17.2.1|Server MUST include client's Source Connection ID in its Destination Connection ID field in Version Negotiation|N|Not implemented
+RFC 9000|17.2.1|A server MUST NOT send more than one Version Negotiation packet in response to a single UDP datagram|N|Not implemented
+RFC 9000|17.2.2|Initial packet contains Token Length (varint) and Token fields between SCID and Length|Y|Token parsed at lines 148-154 and encoded at lines 288-298 of quic.c
+RFC 9000|17.2.2|Initial packets sent by the server MUST set Token Length to 0|PARTIAL|Server code sets `token_len = 0` at line 723 of quic_connection.c, but no validation on receive for non-zero token from server
+RFC 9000|17.2.2|Initial packet payload includes CRYPTO, ACK, PING, PADDING, and CONNECTION_CLOSE (0x1c) frames|Y|All frame types are defined and parsed; frame dispatch handles these types
+RFC 9000|17.2.2.1|A client stops sending and processing Initial packets when it sends its first Handshake packet|N|No logic to track when Handshake is first sent and stop Initial processing
+RFC 9000|17.2.2.1|A server stops sending and processing Initial packets when it receives its first Handshake packet|N|No logic to track receipt of first Handshake and stop Initial processing
+RFC 9000|17.2.2.1|Initial packet protection keys are discarded when Initial processing stops|N|No key discard logic tied to Handshake packet exchange
+RFC 9000|17.2.3|0-RTT packet uses long header with type value 0x01 and carries early data|PARTIAL|Parser and encoder for 0-RTT exist but are not actively used in connection management
+RFC 9000|17.2.3|Packet numbers for 0-RTT protected packets use the same space as 1-RTT protected packets|N|0-RTT packet number space not managed
+RFC 9000|17.2.3|A client MUST NOT send 0-RTT packets once it starts processing 1-RTT packets from the server|N|Not enforced
+RFC 9000|17.2.4|Handshake packet uses long header with type value 0x02|Y|Parser `_parse_pkt_handshake` and encoder `_encode_pkt_handshake` fully implemented
+RFC 9000|17.2.4|Handshake packets have their own packet number space, first packet has packet number 0|PARTIAL|Handshake packet type exists but independent packet number space with starting at 0 is not enforced
+RFC 9000|17.2.4|Handshake packet payload may contain CRYPTO, PING, PADDING, ACK, and CONNECTION_CLOSE (0x1c) frames|Y|Frame types are defined and handled in frame parser
+RFC 9000|17.2.5|Retry packet uses long header with type value 0x03|Y|Parser `_parse_pkt_retry` and encoder `_encode_pkt_retry` fully implemented
+RFC 9000|17.2.5|Retry packet contains Retry Token and Retry Integrity Tag (128 bits) but no PN or Length fields|Y|Token extracted as remaining bytes minus 16-byte integrity tag; integrity tag copied at lines 206-213
+RFC 9000|17.2.5|A client MUST discard a Retry packet with a zero-length Retry Token field|Y|Check at line 207 of quic.c: `if (token_bytes == 0) { rc->err = YAWT_Q_ERR_INVALID_PACKET; return; }`
+RFC 9000|17.2.5|Retry packet does not contain protected fields (no header or packet protection applied)|PARTIAL|Retry packets have no packet number or length, but Retry Integrity Tag is stored without validation
+RFC 9000|17.2.5|Clients MUST discard Retry packets with a Retry Integrity Tag that cannot be validated|N|No Retry Integrity Tag validation is performed; only copied without verification
+RFC 9000|17.2.5|A client MUST accept and process at most one Retry packet per connection attempt|N|No limit on number of Retry packets processed
+RFC 9000|17.2.5.1|Server SCID in Retry packet MUST NOT equal the client's DCID in its Initial packet|N|No validation of SCID != client DCID in Retry handling
+RFC 9000|17.2.5.1|A server MUST NOT send more than one Retry packet in response to a single UDP datagram|N|No limit enforced on server side
+RFC 9000|17.2.5.2|A client sets the DCID of subsequent Initial packets to the SCID from the Retry packet|N|No Retry-handling logic to update DCID in subsequent Initial packets
+RFC 9000|17.2.5.2|A client MUST NOT change the SCID because the server could include it in token validation|N|No logic to preserve SCID through Retry
+RFC 9000|17.2.5.3|Subsequent Initial packets from the client include the token values from the Retry packet|N|No token forwarding from Retry to subsequent Initial implemented
+RFC 9000|17.3|Only one short-header packet type defined (1-RTT)|Y|The codebase defines a single short-header packet type YAWT_Q_PKT_TYPE_1RTT in the enum and implements only 1-RTT for short headers.
+RFC 9000|17.3.1|1-RTT packets use a short packet header after version and 1-RTT keys are negotiated|Y|Implemented in _parse_pkt_1rtt and _encode_pkt_1rtt; 1-RTT packets are only built/processed after handshake completes and 1-RTT keys are available.
+RFC 9000|17.3.1|Header Form bit is set to 0 (MSB of byte 0)|Y|Encodes `(0 << 7)` in byte 0 at line 443 of quic.c during 1-RTT packet encoding.
+RFC 9000|17.3.1|Fixed Bit is set to 1 (bit 6 of byte 0), packets with 0 MUST be discarded|Y|Encodes `(1 << 6)` at line 443; validates on parse at line 227, returning YAWT_Q_ERR_INVALID_PACKET when zero.
+RFC 9000|17.3.1|Spin Bit (bit 5 of byte 0) is present in 1-RTT packets|Y|Extracted at line 228 as `(b0 >> 5) & 1` and encoded at line 443; stored in pkt->extra.one_rtt.spin_bit.
+RFC 9000|17.3.1|Reserved Bits (bits 3-2 of byte 0, mask 0x18) MUST be 0 after removing header and packet protection; non-zero after unprotection is a PROTOCOL_VIOLATION|N|The code extracts reserved bits at line 229 as `(b0 >> 3) & 3` before unprotection, but YAWT_q_crypto_unprotect_header does not validate reserved bits are zero after unmasking — no PROTOCOL_VIOLATION error is raised.
+RFC 9000|17.3.1|Key Phase bit (bit 2 of byte 0) identifies packet protection key phase|Y|Extracted at line 230 as `(b0 >> 2) & 1` and encoded at line 444; stored in pkt->extra.one_rtt.key_phase. The code does not implement key rotation or detect key phase mismatches, but the field is correctly parsed and encoded.
+RFC 9000|17.3.1|Packet Number Length field (bits 1-0 of byte 0) encodes length as value+1 bytes (1-4 bytes)|Y|Extracted at line 231 as `(b0 & 3) + 1`; re-read after header unprotection at line 763 in crypt.c; encoded at line 445. Packet numbers are encoded big-endian.
+RFC 9000|17.3.1|Destination Connection ID field is 0-160 bits, chosen by the packet recipient|PARTIAL|The code uses a fixed 20-byte DCID (YAWT_Q_CID_LEN) for 1-RTT packets and copies it from connection state rather than reading variable-length from wire, consistent with "known from connection state" guidance. However, there is no validation that the received DCID length matches the expected length from transport parameters.
+RFC 9000|17.3.1|Packet Number field is 1-4 bytes, protected using header protection|Y|The code supports 1-4 byte packet numbers; PN is unmasked after header protection removal at line 684-686 in crypt.c.
+RFC 9000|17.3.1|1-RTT packets always include a 1-RTT protected payload|Y|The encode path writes payload + 16-byte AEAD tag at lines 461-468; the decrypt path requires non-zero payload_len and verifies the AEAD tag via gnutls_aead_cipher_decrypt.
+RFC 9000|17.3.1|Header form bit and Destination Connection ID are version independent; remaining fields are version-specific|PARTIAL|The code packs all header fields into a single YAWT_Q_Packet_t struct without explicit version-independent vs. version-specific field separation, but in practice the short-header parsing path only handles QUIC version 1, so the distinction is not exercised.
+RFC 9000|17.4|Spin bit is defined as bit 5 of byte 0 in 1-RTT packet headers|Y|Field `pkt->extra.one_rtt.spin_bit` is decoded from incoming packets (quic.c:228) and encoded in outgoing packets (quic.c:443).
+RFC 9000|17.4|Spin bit is only present in 1-RTT packets, not in other packet types|Y|The `spin_bit` field is only within the `one_rtt` union member; long-header and other packet encoders do not touch it.
+RFC 9000|17.4|Spin bit is an OPTIONAL feature of this version of QUIC|PARTIAL|The field exists and is parsed/encoded, but there is no mechanism to enable or disable the feature globally or per-connection.
+RFC 9000|17.4|Administrators must be able to disable the spin bit globally or per-connection|N|No configuration option, flag, or API exists to disable the spin bit.
+RFC 9000|17.4|Endpoints must randomly disable the spin bit for at least 1 in 16 network paths or connection IDs|N|No random-selection or sampling logic exists anywhere in the codebase.
+RFC 9000|17.4|When disabled, endpoints MAY set spin bit to any value and MUST ignore incoming value|N|The code always reads the incoming spin bit (line 228) and always writes its stored value (line 443) with no conditional on a disabled state.
+RFC 9000|17.4|Recommended: set spin bit to a random value when disabled|N|No random-value assignment logic found.
+RFC 9000|17.4|When enabled, each endpoint maintains a spin value per network path|N|No per-path spin state storage exists; no path-tracking structures for spin values.
+RFC 9000|17.4|Spin value is initialized to 0 per network path|N|No initialization of spin values found.
+RFC 9000|17.4|Each endpoint remembers the highest packet number seen from its peer on each path|N|No per-path highest-packet-number tracking exists in the code.
+RFC 9000|17.4|Server sets its spin value equal to the spin bit in the received packet when it increases the highest packet number|N|No server-side spin-update logic is implemented.
+RFC 9000|17.4|Client sets its spin value to the inverse of the spin bit in the received packet when it increases the highest packet number|N|No client-side spin-update logic is implemented.
+RFC 9000|17.4|Endpoint resets spin value to 0 when changing the connection ID on a network path|N|No connection-ID-change detection or spin reset logic found.
+RFC 9000|17.4|Server reflects the spin value received from client in outgoing 1-RTT packets|N|The spin bit is always zero (default-initialized) and never updated based on received packets.
+RFC 9000|17.4|Client inverts the spin value from the server and "spins" it after one RTT|N|No client-side inversion or RTT-based toggling logic exists.
+RFC 9000|18.1|Transport parameters with identifier 31*N+27 are reserved for testing unknown-param-ignore behavior|N|No explicit recognition of the 31*N+27 pattern in transport parameter decoder (_tp_recv in crypt.c); reserved IDs fall through to default case
+RFC 9000|18.1|Unknown transport parameters must be ignored (skipped) during decoding|Y|Unknown param IDs fall through to default: break in _tp_recv switch and cursor is advanced past the parameter value (crypt.c line 268-270)
+RFC 9000|18.1|Reserved transport parameters may carry arbitrary values with no semantics|PARTIAL|Code ignores all unknown transport parameters generically (default: break), so arbitrary values are accepted but there is no specific handling or test coverage for the 31*N+27 reserved range
+RFC 9000|18.2|Transport parameter integer values use variable-length integer encoding|Y|All params encoded/decoded using YAWT_q_varint_encode/decode in crypt.c
+RFC 9000|18.2|Default value is 0 for absent transport parameters unless otherwise stated|UNKNOWN|The code does not explicitly set RFC-specified defaults (e.g., ack_delay_exponent=3, max_ack_delay=25ms) when parameters are absent
+RFC 9000|18.2|original_destination_connection_id (0x00) — server only, conveys Destination Connection ID from first client Initial packet|PARTIAL|Server encodes this in _tp_send (crypt.c line 306), but peer decoding is absent from _tp_recv
+RFC 9000|18.2|max_idle_timeout (0x01) — conveys max idle timeout in milliseconds, 0 means disabled|Y|Encoded in _tp_send (crypt.c line 318) and decoded in _tp_recv (crypt.c line 260), default 30000ms in security.c
+RFC 9000|18.2|stateless_reset_token (0x02) — server only, 16-byte token for stateless reset verification|N|Neither encoded in _tp_send nor decoded in _tp_recv; only present as a field in NEW_CONNECTION_ID frame struct
+RFC 9000|18.2|max_udp_payload_size (0x03) — limits maximum UDP payload size the endpoint will receive, default 65527, values below 1200 invalid|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|initial_max_data (0x04) — initial connection-level flow control limit|Y|Encoded in _tp_send (crypt.c line 319) and decoded in _tp_recv (crypt.c line 261), default 1048576 in security.c
+RFC 9000|18.2|initial_max_stream_data_bidi_local (0x05) — initial flow control limit for locally-initiated bidirectional streams|Y|Encoded in _tp_send (crypt.c line 320) and decoded in _tp_recv (crypt.c line 262), default 1048576 in security.c
+RFC 9000|18.2|initial_max_stream_data_bidi_remote (0x06) — initial flow control limit for peer-initiated bidirectional streams|Y|Encoded in _tp_send (crypt.c line 321) and decoded in _tp_recv (crypt.c line 263), default 1048576 in security.c
+RFC 9000|18.2|initial_max_stream_data_uni (0x07) — initial flow control limit for unidirectional streams|Y|Encoded in _tp_send (crypt.c line 322) and decoded in _tp_recv (crypt.c line 264), default 1048576 in security.c
+RFC 9000|18.2|initial_max_streams_bidi (0x08) — initial max number of bidirectional streams peer may initiate|Y|Encoded in _tp_send (crypt.c line 323) and decoded in _tp_recv (crypt.c line 265), default 16 in security.c
+RFC 9000|18.2|initial_max_streams_uni (0x09) — initial max number of unidirectional streams peer may initiate|Y|Encoded in _tp_send (crypt.c line 324) and decoded in _tp_recv (crypt.c line 266), default 16 in security.c
+RFC 9000|18.2|ack_delay_exponent (0x0a) — exponent for decoding ACK Delay field in ACK frames, default 3 (multiplier of 8), values above 20 invalid|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|max_ack_delay (0x0b) — maximum acknowledgment delay in milliseconds, default 25ms, values >= 2^14 invalid|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|disable_active_migration (0x0c) — zero-length parameter indicating endpoint does not support active connection migration|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|preferred_address (0x0d) — server only, conveys alternative server address (IPv4/IPv6), connection ID, and stateless reset token|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|active_connection_id_limit (0x0e) — max number of peer connection IDs to store, default 2, must be at least 2|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|initial_source_connection_id (0x0f) — MUST be included by both endpoints, conveys Source Connection ID from first Initial packet|PARTIAL|Encoded in _tp_send (crypt.c line 311), but not decoded in _tp_recv
+RFC 9000|18.2|retry_source_connection_id (0x10) — server only, conveys Source Connection ID from Retry packet|N|Neither encoded in _tp_send nor decoded in _tp_recv
+RFC 9000|18.2|Client MUST NOT include server-only transport parameters (original_destination_connection_id, preferred_address, retry_source_connection_id, stateless_reset_token)|PARTIAL|Server encodes original_destination_connection_id correctly, but no client-side validation guards against sending server-only params nor server-side validation to reject them
+RFC 9000|19.1|PADDING frame type is 0x00|Y|Defined as YAWT_Q_FRAME_PADDING = 0x00 in quic_types.h
+RFC 9000|19.1|PADDING frame has no semantic value|Y|Decoder handles it with a bare break (no processing)
+RFC 9000|19.1|PADDING frames can increase packet size|Y|Padding is written into packets to fill remaining space
+RFC 9000|19.1|Padding for Initial packet minimum size (1200 bytes)|Y|Implemented: Initial packets are padded to 1200-byte minimum per RFC 9000 §14.1
+RFC 9000|19.1|Padding for traffic analysis protection on protected packets|PARTIAL|Implemented for Initial packets only; no explicit traffic-analysis padding for other protected packet types observed
+RFC 9000|19.1|PADDING frame has no content beyond type byte|Y|Encoder writes 0x00 bytes; first byte is frame type, subsequent bytes are also consumed as PADDING frames
+RFC 9000|19.2|PING frames (type=0x01) can be used by endpoints to verify peers are alive or check reachability|Y|Frame type enum defined as 0x01 and send/receive functions exist in quic.c and quic_connection.c
+RFC 9000|19.2|PING frame format has no content beyond the frame type byte|Y|`YAWT_q_enqueue_frame_ping` writes only 1 byte (0x01) with no payload
+RFC 9000|19.2|Receiver of a PING frame must acknowledge the packet containing it|Y|PING frames are treated as ack-eliciting in `_handle_frames` (line 354-357), so the receiver sends back an ACK
+RFC 9000|19.2|PING frame can be used to keep a connection alive and prevent idle timeout|Y|`_maint_ping` in quic_connection.c sends a keepalive PING when approaching the idle timeout threshold
+RFC 9000|19.3|ACK frame types are 0x02 (basic) and 0x03 (with ECN counts)|Y|Both frame type constants are defined as YAWT_Q_FRAME_ACK (0x02) and YAWT_Q_FRAME_ACK_ECN (0x03) in quic_types.h.
+RFC 9000|19.3|ACK frames contain one or more ACK Ranges to identify acknowledged packets|Y|The YAWT_Q_Frame_ACK_t struct includes largest_ack, ack_range_count, first_ack_range, and ranges fields, and encoding/decoding handle these.
+RFC 9000|19.3|Type 0x03 ACK frames contain ECN counts (ECT0, ECT1, ECN-CE)|N|The YAWT_Q_Frame_ACK_ECN_t struct defines the ECN count fields, but frame decoding for type 0x03 falls through to the switch default, producing YAWT_Q_ERR_INVALID_PACKET; ECN counts are never processed.
+RFC 9000|19.3|ACKs are irrevocable — once acknowledged, a packet remains acknowledged|Y|The _process_ack function permanently removes ACK'd frames from tx_buffer with no re-add logic.
+RFC 9000|19.3|ACK frames only acknowledge packet numbers in the same packet number space as the ACK packet|Y|The _process_ack function filters frames by the `level` (packet number space) parameter.
+RFC 9000|19.3|ACK frame format: Type, Largest Acknowledged, ACK Delay, ACK Range Count, First ACK Range, ACK Ranges, [ECN Counts]|PARTIAL|Encoding produces the basic ACK frame format correctly, but does not support the optional ECN Counts tail for type 0x03.
+RFC 9000|19.3|Largest Acknowledged is a variable-length integer representing the largest packet number acknowledged, not truncated|Y|Encoded and decoded as a variable-length integer using YAWT_q_varint_encode/decode.
+RFC 9000|19.3|ACK Delay is a variable-length integer encoded in microseconds, decoded by multiplying by 2^ack_delay_exponent transport parameter|PARTIAL|ACK Delay is encoded/decoded as a varint, but the ack_delay_exponent transport parameter scaling is never applied; ACK delay is always sent as 0.
+RFC 9000|19.3|ACK Range Count is a variable-length integer specifying the number of ACK Range fields|Y|Present in encoding (always 0) and decoding.
+RFC 9000|19.3|First ACK Range indicates the number of contiguous packets preceding Largest Acknowledged that are acknowledged|Y|Encoded and decoded correctly; the implementation sets first_ack_range = largest_ack to acknowledge all packets from 0 to largest_ack.
+RFC 9000|19.3|ACK Ranges contain alternating Gap and ACK Range Length values in descending packet number order|PARTIAL|Decoding walks the gap/range varint pairs correctly per RFC formula, but encoding always sends zero additional ranges (only the First ACK Range).
+RFC 9000|19.3|Receivers send ACK frames to inform senders of packets they have received and processed|Y|ACK frames are enqueued when ack-eliciting frames are received, and _process_ack handles incoming ACKs.
+RFC 9000|19.3|QUIC implementations MUST properly handle both ACK frame types (0x02 and 0x03)|PARTIAL|Type 0x02 (basic ACK) is fully handled; type 0x03 (ACK with ECN) causes INVALID_PACKET on decode.
+RFC 9000|19.3|If ECN is enabled, implementations SHOULD use ECN information to manage congestion state|N|No ECN tracking or congestion state management exists anywhere in the codebase.
+RFC 9000|19.4|RESET_STREAM frame type is 0x04|Y|The enum constant YAWT_Q_FRAME_RESET_STREAM = 0x04 is defined in quic_types.h.
+RFC 9000|19.4|RESET_STREAM is used to abruptly terminate the sending part of a stream|N|The frame struct YAWT_Q_Frame_Reset_Stream_t is defined but no encoding, parsing, or frame handler exists; falls through to unhandled/default case.
+RFC 9000|19.4|After sending RESET_STREAM, endpoint ceases transmission and retransmission of STREAM frames on the stream|N|No RESET_STREAM sending path implemented; stream state tracking for reset is absent.
+RFC 9000|19.4|Receiver of RESET_STREAM can discard any already-received data on that stream|N|No receiver handler for RESET_STREAM frames exists in _handle_frames().
+RFC 9000|19.4|Endpoint receiving RESET_STREAM for a send-only stream MUST terminate connection with STREAM_STATE_ERROR|N|No STREAM_STATE_ERROR transport error code is defined in YAWT, and RESET_STREAM reception is not handled.
+RFC 9000|19.4|RESET_STREAM Frame contains Stream ID field as variable-length integer|N|The field exists in YAWT_Q_Frame_Reset_Stream_t struct but no varint decoder for this frame type is implemented.
+RFC 9000|19.4|RESET_STREAM Frame contains Application Protocol Error Code field|N|The field exists in the struct but no encoder/decoder for this frame type is implemented.
+RFC 9000|19.4|RESET_STREAM Frame contains Final Size field|N|The field exists in the struct but no encoder/decoder for this frame type is implemented.
+RFC 9000|19.5|STOP_SENDING frame type is 0x05|Y|The enum value YAWT_Q_FRAME_STOP_SENDING = 0x05 is declared in quic_types.h:111.
+RFC 9000|19.5|STOP_SENDING frame struct has Stream ID and Application Protocol Error Code fields|Y|YAWT_Q_Frame_Stop_Sending_t is defined in quic_types.h:243-246 with uint64_t stream_id and uint64_t app_error_code.
+RFC 9000|19.5|STOP_SENDING frame decoding from wire format|N|No case for YAWT_Q_FRAME_STOP_SENDING exists in YAWT_q_parse_frame switch in quic.c; received frames of this type fall through to the default unhandled case.
+RFC 9000|19.5|STOP_SENDING frame encoding for transmission|N|No encode_frame_stop_sending or similar function exists in YAWT; the only encoder present is YAWT_q_encode_frame_padding.
+RFC 9000|19.5|STOP_SENDING frame dispatch/handling in packet receiver|N|No case for YAWT_Q_FRAME_STOP_SENDING exists in the frame dispatch switch in quic_connection.c; unhandled frames produce a printf diagnostic.
+RFC 9000|19.5|Receiving STOP_SENDING for locally-initiated uncreated stream must trigger STREAM_STATE_ERROR|N|No STREAM_STATE_ERROR error code is defined in YAWT (YAWT_Q_Error_t enum has no such value) and no STOP_SENDING receiver logic exists.
+RFC 9000|19.5|Receiving STOP_SENDING for receive-only stream must trigger STREAM_STATE_ERROR|N|No STREAM_STATE_ERROR error code is defined and no STOP_SENDING receiver logic exists; stream type tracking for receive-only classification is absent.
+RFC 9000|19.5|STOP_SENDING field encoding uses variable-length integer for Stream ID|N|No variable-length integer encoding is implemented for STOP_SENDING fields; the frame is never encoded.
+RFC 9000|19.5|STOP_SENDING field encoding uses variable-length integer for Application Protocol Error Code|N|No variable-length integer encoding is implemented for STOP_SENDING fields; the frame is never encoded.
+RFC 9000|19.6|CRYPTO frame type code is 0x06|Y|Defined as YAWT_Q_FRAME_CRYPTO = 0x06 in quic_types.h
+RFC 9000|19.6|CRYPTO frames are used to transmit cryptographic handshake messages|Y|Implemented via _push_crypto_frames sending TLS handshake output and YAWT_q_crypto_feed processing received frames
+RFC 9000|19.6|CRYPTO frames can be sent in all packet types except 0-RTT|Y|The TLS layer does not produce early data in this implementation (session tickets disabled, per comment), and CRYPTO frames are only pushed for Initial/Handshake/1-RTT levels
+RFC 9000|19.6|CRYPTO frames offer the cryptographic protocol an in-order stream of bytes|Y|In-order reassembly via rx_crypto_next_offset per level with out-of-order buffering and _drain_crypto_buf
+RFC 9000|19.6|CRYPTO frames do not bear a stream identifier|Y|YAWT_Q_Frame_Crypto_t struct contains offset/len/data only, no stream_id field
+RFC 9000|19.6|CRYPTO frames are not flow controlled|Y|No STREAM-style flow control (MAX_DATA/MAX_STREAM_DATA) applied to CRYPTO frames; uses crypto buffer cap instead
+RFC 9000|19.6|CRYPTO frames do not carry markers for optional offset, optional length, and end of stream|Y|Encoding always includes offset and length as mandatory fields; no FIN/end bit exists in the frame structure
+RFC 9000|19.6|CRYPTO Frame format: Type (i) = 0x06, Offset (i), Length (i), Crypto Data (..)|Y|Encoded at lines 648-666 of quic.c with type byte 0x06, two varints for offset and length, then raw data bytes
+RFC 9000|19.6|Crypto Data field carries cryptographic message data|Y|Raw bytes from TLS handshake output fed directly into frame data field
+RFC 9000|19.6|Separate flow of cryptographic handshake data in each encryption level, each starting at offset 0|Y|Per-level offsets tracked in crypto->rx_crypto_next_offset[lvl] with _drain_crypto_buf handling out-of-order frames per level
+RFC 9000|19.6|Each encryption level treated as a separate CRYPTO stream of data|Y|Four independent encryption levels (INITIAL, EARLY, HANDSHAKE, APPLICATION) each with their own reassembly buffers and next offsets
+RFC 9000|19.6|Largest offset delivered (offset + data length) cannot exceed 2^62-1|N|No validation of 2^62-1 ceiling on offset + length is present in the code
+RFC 9000|19.6|Receipt of a frame exceeding 2^62-1 MUST be treated as a connection error (FRAME_ENCODING_ERROR or CRYPTO_BUFFER_EXCEEDED)|N|No check for 2^62-1 overflow exists; overflow would silently wrap in uint64_t arithmetic
+RFC 9000|19.6|CRYPTO frames carry data for a single stream per encryption level|Y|Each encryption level has exactly one reassembly stream with a single rx_crypto_next_offset
+RFC 9000|19.6|CRYPTO stream does not have an explicit end and frames do not have a FIN bit|Y|No FIN bit or end-of-stream marker exists in the CRYPTO frame encoding or decoding logic
+RFC 9000|19.6|Out-of-order CRYPTO frames are buffered and delivered in order once gaps are filled|Y|Out-of-order frames pushed to rx_crypto_buf slab and drained by _drain_crypto_buf when gaps close
+RFC 9000|19.6|CRYPTO frames at inactive encryption levels are rejected|Y|crypt.c line 512: checks level_keys[level].state != ACTIVE and returns YAWT_Q_ERR_INVALID_PACKET
+RFC 9000|19.6|Duplicate CRYPTO frame data (fully already-received) is silently skipped|Y|crypt.c line 522: if (end <= crypto->rx_crypto_next_offset[level]) returns YAWT_Q_OK
+RFC 9000|19.6|CRYPTO_BUFFER_EXCEEDED error returned when out-of-order crypto buffer exceeds configured cap|Y|crypt.c line 537-540: checks against max_crypto_buffer_bytes and returns YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED
+RFC 9000|19.7|Server sends NEW_TOKEN frame with type 0x07|PARTIAL|Frame type constant YAWT_Q_FRAME_NEW_TOKEN=0x07 defined in include/quic_types.h, but no encoding/decoding logic found in src/
+RFC 9000|19.7|NEW_TOKEN frame format: Type (i)=0x07, Token Length (i), Token (..)|PARTIAL|Struct YAWT_Q_Frame_New_Token_t defined in include/quic_types.h, but no wire encoding/decoding implementation found
+RFC 9000|19.7|Token Length field as variable-length integer specifying token byte length|N|No varint encoding of token length found in src/quic.c frame parsing
+RFC 9000|19.7|Token field as opaque blob for use in future Initial packet|N|No token storage or extraction logic found in the codebase
+RFC 9000|19.7|Token MUST NOT be empty; empty token triggers FRAME_ENCODING_ERROR connection error|N|No empty-token validation found anywhere in the codebase
+RFC 9000|19.7|Clients must discard duplicate NEW_TOKEN frame tokens|N|No duplicate token tracking or deduplication logic found
+RFC 9000|19.7|Clients MUST NOT send NEW_TOKEN frames|N|No check preventing client from sending NEW_TOKEN frames; no PROTOCOL_VIOLATION error on receipt
+RFC 9000|19.7|Server MUST treat NEW_TOKEN frame received from client as PROTOCOL_VIOLATION|N|No frame-type role validation in server receive path; unhandled frame type falls to default case
