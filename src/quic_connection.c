@@ -288,7 +288,7 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
       meta->rx_next_offset += f->data_len;
       con->stats.rx_count_bytes += f->data_len;
       if (f->fin) {
-        meta->rx_fin = 1;
+        meta->rx_end = 1;
         meta->rx_fin_offset = f->offset + f->data_len;
       }
 
@@ -452,7 +452,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           meta->rx_next_offset = end;
           con->stats.rx_count_bytes += frame.stream.data_len;
           if (frame.stream.fin) {
-            meta->rx_fin = 1;
+            meta->rx_end = 1;
             meta->rx_fin_offset = end;
           }
 
@@ -530,6 +530,25 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         param.P_EVT_DATAGRAM.data = frame.datagram.dataptr;
         param.P_EVT_DATAGRAM.len = frame.datagram.len;
         _event_handler(con, YAWT_Q_EVT_DATAGRAM, param);
+        break;
+      }
+
+      case YAWT_Q_FRAME_RESET_STREAM: {
+        YAWT_LOG(YAWT_LOG_DEBUG, "RESET_STREAM received: stream=%lu, error=%lu, final_size=%lu",
+                 frame.reset_stream.stream_id, frame.reset_stream.app_error_code,
+                 frame.reset_stream.final_size);
+        YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.reset_stream.stream_id);
+        if (meta) {
+          meta->rx_end = 1;
+          meta->rx_fin_offset = frame.reset_stream.final_size;
+        }
+        break;
+      }
+
+      case YAWT_Q_FRAME_STOP_SENDING: {
+        YAWT_LOG(YAWT_LOG_DEBUG, "STOP_SENDING received: stream=%lu, error=%lu",
+                 frame.stop_sending.stream_id, frame.stop_sending.app_error_code);
+        YAWT_q_con_reset_stream(con, frame.stop_sending.stream_id, frame.stop_sending.app_error_code);
         break;
       }
 
@@ -793,7 +812,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     meta = _stream_meta_add(con, stream_id);
     if (!meta) return YAWT_Q_ERR_ALLOC;
   }
-  if (meta->tx_fin_sent) return YAWT_Q_ERR_INVALID_PARAM;
+  if (meta->tx_end) return YAWT_Q_ERR_INVALID_PARAM;
 
   size_t total_len = 0;
   for (int i = 0; i < iov_count; i++) {
@@ -812,7 +831,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     sf.frame.fin = 1;
     YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
-    meta->tx_fin_sent = 1;
+    meta->tx_end = 1;
     return YAWT_Q_OK;
   }
 
@@ -858,8 +877,50 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     remaining -= chunk_len;
   }
 
-  if (fin) meta->tx_fin_sent = 1;
+  if (fin) meta->tx_end = 1;
   return YAWT_Q_OK;
+}
+
+static void _reset_stream_unbuffer(YAWT_Q_Connection_t *con, uint64_t stream_id) {
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+
+  while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
+    if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+    YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
+    if (f->type == YAWT_Q_FRAME_STREAM && f->stream_id == stream_id) {
+      ANB_slab_pop_item(con->tx_buffer, &iter);
+    }
+  }
+}
+
+YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                         uint64_t app_error_code) {
+  if (!con) return YAWT_Q_ERR_INVALID_PARAM;
+
+  YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
+  if (!meta) return YAWT_Q_ERR_INVALID_PARAM;
+  if (meta->tx_end) return YAWT_Q_ERR_INVALID_PARAM;
+
+  meta->tx_end = 1;
+  YAWT_Q_Error_t err = YAWT_q_enqueue_frame_reset_stream(con, stream_id, app_error_code, meta->tx_next_offset);
+  if (err != YAWT_Q_OK) return err;
+
+  _reset_stream_unbuffer(con, stream_id);
+  return YAWT_Q_OK;
+}
+
+YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                         uint64_t app_error_code) {
+  if (!con) return YAWT_Q_ERR_INVALID_PARAM;
+
+  YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
+  if (!meta) return YAWT_Q_ERR_INVALID_PARAM;
+  if (meta->rx_end) return YAWT_Q_ERR_INVALID_PARAM;
+
+  meta->rx_end = 1;
+  return YAWT_q_enqueue_frame_stop_sending(con, stream_id, app_error_code);
 }
 
 // Global maintenance configuration

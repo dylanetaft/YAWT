@@ -277,6 +277,36 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
  */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Encode a RESET_STREAM frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param stream_id The stream to reset.
+ * @param app_error_code Application error code.
+ * @param final_size Final byte offset sent on this stream.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only. RFC 9000 §19.4.
+ */
+YAWT_Q_Error_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
+                                                   uint64_t stream_id,
+                                                   uint64_t app_error_code,
+                                                   uint64_t final_size);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Encode a STOP_SENDING frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param stream_id The stream to stop receiving.
+ * @param app_error_code Application error code.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only. RFC 9000 §19.5.
+ */
+YAWT_Q_Error_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
+                                                   uint64_t stream_id,
+                                                   uint64_t app_error_code);
+
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto_t YAWT_Q_Crypto_t;
 

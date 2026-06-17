@@ -132,6 +132,33 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
 /**
+ * @ingroup QUIC_Connection
+ * @brief Abruptly terminate a stream (send RESET_STREAM).
+ * @param con The QUIC connection.
+ * @param stream_id The stream to reset.
+ * @param app_error_code Application error code.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note RFC 9000 §3.1: Transitions TX to "Reset Sent" state. Sets tx_end=1, enqueues
+ *       RESET_STREAM with final_size=tx_next_offset, and removes pending STREAM frames
+ *       from tx_buffer. Returns error if stream doesn't exist or tx_end already set.
+ */
+YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                         uint64_t app_error_code);
+
+/**
+ * @ingroup QUIC_Connection
+ * @brief Request peer to stop sending on a stream (send STOP_SENDING).
+ * @param con The QUIC connection.
+ * @param stream_id The stream to stop receiving.
+ * @param app_error_code Application error code.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note RFC 9000 §3.2: Sets rx_end=1 and enqueues STOP_SENDING. Per §3.3, peer SHOULD
+ *       respond with RESET_STREAM. Returns error if stream doesn't exist or rx_end already set.
+ */
+YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+                                         uint64_t app_error_code);
+
+/**
  * @internal
  * @ingroup QUIC_Internal
  * @brief Update the peer's Connection ID.

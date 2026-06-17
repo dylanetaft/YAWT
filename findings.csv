@@ -791,3 +791,191 @@ RFC 9000|19.7|Token MUST NOT be empty; empty token triggers FRAME_ENCODING_ERROR
 RFC 9000|19.7|Clients must discard duplicate NEW_TOKEN frame tokens|N|No duplicate token tracking or deduplication logic found
 RFC 9000|19.7|Clients MUST NOT send NEW_TOKEN frames|N|No check preventing client from sending NEW_TOKEN frames; no PROTOCOL_VIOLATION error on receipt
 RFC 9000|19.7|Server MUST treat NEW_TOKEN frame received from client as PROTOCOL_VIOLATION|N|No frame-type role validation in server receive path; unhandled frame type falls to default case
+RFC 9000|19.8|STREAM frames implicitly create a stream when received|Y|Stream meta is created via _stream_meta_add when no existing meta is found for the stream_id (quic_connection.c:438-440)
+RFC 9000|19.8|STREAM frame type field uses range 0x08-0x0f (0b00001XXX)|Y|Parsing checks frame_type >= 0x08 && <= 0x0f; encoding uses base 0x08 with low 3 bits for flags (quic.c:502,724)
+RFC 9000|19.8|OFF bit (0x04) controls presence of Offset field in STREAM frame|Y|Parsing decodes offset only when off bit is set; when absent offset defaults to 0 (quic.c:505,510-511)
+RFC 9000|19.8|LEN bit (0x02) controls presence of Length field; when absent data extends to end of packet|Y|Parsing computes data_len as remaining bytes when len_present is 0 (quic.c:506,513-517)
+RFC 9000|19.8|FIN bit (0x01) marks end of stream; final size = offset + data length|Y|When FIN is set, rx_fin_offset is computed as offset + data_len (quic_connection.c:455-456)
+RFC 9000|19.8|STREAM_STATE_ERROR on receiving STREAM frame for locally initiated uncreated or send-only stream|N|No check for locally-initiated stream type; streams are created unconditionally on receipt rather than validating stream ownership (quic_connection.c:438-440)
+RFC 9000|19.8|Stream ID field encoded as variable-length integer|Y|Stream ID decoded via YAWT_q_varint_decode during frame parsing (quic.c:508)
+RFC 9000|19.8|Offset field encoded as variable-length integer when present|Y|Offset decoded via YAWT_q_varint_decode when off bit is set (quic.c:511)
+RFC 9000|19.8|Length field encoded as variable-length integer when present|Y|Data length decoded via YAWT_q_varint_decode when len_present bit is set (quic.c:514)
+RFC 9000|19.8|Stream Data carries the actual bytes from the designated stream|Y|Data delivered via EVT_STREAM event with frame.data pointer; out-of-order data buffered in slab (quic_connection.c:461, 469-474)
+RFC 9000|19.8|When Stream Data length is 0, offset indicates offset of next byte to be sent|PARTIAL|Empty FIN frames are handled correctly (quic_connection.c:805-816) but zero-length non-FIN frames lack explicit handling per RFC wording
+RFC 9000|19.8|First byte in stream has offset 0|Y|When Offset field is absent, offset is implicitly 0 (quic.c:505 sets off=0, struct zero-initialized)
+RFC 9000|19.8|Largest offset + data length on a stream cannot exceed 2^62-1|N|No validation exists for the 2^62-1 offset limit anywhere in the codebase; uint64_t arithmetic could silently wrap
+RFC 9000|19.8|Receipt of frame exceeding 2^62-1 limit triggers FRAME_ENCODING_ERROR or FLOW_CONTROL_ERROR|N|No check for 2^62-1 limit and no FRAME_ENCODING_ERROR (0x07) transport error code defined in YAWT (quic.h:86-95)
+RFC 9000|19.8|STREAM frames carry stream data bytes to be delivered|Y|Data delivered via EVT_STREAM event with frame.data pointer; out-of-order data buffered in slab (quic_connection.c:461, 469-474)
+RFC 9000|19.8|Out-of-order STREAM frames are buffered for reassembly|Y|Out-of-order frames are allocated into slab and processed by _drain_stream_rx when gaps fill (quic_connection.c:464-476, 277-299)
+RFC 9000|19.8|Fully duplicate data (end <= next expected offset) is skipped|Y|Check `if (end <= meta->rx_next_offset) break;` skips fully received data (quic_connection.c:446)
+RFC 9000|19.9|MAX_DATA frame has type code 0x10|Y|YAWT_Q_FRAME_MAX_DATA is defined as 0x10 in quic_types.h line 115
+RFC 9000|19.9|MAX_DATA frame is used in flow control to inform the peer of the maximum amount of data that can be sent on the connection as a whole|PARTIAL|The peer's advertised limit is stored in con->peer_fc.max_data and checked when sending STREAM frames, but MAX_DATA frames are never sent outbound to advertise the local endpoint's limit
+RFC 9000|19.9|MAX_DATA frame format is Type (i) = 0x10 followed by Maximum Data (i), both variable-length integers|Y|YAWT_Q_Frame_Max_Data_t struct defines the max_data uint64_t field and decoder exists in quic.c line 601
+RFC 9000|19.9|Maximum Data field is a variable-length integer indicating the maximum amount of data that can be sent on the entire connection in units of bytes|Y|Stored as uint64_t in YAWT_Q_Frame_Max_Data_t and in con->peer_fc.max_data
+RFC 9000|19.9|All data sent in STREAM frames counts toward this limit|Y|con->stats.tx_count_bytes is incremented when sending stream data and checked against con->peer_fc.max_data in _drain_tx before sending STREAM frames (quic_connection.c line 688)
+RFC 9000|19.9|Sum of final sizes on all streams including streams in terminal states MUST NOT exceed the value advertised by a receiver|N|No receiver-side validation exists; rx_count_bytes is accumulated in _recv_stream (line 453) without ever comparing against the peer's advertised max_data limit
+RFC 9000|19.9|MUST terminate connection with FLOW_CONTROL_ERROR if receiving more data than the maximum data value sent|N|No FLOW_CONTROL_ERROR transport error code is defined in quic.h error enum and no receiver-side flow control violation check is implemented
+RFC 9000|19.9|Includes violations of remembered limits in Early Data|N|No special early data / 0-RTT flow control path exists in the codebase
+RFC 9000|19.10|MAX_STREAM_DATA frame type is 0x11|Y|Defined as YAWT_Q_FRAME_MAX_STREAM_DATA = 0x11 in quic_types.h enum
+RFC 9000|19.10|Frame used in flow control to inform peer of maximum data on a stream|Y|Reception handler updates meta->tx_max_data from received frame value
+RFC 9000|19.10|Frame can only be sent for streams in "Recv" state|N|No validation on receiver side checks that stream is in Recv state before processing
+RFC 9000|19.10|Receiving MAX_STREAM_DATA for a locally initiated uncreated stream must trigger STREAM_STATE_ERROR|N|No check for locally-initiated stream ownership and no STREAM_STATE_ERROR error code is defined
+RFC 9000|19.10|Receiving MAX_STREAM_DATA for a receive-only stream must terminate connection with STREAM_STATE_ERROR|N|No receive-only stream classification and no STREAM_STATE_ERROR error code defined
+RFC 9000|19.10|Frame format: Type (0x11), Stream ID, Maximum Stream Data (three variable-length integers)|Y|Struct YAWT_Q_Frame_Max_Stream_Data_t has stream_id and max_stream_data uint64_t fields; parsed with YAWT_q_varint_decode
+RFC 9000|19.10|Data counting uses largest received offset, not total received bytes|PARTIAL|tx_next_offset tracks next send offset; RFC requires tracking largest received offset which may exceed total received due to loss/reordering
+RFC 9000|19.10|Data sent on stream MUST NOT exceed largest advertised maximum stream data value|Y|_drain_tx checks meta->tx_next_offset > meta->tx_max_data and skips STREAM frames that exceed limit
+RFC 9000|19.10|Endpoint MUST terminate connection with FLOW_CONTROL_ERROR if receiving more data than advertised limit|N|No receiver-side flow control violation check and FLOW_CONTROL_ERROR error code is not defined in YAWT_Q_Error_t enum
+RFC 9000|19.10|Flow control limit violations in Early Data must also trigger FLOW_CONTROL_ERROR|N|No Early Data flow control tracking or handling implemented
+RFC 9000|19.10|Endpoint must be able to send MAX_STREAM_DATA frames to advertise stream flow control limits|N|No YAWT_q_enqueue_frame_max_stream_data function exists; no logic to construct or emit MAX_STREAM_DATA frames on the send path
+RFC 9000|19.11|MAX_STREAMS frame type 0x12 for bidirectional streams is defined|Y|Enum constant YAWT_Q_FRAME_MAX_STREAMS_BIDI = 0x12 is defined in quic_types.h
+RFC 9000|19.11|MAX_STREAMS frame type 0x13 for unidirectional streams is defined|Y|Enum constant YAWT_Q_FRAME_MAX_STREAMS_UNI = 0x13 is defined in quic_types.h
+RFC 9000|19.11|MAX_STREAMS frame format: Type followed by Maximum Streams variable-length integer|Y|Frame struct YAWT_Q_Frame_Max_Streams_t contains uint64_t max_streams, decoded via YAWT_q_varint_decode
+RFC 9000|19.11|Maximum Streams value cannot exceed 2^60; exceeding value triggers FRAME_ENCODING_ERROR|N|No 2^60 validation on received max_streams value and no FRAME_ENCODING_ERROR error code defined in YAWT
+RFC 9000|19.11|MAX_STREAMS frames that do not increase the stream limit MUST be ignored|Y|Both bidi and uni handlers use greater-than comparison before updating the limit
+RFC 9000|19.11|Endpoint MUST NOT open more streams than permitted by the current stream limit|PARTIAL|Only enforced for outgoing streams in YAWT_q_con_send_stream; no validation for incoming stream creation by the peer
+RFC 9000|19.11|Endpoint MUST terminate connection with STREAM_LIMIT_ERROR if peer opens more streams than permitted|N|No STREAM_LIMIT_ERROR error code defined in YAWT and no incoming stream limit enforcement exists
+RFC 9000|19.11|Endpoint SHOULD send MAX_STREAMS frames to advertise stream credit to peer|N|No encode or enqueue function for MAX_STREAMS frames exists in the codebase
+RFC 9000|19.12|DATA_BLOCKED frame type defined as 0x14|Y|The enum constant YAWT_Q_FRAME_DATA_BLOCKED=0x14 is defined in include/quic_types.h.
+RFC 9000|19.12|DATA_BLOCKED frame struct with Maximum Data field|Y|The YAWT_Q_Frame_Data_Blocked_t struct with uint64_t max_data is defined in include/quic_types.h.
+RFC 9000|19.12|Encoding/serialization of DATA_BLOCKED frames for transmission|N|No YAWT_q_enqueue_frame_data_blocked() function or serialization code exists.
+RFC 9000|19.12|Decoding/deserialization of DATA_BLOCKED frames from wire|N|No case for YAWT_Q_FRAME_DATA_BLOCKED in YAWT_q_parse_frame; falls through to default error.
+RFC 9000|19.12|Sending DATA_BLOCKED when connection-level flow control blocks data transmission|N|Flow control code silently skips STREAM frames when limit reached but never sends DATA_BLOCKED.
+RFC 9000|19.12|Handling received DATA_BLOCKED frames|N|No case for DATA_BLOCKED in _handle_frames switch; treated as unhandled frame type.
+RFC 9000|19.13|SHOULD send STREAM_DATA_BLOCKED frame (type=0x15) when blocked by stream-level flow control|N|Frame type enum and struct defined in quic_types.h, but no encoder function (YAWT_q_enqueue_frame_stream_data_blocked) or sender logic exists anywhere in the codebase.
+RFC 9000|19.13|Frame type codepoint is 0x15|Y|YAWT_Q_FRAME_STREAM_DATA_BLOCKED is defined as 0x15 in quic_types.h enum.
+RFC 9000|19.13|Frame contains Stream ID (variable-length integer) field|PARTIAL|The YAWT_Q_Frame_Stream_Data_Blocked_t struct has a stream_id uint64_t field, but no varint encoder exists for this frame and it is never serialized for transmission.
+RFC 9000|19.13|Frame contains Maximum Stream Data (variable-length integer) field|PARTIAL|The YAWT_Q_Frame_Stream_Data_Blocked_t struct has a max_stream_data uint64_t field, but no varint encoder exists for this frame and it is never serialized for transmission.
+RFC 9000|19.13|Receiving STREAM_DATA_BLOCKED for a send-only stream MUST terminate connection with STREAM_STATE_ERROR|N|No case for YAWT_Q_FRAME_STREAM_DATA_BLOCKED exists in _handle_frames (quic_connection.c) — the frame would fall to the default handler. Additionally, STREAM_STATE_ERROR is not defined in YAWT_Q_Error_t.
+RFC 9000|19.13|Receiving and processing STREAM_DATA_BLOCKED as a valid frame|N|No decoder case for 0x15 in YAWT_q_decode_frame (quic.c), no handler case in _handle_frames (quic_connection.c), and no encoder for transmission.
+RFC 9000|19.14|Sender SHOULD send STREAMS_BLOCKED frame when stream creation blocked by peer's max stream limit|N|No enqueue function for STREAMS_BLOCKED; when limit is exceeded the code returns YAWT_Q_ERR_INVALID_PARAM instead of sending a frame
+RFC 9000|19.14|STREAMS_BLOCKED frame type 0x16 indicates reaching bidirectional stream limit|PARTIAL|Enum constant YAWT_Q_FRAME_STREAMS_BLOCKED_BIDI=0x16 defined but never used for encoding or decoding
+RFC 9000|19.14|STREAMS_BLOCKED frame type 0x17 indicates reaching unidirectional stream limit|PARTIAL|Enum constant YAWT_Q_FRAME_STREAMS_BLOCKED_UNI=0x17 defined but never used for encoding or decoding
+RFC 9000|19.14|STREAMS_BLOCKED frame informs peer new stream was needed but limit prevented creation|N|No mechanism to inform peer; stream creation simply fails with error
+RFC 9000|19.14|STREAMS_BLOCKED frame format: Type (i) = 0x16..0x17, Maximum Streams (i)|PARTIAL|Struct YAWT_Q_Frame_Streams_Blocked_t exists with max_streams field but no encoder/decoder handles these frame types
+RFC 9000|19.14|Maximum Streams field is variable-length integer capped at 2^60|N|No specific validation of the Maximum Streams value against 2^60 limit on receipt
+RFC 9000|19.14|Receipt of frame encoding stream ID exceeding 2^62-1 MUST be treated as STREAM_LIMIT_ERROR or FRAME_ENCODING_ERROR connection error|N|No STREAM_LIMIT_ERROR or FRAME_ENCODING_ERROR error code defined and no validation on receipt
+RFC 9000|19.15|NEW_CONNECTION_ID frame type is 0x18|Y|Frame type constant YAWT_Q_FRAME_NEW_CONNECTION_ID = 0x18 is defined in quic_types.h.
+RFC 9000|19.15|NEW_CONNECTION_ID frame decoding/parsing|PARTIAL|Decoder in quic.c handles all fields (seq_num, retire_prior_to, cid, stateless_reset_token) but encoder/sender function does not exist.
+RFC 9000|19.15|NEW_CONNECTION_ID frame sent to provide alternative connection IDs for migration|N|No function to send/encode NEW_CONNECTION_ID frames; no connection ID issuance or pool mechanism exists.
+RFC 9000|19.15|Sequence Number field decoded as variable-length integer|Y|YAWT_q_varint_decode called for seq_num in decoder.
+RFC 9000|19.15|Retire Prior To field decoded as variable-length integer|PARTIAL|Field is decoded but no processing logic for retire_prior_to semantics is implemented.
+RFC 9000|19.15|Connection ID Length field validation (1-20, else FRAME_ENCODING_ERROR)|PARTIAL|Check for cid.len > 20 exists in decoder, but check for cid.len < 1 is absent.
+RFC 9000|19.15|Connection ID field stored|PARTIAL|Peer CID is stored via YAWT_q_con_update_peer_cid, but only a single CID is tracked, not a list/pool.
+RFC 9000|19.15|Stateless Reset Token (128-bit) stored|N|Token is parsed but never used; no stateless reset token computation or storage for issued CIDs.
+RFC 9000|19.15|MUST NOT send NEW_CONNECTION_ID if requiring zero-length Destination Connection ID|N|No check exists for zero-length DCID before sending.
+RFC 9000|19.15|Receiver with zero-length DCID treats NEW_CONNECTION_ID as PROTOCOL_VIOLATION|N|No validation in receiver path for zero-length DCID with NEW_CONNECTION_ID.
+RFC 9000|19.15|Duplicate receipt of same frame must not be connection error|PARTIAL|Highest seq_num is tracked in stats.cid_seq_num but no dedup logic for same seq_num+cid is implemented.
+RFC 9000|19.15|Repeated CID with different SRT or different Sequence Number is PROTOCOL_VIOLATION|N|No check for duplicate CIDs with mismatched tokens or sequence numbers.
+RFC 9000|19.15|Retire Prior To value must be <= Sequence Number (else FRAME_ENCODING_ERROR)|N|No validation that retire_prior_to <= seq_num.
+RFC 9000|19.15|Retire Prior To values must be monotonically increasing; smaller values ignored|N|No tracking of largest retire_prior_to value or ignoring of smaller ones.
+RFC 9000|19.15|MUST send RETIRE_CONNECTION_ID when received seq_num < previously received Retire Prior To|N|No automatic RETIRE_CONNECTION_ID frame sending logic is implemented.
+RFC 9000|19.16|RETIRE_CONNECTION_ID frame type is 0x19|Y|The enum value YAWT_Q_FRAME_RETIRE_CONNECTION_ID = 0x19 is defined in quic_types.h.
+RFC 9000|19.16|Frame is sent to indicate endpoint will no longer use a peer-issued connection ID|N|No sending or dispatch implementation exists anywhere in the codebase.
+RFC 9000|19.16|Retiring includes connection IDs provided during the handshake|N|No handshake CID retirement logic is implemented.
+RFC 9000|19.16|Sending RETIRE_CONNECTION_ID serves as request for peer to send additional CIDs|N|No automatic CID retirement-and-request logic is implemented.
+RFC 9000|19.16|RETIRE_CONNECTION_ID frame has Type field encoded as variable-length integer equal to 0x19|N|No encoding function for this frame type exists.
+RFC 9000|19.16|RETIRE_CONNECTION_ID frame has Sequence Number field encoded as variable-length integer|N|No encoding function exists; struct field is defined but never used.
+RFC 9000|19.16|Sequence Number refers to the connection ID sequence number being retired|N|No decoding or processing of the sequence number field is implemented.
+RFC 9000|19.16|Receipt of RETIRE_CONNECTION_ID with seq_num greater than any previously sent MUST be treated as PROTOCOL_VIOLATION|N|No validation of sequence number ordering is implemented.
+RFC 9000|19.16|Sequence number MUST NOT refer to the DCID of the packet containing the frame|N|No check against the packet's destination connection ID is implemented.
+RFC 9000|19.16|Endpoint that received zero-length CID MUST treat RETIRE_CONNECTION_ID as PROTOCOL_VIOLATION|N|No handling of zero-length connection IDs in frame processing exists.
+RFC 9000|19.16|Retiring a CID invalidates its associated stateless reset token|N|No stateless reset token invalidation on CID retirement is implemented.
+RFC 9000|19.16|YAWT_Q_Frame_Retire_Connection_ID_t struct with seq_num field is defined|Y|The struct typedef exists in quic_types.h with a uint64_t seq_num member.
+RFC 9000|19.17|PATH_CHALLENGE frames use frame type code 0x1a|Y|Defined as YAWT_Q_FRAME_PATH_CHALLENGE = 0x1a in quic_types.h:125
+RFC 9000|19.17|PATH_CHALLENGE frame format consists of a Type field and a 64-bit Data field|Y|YAWT_Q_Frame_Path_Challenge_t struct in quic_types.h:382-384 has uint8_t data[8]
+RFC 9000|19.17|PATH_CHALLENGE frames are used to check reachability to the peer and for path validation during connection migration|N|No sending mechanism exists; the frame type is defined but never initiated by the implementation
+RFC 9000|19.17|PATH_CHALLENGE Data field contains arbitrary 8 bytes|Y|Parsed correctly in quic.c:625-628 with memcpy of 8 bytes into data[8]
+RFC 9000|19.17|64 bits of entropy in Data field ensures it is harder to guess than to receive the packet|PARTIAL|Parsing accepts any 8 bytes; however, no sending function exists to generate unpredictable random data for outbound PATH_CHALLENGE frames
+RFC 9000|19.17|Recipient MUST generate a PATH_RESPONSE frame containing the same Data value|Y|Implemented in quic_connection.c:520-522 — on PATH_CHALLENGE receipt, YAWT_q_enqueue_frame_path_response is called with the same 8-byte data
+RFC 9000|19.18|PATH_RESPONSE frame type is 0x1b|Y|Defined as YAWT_Q_FRAME_PATH_RESPONSE = 0x1b in quic_types.h:126
+RFC 9000|19.18|PATH_RESPONSE is sent in response to a PATH_CHALLENGE frame|Y|Called in quic_connection.c:522 when YAWT_Q_FRAME_PATH_CHALLENGE is received
+RFC 9000|19.18|PATH_RESPONSE frame format has Type (i) = 0x1b followed by Data (64 bits)|Y|Encoded in quic.c:828-829 with wire_data[0]=0x1b and 8-byte data copied; wire_len=9
+RFC 9000|19.18|PATH_RESPONSE Data field is 8 bytes (64 bits)|Y|Struct YAWT_Q_Frame_Path_Response_t has uint8_t data[8]; parsing copies exactly 8 bytes in quic.c:632-634
+RFC 9000|19.18|If PATH_RESPONSE Data does not match a previously sent PATH_CHALLENGE, endpoint MAY generate PROTOCOL_VIOLATION error|N|Received PATH_RESPONSE is logged as "ignored — no pending challenge" at quic_connection.c:526 with no matching/validation or error generation
+RFC 9000|19.19|CONNECTION_CLOSE frame type 0x1c used for QUIC-layer errors|Y|Both YAWT_Q_FRAME_CONNECTION_CLOSE (0x1c) and YAWT_Q_FRAME_CONNECTION_CLOSE_APP (0x1d) are defined in quic_types.h and handled in parsing and processing paths.
+RFC 9000|19.19|CONNECTION_CLOSE frame type 0x1d used for application-layer errors|Y|YAWT_Q_FRAME_CONNECTION_CLOSE_APP (0x1d) is defined and parsed separately from 0x1c, with no frame_type sub-field per the RFC.
+RFC 9000|19.19|Open streams are implicitly closed when the connection is closed|PARTIAL|Streams are not explicitly marked as closed; they are only effectively closed when the connection struct is freed during the closing/draining period.
+RFC 9000|19.19|Frame format: Type varint, Error Code varint, optional Frame Type varint, Reason Phrase Length varint, Reason Phrase bytes|PARTIAL|Parsing is fully implemented for both 0x1c and 0x1d; encoding (enqueue) only supports 0x1c with a hardcoded empty reason phrase and frame_type=0.
+RFC 9000|19.19|Error Code is a variable-length integer indicating the reason for closing|Y|Error codes are decoded/encoded as varints in both parse and enqueue paths for both frame types.
+RFC 9000|19.19|Frame Type field encodes the triggering frame type, value 0 means unknown, absent in 0x1d|PARTIAL|Frame Type is parsed for 0x1c and absent for 0x1d per spec, but enqueue_frame_connection_close does not accept or encode a meaningful frame_type value beyond what is passed.
+RFC 9000|19.19|Reason Phrase Length is a variable-length integer specifying byte length|Y|Parsed as varint in both frame types; encoded as 0x00 (hardcoded) in enqueue.
+RFC 9000|19.19|Reason Phrase is additional diagnostic info, MAY be zero length, SHOULD be UTF-8|PARTIAL|Parsing supports arbitrary-length reason phrase; enqueue always uses zero-length reason phrase with no API to set a custom message.
+RFC 9000|19.19|Application-specific CONNECTION_CLOSE (0x1d) can only be sent in 0-RTT or 1-RTT packets|PARTIAL|The enqueue function accepts a level parameter but is only ever called at YAWT_Q_LEVEL_APPLICATION; no 0-RTT support exists.
+RFC 9000|19.19|CONNECTION_CLOSE type 0x1c with APPLICATION_ERROR can be sent in Initial or Handshake packets during handshake abandonment|PARTIAL|YAWT_q_con_close always sends at APPLICATION level only; no logic to send in Initial/Handshake packets or convert 0x1d to 0x1c.
+RFC 9000|19.19|CONNECTION_CLOSE frames are not split between packets|UNKNOWN|The RFC states this as a constraint on reason phrase sizing; no explicit implementation check found but the enqueue function respects packet size limits.
+RFC 9000|19.20|Server uses HANDSHAKE_DONE frame (type=0x1e) to signal handshake confirmation to the client|Y|YAWT_q_enqueue_frame_handshake_done() creates a frame with type 0x1e and queues it after handshake completion.
+RFC 9000|19.20|HANDSHAKE_DONE frame format consists of only a Type field with value 0x1e and no additional content|Y|The encoder sets wire_data[0]=0x1e with wire_len=1, producing a 1-byte frame with no payload.
+RFC 9000|19.20|HANDSHAKE_DONE frame can only be sent by the server|PARTIAL|The enqueue function is only called in the server post-handshake path, but the function itself has no explicit role guard to prevent a client from calling it.
+RFC 9000|19.20|Servers MUST NOT send HANDSHAKE_DONE before completing the handshake|Y|The call to YAWT_q_enqueue_frame_handshake_done() is gated behind YAWT_q_crypto_is_handshake_complete(con->crypto) returning true.
+RFC 9000|19.20|A server MUST treat receipt of a HANDSHAKE_DONE frame as a connection error of type PROTOCOL_VIOLATION|N|The YAWT handler for YAWT_Q_FRAME_HANDSHAKE_DONE at quic_connection.c:409 only logs a TODO message and performs no PROTOCOL_VIOLATION error on receipt.
+RFC 9000|19.21|Frames are not self-describing; endpoint must know frame syntax before processing packet|Y|YAWT decodes frame type first via varint, then dispatches by known type codes in `YAWT_q_parse_frame` (quic.c:480-483)
+RFC 9000|19.21|Extensions must ensure peer can understand new frame types before use|N|No transport parameter or capability exchange exists for signaling extension frame type support
+RFC 9000|19.21|Endpoint can use a transport parameter to signal willingness to receive extension frame types|N|YAWT transport parameters (crypt.c:259-268, 317-325) cover flow control, CIDs, idle timeout, and max_datagram_frame_size only; no extension frame type signaling parameter exists
+RFC 9000|19.21|One transport parameter can indicate support for multiple extension frame types|N|No extension frame type transport parameter implemented at all
+RFC 9000|19.21|Extensions modifying same protocol components SHOULD define interaction with prior extensions|N|Not applicable; YAWT has no extension mechanism
+RFC 9000|19.21|Extension frames MUST be congestion controlled|N|Congestion control is explicitly marked UNIMPLEMENTED (quic.h:79) and no congestion handling exists for any frame
+RFC 9000|19.21|Extension frames MUST cause an ACK frame to be sent (unless replacing/supplementing ACK)|N|No ACK generation for unknown/extension frames exists; ack-eliciting check in `_handle_frames` only recognizes known frame types
+RFC 9000|19.21|Extension frames are not included in flow control unless specified by the extension|N|No flow control handling for extension frames; unknown frames are simply ignored
+RFC 9000|19.21|IANA registry is used to manage frame type assignments|N|No IANA registry integration; frame types are hardcoded enum in quic_types.h:105-133
+RFC 9000|19.21|Receipt of unknown frame type should trigger connection error per RFC 9000 §12.4|PARTIAL|`YAWT_q_parse_frame` sets `rc->err = YAWT_Q_ERR_INVALID_PACKET` for unknown frame types (quic.c:637-639), but `_handle_frames` default case only prints "unhandled frame type" (quic_connection.c:557-559) without sending a CONNECTION_CLOSE with FRAME_ENCODING_ERROR (0x07)
+RFC 9000|RFC 9000 Section 20.1|Transport error codes can be used in CONNECTION_CLOSE frame with type 0x1c|Y|CONNECTION_CLOSE frame type 0x1c is defined as YAWT_Q_FRAME_CONNECTION_CLOSE in quic_types.h and fully implemented for both sending and receiving.
+RFC 9000|RFC 9000 Section 20.1|Transport error codes apply to the entire connection|Y|The CONNECTION_CLOSE frame carries error_code as a 62-bit varint in the connection close handler, applying to the entire connection.
+RFC 9000|RFC 9000 Section 20.1|NO_ERROR (0x00) error code defined for abrupt close without error|N|No explicit use of error code 0x00 found; YAWT_q_con_close() accepts a generic uint64_t error_code that defaults to 0 when called with 0, but no specific NO_ERROR constant is defined.
+RFC 9000|RFC 9000 Section 20.1|INTERNAL_ERROR (0x01) error code defined|N|No explicit use of error code 0x01 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|CONNECTION_REFUSED (0x02) error code defined|N|No explicit use of error code 0x02 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|FLOW_CONTROL_ERROR (0x03) error code defined|N|No explicit use of error code 0x03 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|STREAM_LIMIT_ERROR (0x04) error code defined|N|No explicit use of error code 0x04 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|STREAM_STATE_ERROR (0x05) error code defined|N|No explicit use of error code 0x05 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|FINAL_SIZE_ERROR (0x06) error code defined|N|No explicit use of error code 0x06 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|FRAME_ENCODING_ERROR (0x07) error code defined|N|No explicit use of error code 0x07 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|TRANSPORT_PARAMETER_ERROR (0x08) error code defined|N|No explicit use of error code 0x08 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|CONNECTION_ID_LIMIT_ERROR (0x09) error code defined|N|No explicit use of error code 0x09 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|PROTOCOL_VIOLATION (0x0a) error code defined|N|No explicit use of error code 0x0a found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|INVALID_TOKEN (0x0b) error code defined|N|No explicit use of error code 0x0b found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|APPLICATION_ERROR (0x0c) error code defined|N|No explicit use of error code 0x0c found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|CRYPTO_BUFFER_EXCEEDED (0x0d) error code defined and used|Y|Explicitly used at src/quic_connection.c line 379 with value 0x0D when CRYPTO frame data exceeds buffer capacity.
+RFC 9000|RFC 9000 Section 20.1|KEY_UPDATE_ERROR (0x0e) error code defined|N|No explicit use of error code 0x0e found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|AEAD_LIMIT_REACHED (0x0f) error code defined|N|No explicit use of error code 0x0f found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|NO_VIABLE_PATH (0x10) error code defined|N|No explicit use of error code 0x10 found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|CRYPTO_ERROR (0x0100-0x01ff) error code range defined for TLS handshake errors|N|No explicit use of CRYPTO_ERROR range error codes found in the codebase.
+RFC 9000|RFC 9000 Section 20.1|Error codes are encoded as variable-length integers in CONNECTION_CLOSE|Y|The YAWT_q_enqueue_frame_connection_close function encodes error_code as a varint using YAWT_q_varint_encode at src/quic.c line 803, and parsing also uses varint decoding at src/quic.c line 571.
+RFC 9000|RFC 9000 Section 20.1|CONNECTION_CLOSE frame includes frame_type field indicating which frame triggered the error|Y|The frame_type field is encoded (line 808 of quic.c) and parsed (line 572 of quic.c) as part of the CONNECTION_CLOSE frame.
+RFC 9000|RFC 9000 Section 20.1|CONNECTION_CLOSE frame includes optional reason_phrase field|Y|The reason_phrase is encoded (line 813 of quic.c) and parsed (lines 573-592 of quic.c) as part of the CONNECTION_CLOSE frame.
+RFC 9000|RFC 9000 Section 20.1|Application error codes for type 0x1d CONNECTION_CLOSE are left to application protocols|Y|YAWT_Q_FRAME_CONNECTION_CLOSE_APP (0x1d) is defined in quic_types.h line 128 and parsed in quic.c lines 583-592.
+RFC 9000|20.2|Management of application error codes is left to application protocols|PARTIAL|Infrastructure provides generic uint64_t app_error_code fields in RESET_STREAM, STOP_SENDING, and CONNECTION_CLOSE_APP frames, but no application-layer protocol enforcement or registry exists in YAWT.
+RFC 9000|20.2|Application protocol error codes are used in RESET_STREAM frames (Section 19.4)|Y|YAWT_Q_Frame_Reset_Stream_t has app_error_code field, encoded via YAWT_q_varint_encode in enqueue_frame_reset_stream and decoded in YAWT_q_parse_frame, with receiver case in _handle_frames.
+RFC 9000|20.2|Application protocol error codes are used in STOP_SENDING frames (Section 19.5)|Y|YAWT_Q_Frame_Stop_Sending_t has app_error_code field, encoded via YAWT_q_varint_encode in enqueue_frame_stop_sending and decoded in YAWT_q_parse_frame, with receiver case in _handle_frames.
+RFC 9000|20.2|Application protocol error codes are used in CONNECTION_CLOSE frame with type 0x1d (Section 19.19)|Y|YAWT_Q_FRAME_CONNECTION_CLOSE_APP (0x1d) defined with error_code field, fully encoded in enqueue_frame_connection_close_app path, parsed in YAWT_q_parse_frame, and dispatched in _handle_frames.
+RFC 9000|21.1|Threat model assumes passive attackers can read packets from the network|UNKNOWN|Informational section describing the threat model; the underlying crypto (encryption) provides confidentiality against such attackers
+RFC 9000|21.1|Threat model assumes active attackers can write packets into the network|UNKNOWN|Informational section; QUIC's authenticated encryption (AEAD) provides protection
+RFC 9000|21.1|Passive attacks may involve routing changes or path modification|UNKNOWN|Informational section; QUIC's per-connection authentication mitigates path tampering
+RFC 9000|21.1|Attackers categorized as on-path (can read, modify, remove packets) or off-path (observe only)|UNKNOWN|Informational section; threat model description, not a specific code feature
+RFC 9000|21.1|Both on-path and off-path attackers can transmit arbitrary packets|UNKNOWN|Informational section; acknowledged in threat model
+RFC 9000|21.1|QUIC assumes the threat model described in [SEC-CONS]|Y|QUIC implementation uses GnuTLS with TLS 1.3 and AEAD encryption (AES-128-GCM for Initial, negotiated cipher for other levels)
+RFC 9000|21.1|Handshake security properties must be ensured|Y|Handshake implemented in crypt.c using GnuTLS TLS 1.3 with QUIC transport parameters extension; key derivation per RFC 9001
+RFC 9000|21.1|Protected packets must ensure confidentiality and integrity|Y|Implemented in crypt.c: header protection via AES-ECB sample masking (YAWT_q_crypto_unprotect_header/protect_packet) and AEAD decryption/encryption (YAWT_q_crypto_decrypt_payload/protect_packet)
+RFC 9000|21.1|Connection migration security properties must be ensured|Y|PATH_CHALLENGE/PATH_RESPONSE frames implemented (quic.c lines 627-633, quic_connection.c line 522) for path validation; NEW_CONNECTION_ID and RETIRE_CONNECTION_ID frames implemented for CID management
+RFC 9000|21.1|Packet number replay protection (Section 12.3) is part of security properties|Y|Reconstructed PNs compared against largest_seen per level in quic_connection.c line 636; duplicates silently dropped
+RFC 9000|21.1|Security properties of handshake, protected packets, and connection migration considered separately|N|Informational statement organizing the section; no single code feature corresponds
+RFC 9000|21.1|Crypto buffer size limits to prevent resource exhaustion during handshake|Y|max_crypto_buffer_bytes policy enforced in crypt.c lines 536-541 with CRYPTO_BUFFER_EXCEEDED error
+RFC 9000|21.2|QUIC provides encrypted/authenticated transport protecting against DoS|Y|YAWT uses gnutls AEAD for packet protection (protect/unprotect functions)
+RFC 9000|21.2|After handshake, endpoints discard unauthenticated packets|Y|YAWT_q_crypto_unprotect_packet returns error on auth failure, packet is skipped
+RFC 9000|21.2|Unauthenticated ICMP packet acceptance is extremely limited after connection established|N|No ICMP handling found in YAWT codebase
+RFC 9000|22.2|Stateless reset is the only other packet type accepted outside authenticated packets|N|Stateless reset token is parsed from NEW_CONNECTION_ID but full stateless reset detection/response is not implemented
+RFC 9000|21.2|During connection creation, only protection against off-network-path attacks|PARTIAL|Initial keys derived from DCID provides some protection but no explicit off-path vs on-path distinction
+RFC 9000|21.2|All QUIC packets contain proof that recipient saw a preceding packet from peer|Y|DCID in Initial packets and AEAD authentication provide this proof
+RFC 9000|21.2|Addresses cannot change during handshake; endpoints can discard packets on different network path|N|YAWT does not check address consistency during handshake; peer_addr is stored but not validated
+RFC 9000|21.2|Source and Destination Connection IDs are primary protection against off-path attack|Y|CID hash tables (main + odcid) used to match incoming packets to correct connection
+RFC 9000|21.2|DCID must match a value endpoint previously chose for non-Initial/Reset packets|Y|Server stores odcid hash for pre-handshake matching; main CID hash for post-handshake
+RFC 9000|21.2|Version Negotiation packets are only protected by Connection ID matching|N|No version negotiation packet parsing or handling found in codebase
+RFC 9000|21.2|Client selects unpredictable DCID in Initial packet for handshake authentication|PARTIAL|Server generates random CIDs via gnutls_rnd but no client implementation exists in codebase
+RFC 9000|21.2|Initial packet DCID enables same authentication process before and after handshake|Y|Initial keys derived from client DCID via HKDF-Extract; same unprotect path used throughout
+RFC 9000|21.2|Packets that cannot be authenticated are discarded|Y|YAWT_q_crypto_unprotect_packet returns -1 on failure, causing continue/skip in rx loop
+RFC 9000|21.2|Protections are not effective against on-path attackers who see pre-establishment packets|N/A|This is a protocol limitation/awareness statement, not an implementation requirement
+RFC 9000|21.2|Cryptographic handshake protocol detects tampering during handshake|Y|gnutls TLS library handles handshake integrity and tamper detection
+RFC 9000|21.2|Endpoints may use other methods to detect and recover from handshake interference|N|No additional detection mechanisms beyond standard AEAD found in codebase
+RFC 9000|21.3|Servers SHOULD limit the usage and lifetime of address validation tokens to prevent amplification attacks via token reuse with spoofed 0-RTT connections|N|No address validation token management system exists; NEW_TOKEN frame (0x07) is declared in types enum but has no parsing, encoding, or enqueue implementation, and no token expiration or single-use enforcement is present
+RFC 9000|21.3|0-RTT packet parsing/encoding stubs exist but actual 0-RTT data flow and early key establishment are not implemented, so the specific attack vector is not exploitable; however, the protocol requirement for token usage/lifetime limits is not addressed|PARTIAL|0-RTT packet parsing/encoding stubs exist but actual 0-RTT data flow and early key establishment are not implemented, so the specific attack vector is not exploitable; however, the protocol requirement for token usage/lifetime limits is not addressed
+RFC 9000|21.4|Optimistic ACK attack is described as an attack where an endpoint that acknowledges packets it has not received may cause a congestion controller to permit excessive sending rates|N|The RFC section only describes the attack concept; YAWT has no specific code referencing this attack.
+RFC 9000|21.4|Endpoints MAY skip packet numbers when sending to detect optimistic ACK behavior|N|No packet number skipping or gap-insertion mechanism exists in YAWT send path; no such detection logic found anywhere in src, include, tests, or examples.
+RFC 9000|21.4|On detecting optimistic ACK, endpoint may close connection with PROTOCOL_VIOLATION error code|N|PROTOCOL_VIOLATION (0x0A) is not defined as a named constant in YAWT, and no code closes connections with this specific error code in response to ACK anomalies.

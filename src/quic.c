@@ -529,6 +529,17 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
     case YAWT_Q_FRAME_HANDSHAKE_DONE:
       break;
 
+    case YAWT_Q_FRAME_RESET_STREAM:
+      YAWT_q_varint_decode(rc, &out->reset_stream.stream_id);
+      YAWT_q_varint_decode(rc, &out->reset_stream.app_error_code);
+      YAWT_q_varint_decode(rc, &out->reset_stream.final_size);
+      break;
+
+    case YAWT_Q_FRAME_STOP_SENDING:
+      YAWT_q_varint_decode(rc, &out->stop_sending.stream_id);
+      YAWT_q_varint_decode(rc, &out->stop_sending.app_error_code);
+      break;
+
     case YAWT_Q_FRAME_ACK:
       YAWT_q_varint_decode(rc, &out->ack.largest_ack);
       YAWT_q_varint_decode(rc, &out->ack.ack_delay);
@@ -871,6 +882,73 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con) {
   f.type = YAWT_Q_FRAME_HANDSHAKE_DONE;
   f.level = YAWT_Q_LEVEL_APPLICATION;
   f.wire_len = 1;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  return YAWT_Q_OK;
+}
+
+YAWT_Q_Error_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
+                                                   uint64_t stream_id,
+                                                   uint64_t app_error_code,
+                                                   uint64_t final_size) {
+  ANB_Slab_t *queue = con->tx_buffer;
+  YAWT_Q_WireFrame_t f;
+  memset(&f, 0, sizeof(f));
+
+  size_t cursor = 0;
+  uint64_t n;
+  YAWT_Q_Error_t err;
+
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return YAWT_Q_ERR_SHORT_BUFFER;
+  f.wire_data[cursor++] = 0x04;  // RESET_STREAM
+
+  err = YAWT_q_varint_encode(stream_id, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  err = YAWT_q_varint_encode(app_error_code, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  err = YAWT_q_varint_encode(final_size, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  f.type = YAWT_Q_FRAME_RESET_STREAM;
+  f.level = YAWT_Q_LEVEL_APPLICATION;
+  f.stream_id = stream_id;
+  f.wire_len = cursor;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  return YAWT_Q_OK;
+}
+
+YAWT_Q_Error_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
+                                                   uint64_t stream_id,
+                                                   uint64_t app_error_code) {
+  ANB_Slab_t *queue = con->tx_buffer;
+  YAWT_Q_WireFrame_t f;
+  memset(&f, 0, sizeof(f));
+
+  size_t cursor = 0;
+  uint64_t n;
+  YAWT_Q_Error_t err;
+
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return YAWT_Q_ERR_SHORT_BUFFER;
+  f.wire_data[cursor++] = 0x05;  // STOP_SENDING
+
+  err = YAWT_q_varint_encode(stream_id, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  err = YAWT_q_varint_encode(app_error_code, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  f.type = YAWT_Q_FRAME_STOP_SENDING;
+  f.level = YAWT_Q_LEVEL_APPLICATION;
+  f.stream_id = stream_id;
+  f.wire_len = cursor;
 
   ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
   return YAWT_Q_OK;

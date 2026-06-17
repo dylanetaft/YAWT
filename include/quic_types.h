@@ -435,6 +435,8 @@ typedef struct {
   YAWT_Q_Packet_Type_t pkt_type;
   union {
     YAWT_Q_Frame_ACK_t ack;
+    YAWT_Q_Frame_Reset_Stream_t reset_stream;
+    YAWT_Q_Frame_Stop_Sending_t stop_sending;
     YAWT_Q_Frame_Crypto_t crypto;
     YAWT_Q_Frame_Stream_t stream;
     YAWT_Q_Frame_Connection_Close_t connection_close;
