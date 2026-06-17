@@ -40,6 +40,8 @@ struct YAWT_Q_Connection_t {
   ANB_Slab_t *stream_meta;          // YAWT_Q_StreamMeta_t per open stream
   YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
   YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
+  bool data_blocked;              /* edge-trigger: connection-level DATA_BLOCKED sent */
+  bool is_server;                 /* 1 if we are the server, 0 if client */
   YAWT_Q_ConnectionStats_t stats;   // byte counters
   void *user_data;                  // opaque app/H3 state; QUIC never dereferences it
   uint64_t close_code;              // recorded by close triggers, emitted once by con_free
@@ -63,6 +65,7 @@ typedef struct {
   uint64_t tx_max_data;
   uint8_t rx_end;   /* RX terminated: received FIN/RESET_STREAM, or sent STOP_SENDING */
   uint8_t tx_end;   /* TX terminated: sent FIN/RESET_STREAM, or received STOP_SENDING */
+  bool tx_fc_blocked;  /* edge-trigger: STREAM_DATA_BLOCKED sent for this stream */
 } YAWT_Q_StreamMeta_t;
 
 /**

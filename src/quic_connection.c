@@ -114,6 +114,7 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->crypto = YAWT_q_crypto_init(info->is_server, info->cred,
                                     &info->original_dcid, &con->cid,
                                     &con->local_fc, &con->peer_fc, NULL);
+  con->is_server = info->is_server;
   HASH_ADD(hh_cid, _hash_cid, cid.id, con->cid.len, con);
 
   // Temporary index by original DCID (removed once client uses our real CID)
@@ -480,6 +481,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
       case YAWT_Q_FRAME_MAX_DATA:
         if (frame.max_data.max_data > con->peer_fc.max_data) {
           con->peer_fc.max_data = frame.max_data.max_data;
+          con->data_blocked = false;
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_DATA updated to %lu", con->peer_fc.max_data);
         }
         break;
@@ -488,6 +490,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.max_stream_data.stream_id);
         if (meta && frame.max_stream_data.max_stream_data > meta->tx_max_data) {
           meta->tx_max_data = frame.max_stream_data.max_stream_data;
+          meta->tx_fc_blocked = false;
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_STREAM_DATA stream %lu updated to %lu",
                     frame.max_stream_data.stream_id, meta->tx_max_data);
         }
@@ -558,6 +561,36 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         param.P_EVT_STREAM_STOP_SENDING.app_error_code = frame.stop_sending.app_error_code;
         _event_handler(con, YAWT_Q_EVT_STREAM_STOP_SENDING, param);
         YAWT_q_con_reset_stream(con, frame.stop_sending.stream_id, 0);
+        break;
+      }
+
+      case YAWT_Q_FRAME_DATA_BLOCKED:
+        YAWT_LOG(YAWT_LOG_DEBUG, "DATA_BLOCKED received: max_data=%lu",
+                 frame.data_blocked.max_data);
+        {
+          YAWT_Q_EventParam_t param;
+          param.P_EVT_DATA_BLOCKED.max_data = frame.data_blocked.max_data;
+          _event_handler(con, YAWT_Q_EVT_DATA_BLOCKED, param);
+        }
+        break;
+
+      case YAWT_Q_FRAME_STREAM_DATA_BLOCKED: {
+        uint8_t stype = frame.stream_data_blocked.stream_id & 0x03;
+        int is_uni = (stype & 0x02) != 0;
+        int peer_initiated = ((stype & 0x01) != 0) != con->is_server;
+        if (is_uni && !peer_initiated) {
+          YAWT_LOG(YAWT_LOG_ERROR, "STREAM_DATA_BLOCKED on send-only stream %lu",
+                   frame.stream_data_blocked.stream_id);
+          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, 0x05, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
+          if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
+          break;
+        }
+        YAWT_LOG(YAWT_LOG_DEBUG, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
+                 frame.stream_data_blocked.stream_id, frame.stream_data_blocked.max_stream_data);
+        YAWT_Q_EventParam_t param;
+        param.P_EVT_STREAM_DATA_BLOCKED.stream_id = frame.stream_data_blocked.stream_id;
+        param.P_EVT_STREAM_DATA_BLOCKED.max_stream_data = frame.stream_data_blocked.max_stream_data;
+        _event_handler(con, YAWT_Q_EVT_STREAM_DATA_BLOCKED, param);
         break;
       }
 
@@ -713,9 +746,21 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
       // Bytes are counted optimistically at enqueue time (in send_stream);
       // frames stay buffered here until MAX_DATA / MAX_STREAM_DATA raises limits.
       if (f->type == YAWT_Q_FRAME_STREAM) {
-        if (con->stats.tx_count_bytes > con->peer_fc.max_data) continue;
+        if (con->stats.tx_count_bytes > con->peer_fc.max_data) {
+          if (!con->data_blocked) {
+            con->data_blocked = true;
+            YAWT_q_enqueue_frame_data_blocked(con, con->peer_fc.max_data);
+          }
+          continue;
+        }
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, f->stream_id);
-        if (meta && meta->tx_next_offset > meta->tx_max_data) continue;
+        if (meta && meta->tx_next_offset > meta->tx_max_data) {
+          if (!meta->tx_fc_blocked) {
+            meta->tx_fc_blocked = true;
+            YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, meta->tx_max_data);
+          }
+          continue;
+        }
       }
 
       if (payload_len + f->wire_len > max_payload) break;

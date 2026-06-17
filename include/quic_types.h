@@ -448,6 +448,8 @@ typedef struct {
     YAWT_Q_Frame_Path_Challenge_t path_challenge;
     YAWT_Q_Frame_Path_Response_t path_response;
     YAWT_Q_Frame_Datagram_t datagram;
+    YAWT_Q_Frame_Data_Blocked_t data_blocked;
+    YAWT_Q_Frame_Stream_Data_Blocked_t stream_data_blocked;
   };
 } YAWT_Q_Frame_t;
 
@@ -459,13 +461,69 @@ typedef struct {
  * member name is part of the contract.
  */
 typedef enum {
+  /**
+   * @brief Handshake completed successfully.
+   * The QUIC connection is now established and ready for data exchange.
+   * Peer flow control limits are now active.
+   */
   YAWT_Q_EVT_CONNECTED,
+
+  /**
+   * @brief Stream data received from peer.
+   * Delivered in-order with gap-free offsets. Out-of-order data is buffered
+   * internally and delivered when gaps are filled. Check frame->fin to detect
+   * stream closure.
+   */
   YAWT_Q_EVT_STREAM,
+
+  /**
+   * @brief Unreliable datagram received from peer (RFC 9221).
+   * No ordering or delivery guarantees. May be dropped under congestion.
+   */
   YAWT_Q_EVT_DATAGRAM,
+
+  /**
+   * @brief Connection is closing.
+   * Emitted once during teardown after idle timeout, peer-initiated close,
+   * or local close request. The connection object will be freed shortly after.
+   */
   YAWT_Q_EVT_CLOSE,
+
+  /**
+   * @brief Packet transmitted to peer.
+   * Diagnostic event for logging/monitoring. Provides the wire bytes sent.
+   */
   YAWT_Q_EVT_TX,
-  YAWT_Q_EVT_STREAM_RESET,        /**< Peer sent RESET_STREAM (RFC 9000 §3.2) */
-  YAWT_Q_EVT_STREAM_STOP_SENDING, /**< Peer sent STOP_SENDING (RFC 9000 §3.3) */
+
+  /**
+   * @brief Peer abruptly terminated a stream (sent RESET_STREAM).
+   * The peer is done sending on this stream. Any buffered out-of-order data
+   * is discarded. Check app_error_code for the reason.
+   */
+  YAWT_Q_EVT_STREAM_RESET,
+
+  /**
+   * @brief Peer requested we stop sending on a stream (sent STOP_SENDING).
+   * The peer no longer wants to receive data on this stream. We SHOULD respond
+   * with RESET_STREAM (handled automatically by YAWT). Check app_error_code.
+   */
+  YAWT_Q_EVT_STREAM_STOP_SENDING,
+
+  /**
+   * @brief Peer is blocked from sending stream data due to our flow control limits.
+   * The peer wants to send us data on this stream, but our advertised
+   * max_stream_data limit is preventing it. Consider raising the limit by
+   * sending MAX_STREAM_DATA if we want to receive more data on this stream.
+   */
+  YAWT_Q_EVT_STREAM_DATA_BLOCKED,
+
+  /**
+   * @brief Peer is blocked from sending any data due to our connection-level flow control.
+   * The peer wants to send us data, but our advertised max_data limit is
+   * preventing it. Consider raising the limit by sending MAX_DATA if we want
+   * to receive more data overall.
+   */
+  YAWT_Q_EVT_DATA_BLOCKED,
 } YAWT_Q_EventType_t;
 
 /**
@@ -509,4 +567,13 @@ typedef union {
     uint64_t stream_id;
     uint64_t app_error_code;
   } P_EVT_STREAM_STOP_SENDING;
+
+  struct {
+    uint64_t stream_id;
+    uint64_t max_stream_data;
+  } P_EVT_STREAM_DATA_BLOCKED;
+
+  struct {
+    uint64_t max_data;
+  } P_EVT_DATA_BLOCKED;
 } YAWT_Q_EventParam_t;
