@@ -979,3 +979,170 @@ RFC 9000|21.3|0-RTT packet parsing/encoding stubs exist but actual 0-RTT data fl
 RFC 9000|21.4|Optimistic ACK attack is described as an attack where an endpoint that acknowledges packets it has not received may cause a congestion controller to permit excessive sending rates|N|The RFC section only describes the attack concept; YAWT has no specific code referencing this attack.
 RFC 9000|21.4|Endpoints MAY skip packet numbers when sending to detect optimistic ACK behavior|N|No packet number skipping or gap-insertion mechanism exists in YAWT send path; no such detection logic found anywhere in src, include, tests, or examples.
 RFC 9000|21.4|On detecting optimistic ACK, endpoint may close connection with PROTOCOL_VIOLATION error code|N|PROTOCOL_VIOLATION (0x0A) is not defined as a named constant in YAWT, and no code closes connections with this specific error code in response to ACK anomalies.
+RFC 9000|21.5|Request forgery attack definition and overview|Y|Section defines attack model where endpoints are caused to issue requests toward victims; general security guidance section, no direct code feature.
+RFC 9000|21.5|Server should not be deployed without ingress filtering|N|RFC recommends servers assume attackers can generate arbitrary UDP payloads; YAWT has no ingress filtering check.
+RFC 9000|21.5|Servers must not be able to migrate in this version of QUIC|N|YAWT stores a single peer_addr with no migration state machine or server migration support.
+RFC 9000|21.5.1|Initial connection establishment can influence client datagram destination|Y|Server controls client destination via DNS and connection setup; reflected in initial packet handling.
+RFC 9000|21.5.1|Preferred addresses allow server to choose client datagram destination|N|No PREFERRED_ADDRESS frame parsing or preferred address handling found in codebase.
+RFC 9000|21.5.1|Spoofed connection migrations allow client to select server datagram destination|N|No migration state machine or source address spoofing detection implemented.
+RFC 9000|21.5.1|Spoofed packets can cause server to send Version Negotiation packets|N|No Version Negotiation packet generation or parsing found in codebase.
+RFC 9000|21.5.1|Destination Connection ID controls bytes in peer packets|Y|Destination CID is parsed and stored in YAWT_Q_Packet_t.dest_cid; used in Initial key derivation per RFC 9001 §5.2.
+RFC 9000|21.5.1|Token field in Initial packets offers server control|N|Token parsed from Initial packets but no countermeasures or validation against forgery.
+RFC 9000|21.5.2|NEW_TOKEN frame is the only option for forgery during connection establishment|PARTIAL|NEW_TOKEN frame type (0x07) is defined in enum but has no handler in _handle_frames switch; parsed but not processed.
+RFC 9000|21.5.2|Clients should not send NEW_TOKEN if server address changes|N|No address change tracking or NEW_TOKEN conditional usage; YAWT stores a single static peer_addr.
+RFC 9000|21.5.2|Retry packets validate server address and prevent subsequent Initial packet forgery|N|Retry token parsed but Retry packet handling is not fully implemented.
+RFC 9000|21.5.3|Client MUST NOT send non-probing frames to preferred address before validation|N|No preferred address support; no validation state to gate non-probing frame sends.
+RFC 9000|21.5.4|Server sending only probing packets before validation limits attacker control|N|No path validation state tracking; all frames including application data can be sent without address validation.
+RFC 9000|21.5.4|Ingress filtering [BCP38] is effective against spoofed migration|N|No ingress filtering check; YAWT accepts packets from any source address.
+RFC 9000|21.5.5|Client can control up to 512 bytes in Version Negotiation packets via spoofed source|N|No Version Negotiation packet implementation found.
+RFC 9000|21.5.6|Endpoints MAY prevent connection to loopback addresses|N|No loopback address detection (127.0.0.1, ::1, ::ffff:127.0.0.1) found in codebase.
+RFC 9000|21.5.6|Endpoints SHOULD NOT allow loopback connections if service was available at different interface|N|No interface tracking or cross-interface migration prevention.
+RFC 9000|21.5.6|Endpoints SHOULD NOT refuse link-local/private addresses without specific network knowledge|PARTIAL|No address-range checks at all (link-local, private, global, unique-local).
+RFC 9000|21.5.6|Endpoints MAY not include NEW_TOKEN values in Initial packets|N|No NEW_TOKEN storage or conditional usage logic; frame handler missing.
+RFC 9000|21.5.6|Endpoints MAY only send probing frames prior to completing address validation|N|No address validation state; application data frames can be sent without any validation step.
+RFC 9000|21.5.6|Endpoints MAY identify ports or patterns as attack targets and avoid them|N|No port-level or pattern-based filtering implemented.
+RFC 9000|21.5.6|Endpoints MAY retire connection IDs with known-problematic patterns|N|No connection ID pattern analysis or retirement logic beyond sequence number comparison.
+RFC 9000|21.5|PATH_CHALLENGE/PATH_RESPONSE frames are implemented|Y|Both frames parsed and PATH_RESPONSE is echoed on receiving PATH_CHALLENGE.
+RFC 9000|21.5|No specific countermeasures for preferred address forgery beyond Section 21.5.6|PARTIAL|No preferred address support at all, making this N/A.
+RFC 9000|21.6|QUIC deployments SHOULD provide mitigations for Slowloris attacks|PARTIAL|Idle timeout (min_idle_timeout_ms floor, max_idle_timeout) is implemented but no max-connection, per-IP, or min-transfer-speed limits exist.
+RFC 9000|21.6|Increasing the maximum number of clients the server will allow|N|No global max connection limit is implemented in YAWT.
+RFC 9000|21.6|Limiting the number of connections a single IP address is allowed to make|N|No per-IP connection tracking or limiting exists in YAWT.
+RFC 9000|21.6|Imposing restrictions on the minimum transfer speed a connection is allowed to have|N|No minimum transfer rate enforcement is implemented in YAWT.
+RFC 9000|21.6|Restricting the length of time an endpoint is allowed to stay connected|PARTIAL|Idle timeout closes connections with no activity (min floor of 5s, default max of 30s), but total connection duration is not limited.
+RFC 9000|21.7|Adversarial sender can cause receiver to commit disproportionate buffer memory by not sending portions of stream data, creating large inefficient data structures|PARTIAL|Flow control limits (1MB default) provide partial protection but no explicit fragmentation attack mitigation or buffer size limits exist
+RFC 9000|21.7|Adversarial receiver can force sender to store unacknowledged stream data by not acknowledging packets|N|No mechanism to limit sender-side retransmission buffer growth or penalize unacknowledged stream data
+RFC 9000|21.7|Flow control windows SHOULD correspond to available memory to mitigate receiver attacks|Y|Flow control uses fixed 1MB limits (`max_data`, `max_stream_data_*`) in security.c that do not overcommit beyond configured limits
+RFC 9000|21.7|Overcommitment of memory and advertising flow control offsets exceeding actual available memory renders endpoints vulnerable|N|No overcommitment strategy detected; flow control limits are fixed values without dynamic adjustment based on available memory
+RFC 9000|21.7|QUIC deployments SHOULD provide mitigations for stream fragmentation attacks|PARTIAL|Flow control limits provide partial mitigation but specific fragmentation defenses are not implemented
+RFC 9000|21.7|Mitigation: avoiding overcommitting memory|Y|Fixed 1MB flow control limits without overcommitment; flow control is enforced in quic_connection.c before sending
+RFC 9000|21.7|Mitigation: limiting the size of tracking data structures|N|`stream_rx` slab for out-of-order buffered STREAM frames grows unboundedly with no size limit; `stream_meta` slab also has no per-connection limit
+RFC 9000|21.7|Mitigation: delaying reassembly of STREAM frames|N|STREAM frames are buffered immediately upon out-of-order arrival with no deliberate reassembly delay to allow holes to fill
+RFC 9000|21.7|Mitigation: implementing heuristics based on age and duration of reassembly holes|N|No age tracking or hole duration heuristics found; out-of-order frames are stored without any time-based eviction policy
+RFC 9000|21.8|Adversarial endpoint can open many streams to exhaust endpoint state|N|Describes the threat; not a feature to implement but a security concern the code should defend against
+RFC 9000|21.8|Receiver must open all intervening streams when receiving higher-numbered stream ID|PARTIAL|YAWT creates stream metadata on first STREAM frame for any stream ID but does not check peer stream limits on the receive path, only on the send path
+RFC 9000|21.8|Initial stream limits from initial_max_streams_bidi and initial_max_streams_uni transport parameters|Y|Parsed from peer transport parameters (crypt.c:265-266) and sent as local transport parameters (crypt.c:323-324)
+RFC 9000|21.8|MAX_STREAMS frames update stream count limits|Y|Received MAX_STREAMS_BIDI and MAX_STREAMS_UNI frames update con->peer_fc limits in quic_connection.c:497-507
+RFC 9000|21.8|Send-side enforcement of peer stream limits|Y|YAWT_q_send checks count >= limit before creating new streams at quic_connection.c:802-810
+RFC 9000|21.8|Receive-side enforcement of peer stream limits|N|Received STREAM frames in quic_connection.c:437-441 directly add stream metadata without checking con->peer_fc.max_streams_bidi/un limits, leaving the implementation vulnerable to stream commitment attack
+RFC 9000|21.8|Sending MAX_STREAMS frames to advertise own stream limits|N|YAWT does not send MAX_STREAMS frames proactively to expand the peer's window
+RFC 9000|21.8|Sending STREAMS_BLOCKED frames when approaching stream limit|N|No STREAMS_BLOCKED frame handling or sending found in the codebase
+RFC 9000|21.9|Implementations SHOULD track processing cost of received frames relative to connection progress|N|No frame-level counters, processing cost tracking, or progress analysis exists in the codebase beyond simple byte counters (tx_count_bytes, rx_count_bytes).
+RFC 9000|21.9|Implementations SHOULD treat excessive quantities of non-productive packets as indicative of an attack|N|No mechanism exists to classify frames as "productive" or "non-productive" or to track quantities of any frame type for abuse detection.
+RFC 9000|21.9|Endpoints MAY respond to suspected peer DoS with a connection error|PARTIAL|Connection errors are issued for protocol violations (CRYPTO_BUFFER_EXCEEDED, flow control errors, parse failures) but not specifically for excessive non-productive packet patterns as described in §21.9.
+RFC 9000|21.9|Endpoints MAY respond to suspected peer DoS by dropping packets|N|Packets are only dropped when decryption fails or encryption keys are unavailable; there is no packet-dropping logic for abuse mitigation.
+RFC 9000|21.9|Protection against abuse via small/inconsequential state changes (e.g., small increments to flow control limits)|N|MAX_DATA, MAX_STREAM_DATA, MAX_STREAMS frames are accepted unconditionally without rate-limiting or abuse tracking; only strictly larger values are applied silently.
+RFC 9000|21.9|Protection against PADDING frame abuse to consume processing bandwidth|N|PADDING frames are silently ignored (no processing) but there is no rate limit on the number of PADDING frames or packets received.
+RFC 9000|21.9|Protection against PING frame abuse to trigger unnecessary processing|N|PING frames are silently ignored (no action taken) but there is no rate limit on PING reception.
+RFC 9000|21.9|Crypto buffer overflow protection against excessive CRYPTO frame buffering|Y|The security policy includes `max_crypto_buffer_bytes` (default 65536) and CRYPTO_BUFFER_EXCEEDED error is raised when exceeded (RFC 9000 §4, §19.6).
+RFC 9000|21.9|H3 frame buffer overflow protection against oversized frames|Y|The H3 security policy includes `max_frame_buffer_bytes` (default 32768) which rejects frames exceeding the limit during accumulation.
+RFC 9000|21.10|ACK ECN frame type (0x03) constant defined for reporting ECN counts|Y|YAWT_Q_FRAME_ACK_ECN (0x03) is defined in quic_types.h enum.
+RFC 9000|21.10|ACK ECN frame struct with ect0/ect1/ecn_ce counts defined|Y|YAWT_Q_Frame_ACK_ECN_t struct with ect0_count, ect1_count, ecn_ce_count fields exists in quic_types.h.
+RFC 9000|21.10|ECN fields ignored unless QUIC packet is successfully processed|N|No ECN reading from IP headers, no ECN count tracking, and no ACK-ECN frame enqueuing exists in the codebase.
+RFC 9000|21.10|Parsing ACK-ECN frames on receipt|N|Frame type 0x03 is not handled in YAWT_q_parse_frame switch — it falls through to default producing YAWT_Q_ERR_INVALID_PACKET.
+RFC 9000|21.10|Sending ACK frames with ECN counts|N|YAWT_q_enqueue_frame_ack only encodes plain ACK (0x02) with no ECN counts; no enqueue function for ACK-ECN frames exists.
+RFC 9000|21.11|Endpoints sharing a static key for stateless resets MUST be arranged so packets with a given connection ID always arrive at an instance that has connection state unless the connection is no longer active|N|YAWT does not implement stateless reset sending/receiving at all, nor provides any routing or cluster coordination mechanism|
+RFC 9000|21.11|Servers MUST NOT generate a stateless reset if a connection with the corresponding connection ID could be active on any endpoint using the same static key|N|YAWT does not implement stateless reset packet generation; the entire stateless reset feature is absent from the codebase|
+RFC 9000|21.11|In clusters with dynamic load balancing, routing changes during active connections are acceptable for stateless reset only if routing cannot be influenced by an attacker|N|YAWT is a QUIC library with no load balancer integration, routing policy control, or cluster-awareness implemented|
+RFC 9000|21.12|Version Negotiation packets can be used to negotiate the QUIC version between two endpoints|N|No Version Negotiation packet support exists anywhere in YAWT; this was confirmed as missing in prior section reviews
+RFC 9000|21.12|Version Negotiation packets do not contain any mechanism to prevent version downgrade attacks|Y|The codebase correctly lacks downgrade protection; this section acknowledges the limitation as a known protocol weakness
+RFC 9000|21.12|Future versions of QUIC that use Version Negotiation packets MUST define a mechanism robust against version downgrade attacks|N|This is a requirement on future QUIC versions, not on RFC 9000 implementations; YAWT implements only RFC 9000 version 1 and does not define any such mechanism
+RFC 9000|21.13|Deployments should limit the ability of an attacker to target a new connection to a particular server instance|UNKNOWN|Section is a deployment/security consideration for multi-instance load-balanced deployments; YAWT is a single-process library with no such architecture to evaluate.
+RFC 9000|21.13|Routing decisions should be made independently of client-selected values including addresses|UNKNOWN|YAWT is a single-process implementation with no load-balancing or routing layer; per-connection random CIDs are generated via gnutls_rnd but there are no routing decisions to inspect.
+RFC 9000|21.13|Connection ID can be used after instance selection to route later packets to the same instance|PARTIAL|YAWT generates random connection IDs per connection and indexes them in a hash table for packet lookup (RFC 9000 §5.1), but the section's guidance on intentional instance-affinity CID design for multi-server deployments is not applicable to this single-process library.
+RFC 9000|21.14|QUIC packet length can reveal information about content length|N|Informational statement about traffic analysis risk; no code feature required.
+RFC 9000|21.14|PADDING frame provided to obscure packet content length for traffic analysis resistance|Y|PADDING frame (type 0x00) is implemented: encoding via YAWT_q_encode_frame_padding, decoding handled as a no-op frame, and used for 1200-byte minimum Initial packet padding per RFC 9000 §14.1.
+RFC 9000|21.14|Traffic analysis resistance through other side channels (e.g., packet timing)|N|The section notes timing as a side channel but provides no specific QUIC-level mechanism; no timing-based traffic analysis mitigation observed in the codebase.
+RFC 9000|22.1|All QUIC registries allow both provisional and permanent registration of codepoints|N|IANA administrative policy, not an implementation feature
+RFC 9000|22.1|Provisional registrations require Expert Review as defined in RFC 8126 Section 4.5|N|IANA administrative procedure, not implementable in code
+RFC 9000|22.1|Provisional registrations include fields: Value, Status, Specification, Date, Change Controller, Contact, Notes|N|IANA registry metadata format, not an implementation concern
+RFC 9000|22.1|Provisional registrations may omit Specification and Notes fields|N|IANA registry policy detail, not relevant to implementation
+RFC 9000|22.1|New codepoint requests SHOULD use randomly selected codepoint excluding first unallocated|N|IANA allocation guidance, not implementable in code
+RFC 9000|22.1|First unassigned codepoint reserved for Standards Action policy allocation|N|IANA governance policy, not an implementation feature
+RFC 9000|22.1|Codepoints encoded in variable-length integers at 2^14 and above SHOULD be used for less-sensitive registrations|N|IANA selection guidance, not implementable in code
+RFC 9000|22.1|IANA MUST allocate a requested codepoint if unassigned and registration policy requirements are met|N|IANA procedural rule, not implementable in code
+RFC 9000|22.1|Unused provisional codepoints MAY be reclaimed through expert review and consultation process|N|IANA administrative procedure, not an implementation feature
+RFC 9000|22.1|Provisional codepoints updated less than a year ago SHOULD NOT be reclaimed|N|IANA policy detail, not relevant to implementation
+RFC 9000|22.1|Permanent registrations use Specification Required policy per RFC 8126 Section 4.6|N|IANA governance policy, not an implementation feature
+RFC 9000|22.1|Registrations made by Standards Track publications MUST be permanent|N|IANA policy, not implementable in code
+RFC 9000|22.2|IANA QUIC Versions Registry governs a 32-bit space|Y|The codebase uses `uint32_t version` in `YAWT_Q_Packet_t` and `YAWT_Q_Connection_t`, supporting the 32-bit version space|
+RFC 9000|22.2|Codepoint 0x00000001 assigned to this document's protocol (QUIC v1)|PARTIAL|The codebase parses and stores 4-byte version fields correctly, but does not define a named constant for `0x00000001` or enforce it as the sole supported version|
+RFC 9000|22.2|Codepoint 0x00000000 permanently reserved for version negotiation|N|The connection struct initializes `version = 0` as a default sentinel, but no Version Negotiation packet handling exists anywhere in the codebase|
+RFC 9000|22.2|Codepoints matching pattern 0x?a?a?a?a are reserved and MUST NOT appear in assigned values|N|No validation of the reserved version bit pattern (low four bits of each byte = `1010` binary) is performed anywhere in the codebase|
+RFC 9000|22.3|IANA registry for "QUIC Transport Parameters" under "QUIC" heading|UNKNOWN|Administrative IANA function, not directly implementable in code
+RFC 9000|22.3|Registry governs 62-bit parameter ID space|N|Administrative definition; code uses uint64_t (64-bit) for varint decoding of parameter IDs
+RFC 9000|22.3|Transport parameter 0x00 (original_destination_connection_id) listed in initial registry|PARTIAL|Server sends it in _tp_send but client does not parse it from peer on reception
+RFC 9000|22.3|Transport parameter 0x01 (max_idle_timeout) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x02 (stateless_reset_token) listed in initial registry|N|Not sent in _tp_send and not parsed in _tp_recv; stored only in NEW_CONNECTION_ID frame
+RFC 9000|22.3|Transport parameter 0x03 (max_udp_payload_size) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x04 (initial_max_data) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x05 (initial_max_stream_data_bidi_local) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x06 (initial_max_stream_data_bidi_remote) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x07 (initial_max_stream_data_uni) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x08 (initial_max_streams_bidi) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x09 (initial_max_streams_uni) listed in initial registry|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.3|Transport parameter 0x0a (ack_delay_exponent) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x0b (max_ack_delay) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x0c (disable_active_migration) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x0d (preferred_address) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x0e (active_connection_id_limit) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Transport parameter 0x0f (initial_source_connection_id) listed in initial registry|Y|Both sent in _tp_send and implicitly stored via our_cid; not explicitly parsed from peer
+RFC 9000|22.3|Transport parameter 0x1f (retry_source_connection_id) listed in initial registry|N|Not present in _tp_send or _tp_recv
+RFC 9000|22.3|Reserved values at form 31*N+27 (27, 58, 89...) must not be assigned|N|No validation or skip logic for reserved parameter IDs in _tp_recv switch
+RFC 9000|22.3|Transport parameters parsed with unknown IDs are silently ignored (default: break)|Y|Unknown param_id falls through default case in _tp_recv switch which skips the payload
+RFC 9000|22.3|Transport parameters encoded as varint ID + varint length + raw value|Y|_tp_append encodes ID as 1 byte (uint8_t) and length as 1 byte (uint8_t)
+RFC 9000|22.3|Transport parameter 0x20 (max_datagram_frame_size from RFC 9221) supported|Y|Both sent in _tp_send and received in _tp_recv switch
+RFC 9000|22.4|IANA maintains a "QUIC Frame Types" registry under a "QUIC" heading|Y|The YAWT codebase defines all QUIC frame types in `quic_types.h` as a C enum, serving as an in-code registry.|
+RFC 9000|22.4|Frame types are governed by a 62-bit space|Y|Frame types are defined as `uint64_t` values (variable-length integer encoded on wire, up to 62 bits).|
+RFC 9000|22.4|Permanent registrations for frame types 0x00–0x3f require Standards Action or IESG Approval|UNKNOWN|Registration policy is an IANA governance matter, not directly verifiable in code.|
+RFC 9000|22.4|Permanent registrations for frame types above 0x3f use Specification Required policy|UNKNOWN|Registration policy is an IANA governance matter, not directly verifiable in code.|
+RFC 9000|22.4|Frame Type Name is a required field for permanent registrations|Y|Each frame type in `quic_types.h` has a descriptive enum name (e.g., `YAWT_Q_FRAME_PADDING = 0x00`).|
+RFC 9000|22.4|PADDING frame type 0x00 is defined|Y|`YAWT_Q_FRAME_PADDING = 0x00` defined in `quic_types.h:106`; padding bytes are generated via `YAWT_q_encode_frame_padding`.|
+RFC 9000|22.4|PING frame type 0x01 is defined|Y|`YAWT_Q_FRAME_PING = 0x01` defined; enqueued via `YAWT_q_enqueue_frame_ping`; parsed in switch case.|
+RFC 9000|22.4|ACK frame type 0x02 is defined|Y|`YAWT_Q_FRAME_ACK = 0x02` defined; enqueued via `YAWT_q_enqueue_frame_ack`; parsed with largest_ack, ack_delay, and ack ranges.|
+RFC 9000|22.4|ACK frame type 0x03 (ECN) is defined|Y|`YAWT_Q_FRAME_ACK_ECN = 0x03` defined; parsed separately from ACK in switch case.|
+RFC 9000|22.4|RESET_STREAM frame type 0x04 is defined|Y|`YAWT_Q_FRAME_RESET_STREAM = 0x04` defined; enqueued via `YAWT_q_enqueue_frame_reset_stream`; parsed with stream_id, app_error_code, final_size.|
+RFC 9000|22.4|STOP_SENDING frame type 0x05 is defined|Y|`YAWT_Q_FRAME_STOP_SENDING = 0x05` defined; enqueued via `YAWT_q_enqueue_frame_stop_sending`; parsed with stream_id and app_error_code.|
+RFC 9000|22.4|CRYPTO frame type 0x06 is defined|Y|`YAWT_Q_FRAME_CRYPTO = 0x06` defined; enqueued via `YAWT_q_enqueue_frame_crypto`; parsed with offset and data.|
+RFC 9000|22.4|NEW_TOKEN frame type 0x07 is defined|N|`YAWT_Q_FRAME_NEW_TOKEN = 0x07` is defined in the enum but never parsed or enqueued in the codebase.|
+RFC 9000|22.4|STREAM frame types 0x08–0x0f are defined with low 3 bits carrying OFF/LEN/FIN flags|Y|`YAWT_Q_FRAME_STREAM = 0x08` defined; parsing checks `frame_type >= 0x08 && <= 0x0f` and extracts flags via `frame_type & 0x07`; encoding uses base 0x08 with low 3 bits.|
+RFC 9000|22.4|MAX_DATA frame type 0x10 is defined|Y|`YAWT_Q_FRAME_MAX_DATA = 0x10` defined; parsed with max_data value; peer frames handled in `quic_connection.c`.|
+RFC 9000|22.4|MAX_STREAM_DATA frame type 0x11 is defined|Y|`YAWT_Q_FRAME_MAX_STREAM_DATA = 0x11` defined; parsed with stream_id and max_stream_data value; peer frames handled in `quic_connection.c`.|
+RFC 9000|22.4|MAX_STREAMS frame types 0x12–0x13 (bidi/uni) are defined|PARTIAL|`YAWT_Q_FRAME_MAX_STREAMS_BIDI = 0x12` and `_UNI = 0x13` are defined and parsed, but there is no `YAWT_q_enqueue_frame_max_streams` function to send them.|
+RFC 9000|22.4|DATA_BLOCKED frame type 0x14 is defined|N|`YAWT_Q_FRAME_DATA_BLOCKED = 0x14` is defined in the enum but never parsed or enqueued in the codebase.|
+RFC 9000|22.4|STREAM_DATA_BLOCKED frame type 0x15 is defined|N|`YAWT_Q_FRAME_STREAM_DATA_BLOCKED = 0x15` is defined in the enum but never parsed or enqueued in the codebase.|
+RFC 9000|22.4|STREAMS_BLOCKED frame types 0x16–0x17 (bidi/uni) are defined|N|`YAWT_Q_FRAME_STREAMS_BLOCKED_BIDI = 0x16` and `_UNI = 0x17` are defined in the enum but never parsed or enqueued in the codebase.|
+RFC 9000|22.4|NEW_CONNECTION_ID frame type 0x18 is defined|PARTIAL|`YAWT_Q_FRAME_NEW_CONNECTION_ID = 0x18` is defined and parsed (including CID, seq_num, retire_prior_to, stateless_reset_token), but there is no `YAWT_q_enqueue_frame_new_connection_id` to send it.|
+RFC 9000|22.4|RETIRE_CONNECTION_ID frame type 0x19 is defined|N|`YAWT_Q_FRAME_RETIRE_CONNECTION_ID = 0x19` is defined in the enum but never parsed or enqueued in the codebase.|
+RFC 9000|22.4|PATH_CHALLENGE frame type 0x1a is defined|PARTIAL|`YAWT_Q_FRAME_PATH_CHALLENGE = 0x1a` is defined and parsed (8-byte data), but there is no `YAWT_q_enqueue_frame_path_challenge` to send it.|
+RFC 9000|22.4|PATH_RESPONSE frame type 0x1b is defined|Y|`YAWT_Q_FRAME_PATH_RESPONSE = 0x1b` defined; enqueued via `YAWT_q_enqueue_frame_path_response`; parsed with 8-byte data.|
+RFC 9000|22.4|CONNECTION_CLOSE frame type 0x1c (transport) is defined|Y|`YAWT_Q_FRAME_CONNECTION_CLOSE = 0x1c` defined; enqueued via `YAWT_q_enqueue_frame_connection_close`; parsed with error_code, frame_type, and reason_phrase.|
+RFC 9000|22.4|CONNECTION_CLOSE frame type 0x1d (application) is defined|Y|`YAWT_Q_FRAME_CONNECTION_CLOSE_APP = 0x1d` defined; enqueued (PARTIAL: only with empty reason phrase); parsed with error_code and reason_phrase.|
+RFC 9000|22.4|HANDSHAKE_DONE frame type 0x1e is defined|Y|`YAWT_Q_FRAME_HANDSHAKE_DONE = 0x1e` defined; enqueued via `YAWT_q_enqueue_frame_handshake_done`; parsed in switch case.|
+RFC 9000|22.5|IANA registry for "QUIC Transport Error Codes" under QUIC heading|N|Section is an IANA registry definition; YAWT does not maintain a registry (this is IANA's responsibility)
+RFC 9000|22.5|62-bit error code space governed by registry|Y|Error codes are stored as uint64_t (variable-length integer, up to 62 bits) in CONNECTION_CLOSE and RESET_STREAM frame structs
+RFC 9000|22.5|Three policy ranges in error code space (Specification Required vs Standards Action)|N|Section is an IANA policy definition; codebase does not implement registration policies
+RFC 9000|22.5|Required registration fields: Code and Description|N|Section is an IANA registry field definition, not a protocol implementation requirement
+RFC 9000|22.5|NO_ERROR (0x00) transport error code|PARTIAL|Error codes are parsed and serialized as raw varint values but no specific NO_ERROR constant or handling is defined in YAWT
+RFC 9000|22.5|INTERNAL_ERROR (0x01) transport error code|N|No constant or handling defined for INTERNAL_ERROR (0x01) in YAWT
+RFC 9000|22.5|CONNECTION_REFUSED (0x02) transport error code|N|No constant or handling defined for CONNECTION_REFUSED (0x02) in YAWT
+RFC 9000|22.5|FLOW_CONTROL_ERROR (0x03) transport error code|N|No constant or handling defined for FLOW_CONTROL_ERROR (0x03) in YAWT
+RFC 9000|22.5|STREAM_LIMIT_ERROR (0x04) transport error code|N|No constant or handling defined for STREAM_LIMIT_ERROR (0x04) in YAWT
+RFC 9000|22.5|STREAM_STATE_ERROR (0x05) transport error code|N|No constant or handling defined for STREAM_STATE_ERROR (0x05) in YAWT
+RFC 9000|22.5|FINAL_SIZE_ERROR (0x06) transport error code|N|No constant or handling defined for FINAL_SIZE_ERROR (0x06) in YAWT
+RFC 9000|22.5|FRAME_ENCODING_ERROR (0x07) transport error code|N|No constant or handling defined for FRAME_ENCODING_ERROR (0x07) in YAWT
+RFC 9000|22.5|TRANSPORT_PARAMETER_ERROR (0x08) transport error code|N|No constant or handling defined for TRANSPORT_PARAMETER_ERROR (0x08) in YAWT
+RFC 9000|22.5|CONNECTION_ID_LIMIT_ERROR (0x09) transport error code|N|No constant or handling defined for CONNECTION_ID_LIMIT_ERROR (0x09) in YAWT
+RFC 9000|22.5|PROTOCOL_VIOLATION (0x0a) transport error code|N|No constant or handling defined for PROTOCOL_VIOLATION (0x0a) in YAWT
+RFC 9000|22.5|INVALID_TOKEN (0x0b) transport error code|N|No constant or handling defined for INVALID_TOKEN (0x0b) in YAWT
+RFC 9000|22.5|APPLICATION_ERROR (0x0c) transport error code|N|No constant or handling defined for APPLICATION_ERROR (0x0c) in YAWT
+RFC 9000|22.5|CRYPTO_BUFFER_EXCEEDED (0x0d) transport error code|Y|Defined as YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED in quic.h and handled in quic_connection.c (line 375-377) with CONNECTION_CLOSE(0x0d, 0x06)
+RFC 9000|22.5|KEY_UPDATE_ERROR (0x0e) transport error code|N|No constant or handling defined for KEY_UPDATE_ERROR (0x0e) in YAWT
+RFC 9000|22.5|AEAD_LIMIT_REACHED (0x0f) transport error code|N|No constant or handling defined for AEAD_LIMIT_REACHED (0x0f) in YAWT
+RFC 9000|22.5|NO_VIABLE_PATH (0x10) transport error code|N|No constant or handling defined for NO_VIABLE_PATH (0x10) in YAWT
+RFC 9000|22.5|CRYPTO_ERROR (0x0100-0x01ff) TLS alert code range|N|No mapping from TLS alert codes to CRYPTO_ERROR range defined in YAWT
+RFC 9000|22.5|CONNECTION_CLOSE frames carry error codes as variable-length integers|Y|Parsed with YAWT_q_varint_decode and encoded with YAWT_q_varint_encode in quic.c
+RFC 9000|22.5|Both CONNECTION_CLOSE (transport) and CONNECTION_CLOSE (application) frame types support error codes|Y|Two distinct frame types YAWT_Q_FRAME_CONNECTION_CLOSE (0x1c) and YAWT_Q_FRAME_CONNECTION_CLOSE_APP (0x1d) both include error_code fields
+RFC 9000|22.5|RESET_STREAM frames carry application error codes|Y|YAWT_Q_Frame_Reset_Stream_t struct includes app_error_code field
+RFC 9000|22.5|STOP_SENDING frames carry application error codes|Y|YAWT_Q_Frame_Stop_Sending_t struct includes app_error_code field
+RFC 9000|23.1|Normative References section lists 19 normative RFCs/documents required by RFC 9000|N|This section is a bibliography listing normative references (RFCs) and does not describe any implementable protocol feature or behavior.
+RFC 9000|23.2|Section consists entirely of an unordered list of informative/bibliographic references with no normative requirements or features to implement|Y|This section is purely a bibliography listing external documents (RFC 5116, 7301, 7838, 8446, etc.) cited informatively; no code implementation is required.

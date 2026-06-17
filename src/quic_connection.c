@@ -542,13 +542,22 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           meta->rx_end = 1;
           meta->rx_fin_offset = frame.reset_stream.final_size;
         }
+        YAWT_Q_EventParam_t param;
+        param.P_EVT_STREAM_RESET.stream_id = frame.reset_stream.stream_id;
+        param.P_EVT_STREAM_RESET.app_error_code = frame.reset_stream.app_error_code;
+        param.P_EVT_STREAM_RESET.final_size = frame.reset_stream.final_size;
+        _event_handler(con, YAWT_Q_EVT_STREAM_RESET, param);
         break;
       }
 
       case YAWT_Q_FRAME_STOP_SENDING: {
         YAWT_LOG(YAWT_LOG_DEBUG, "STOP_SENDING received: stream=%lu, error=%lu",
                  frame.stop_sending.stream_id, frame.stop_sending.app_error_code);
-        YAWT_q_con_reset_stream(con, frame.stop_sending.stream_id, frame.stop_sending.app_error_code);
+        YAWT_Q_EventParam_t param;
+        param.P_EVT_STREAM_STOP_SENDING.stream_id = frame.stop_sending.stream_id;
+        param.P_EVT_STREAM_STOP_SENDING.app_error_code = frame.stop_sending.app_error_code;
+        _event_handler(con, YAWT_Q_EVT_STREAM_STOP_SENDING, param);
+        YAWT_q_con_reset_stream(con, frame.stop_sending.stream_id, 0);
         break;
       }
 

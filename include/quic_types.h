@@ -464,6 +464,8 @@ typedef enum {
   YAWT_Q_EVT_DATAGRAM,
   YAWT_Q_EVT_CLOSE,
   YAWT_Q_EVT_TX,
+  YAWT_Q_EVT_STREAM_RESET,        /**< Peer sent RESET_STREAM (RFC 9000 §3.2) */
+  YAWT_Q_EVT_STREAM_STOP_SENDING, /**< Peer sent STOP_SENDING (RFC 9000 §3.3) */
 } YAWT_Q_EventType_t;
 
 /**
@@ -496,4 +498,15 @@ typedef union {
     size_t len;
     const YAWT_Q_PeerAddr_t *peer;
   } P_EVT_TX;
+
+  struct {
+    uint64_t stream_id;
+    uint64_t app_error_code;
+    uint64_t final_size;
+  } P_EVT_STREAM_RESET;
+
+  struct {
+    uint64_t stream_id;
+    uint64_t app_error_code;
+  } P_EVT_STREAM_STOP_SENDING;
 } YAWT_Q_EventParam_t;
