@@ -85,6 +85,7 @@ static void _parse_long_header(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   // Lower 4 bits: reserved (bits 3-2) + packet_number_length (bits 1-0)
   // For Retry these are unused/ignored, but harmless to set.
   pkt->reserved = (b0 >> 2) & 3;
+  pkt->reserved_zero = 1;
   pkt->packet_number_length = (b0 & 3) + 1;
   rc->cursor++;
 
@@ -227,6 +228,7 @@ static void _parse_pkt_1rtt(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   if (!fixed_bit) { rc->err = YAWT_Q_ERR_INVALID_PACKET; return; } // RFC 9000 §17.3.1
   pkt->extra.one_rtt.spin_bit = (b0 >> 5) & 1;
   pkt->reserved = (b0 >> 3) & 3;
+  pkt->reserved_zero = 1;
   pkt->extra.one_rtt.key_phase = (b0 >> 2) & 1;
   pkt->packet_number_length = (b0 & 3) + 1; // still header-protected, unreliable until HP removal
 

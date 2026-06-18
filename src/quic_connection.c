@@ -737,6 +737,12 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       continue;
     }
 
+    if (!pkt.reserved_zero) {
+      YAWT_LOG(YAWT_LOG_WARN, "PROTOCOL_VIOLATION: non-zero reserved bits after unprotection");
+      YAWT_q_con_close(con, 0x0a);
+      continue;
+    }
+
     con->stats.last_rx = now;
 
     // Reconstruct full packet number from truncated value

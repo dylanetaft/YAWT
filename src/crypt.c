@@ -669,13 +669,20 @@ int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
   if (ret < 0) return ret;
 
   // Unmask byte 0
+  uint8_t reserved;
   if (packet[0] & 0x80) {
     // Long header: mask lower 4 bits
     packet[0] ^= (mask[0] & 0x0f);
+    // RFC 9000 §17.2: reserved bits are mask 0x0c (bits 3-2)
+    reserved = (packet[0] >> 2) & 3;
   } else {
     // Short header: mask lower 5 bits
     packet[0] ^= (mask[0] & 0x1f);
+    // RFC 9000 §17.3.1: reserved bits are mask 0x18 (bits 4-3)
+    reserved = (packet[0] >> 3) & 3;
   }
+  pkt->reserved = reserved;
+  pkt->reserved_zero = (reserved == 0) ? 1 : 0;
 
   // Read PN length from (now unmasked) byte 0
   uint8_t pn_len = (packet[0] & 0x03) + 1;

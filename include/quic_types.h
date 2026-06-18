@@ -163,6 +163,7 @@ typedef struct {
 
   /** Encrypted packet fields (not Retry) */
   uint8_t reserved;
+  uint8_t reserved_zero;
   uint8_t packet_number_length;
   uint32_t packet_num;
   uint8_t *payload;
