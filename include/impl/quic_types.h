@@ -71,7 +71,6 @@ typedef struct {
   uint64_t stream_id;
   uint64_t rx_next_offset;
   uint64_t tx_next_offset;
-  uint64_t rx_fin_offset;
   YAWT_Q_StreamFC_t fc;
   uint8_t rx_end;   /* RX terminated: received FIN/RESET_STREAM, or sent STOP_SENDING */
   uint8_t tx_end;   /* TX terminated: sent FIN/RESET_STREAM, or received STOP_SENDING */

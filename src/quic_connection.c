@@ -293,7 +293,8 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
       con->stats.rx_count_bytes += f->data_len;
       if (f->fin) {
         meta->rx_end = 1;
-        meta->rx_fin_offset = f->offset + f->data_len;
+        YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (buffered FIN drained at offset %lu)",
+                 meta->stream_id, f->offset + f->data_len);
       }
 
       YAWT_Q_EventParam_t param;
@@ -446,6 +447,16 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         }
         uint64_t end = frame.stream.offset + frame.stream.data_len;
 
+        // RFC 9000 §4.5: ignore data after stream RX is finalized (FIN/RESET_STREAM/STOP_SENDING).
+        // We don't enforce strict final-size validation — remote's problem if they send more.
+        if (meta->rx_end) {
+          if (end > meta->rx_next_offset) {
+            YAWT_LOG(YAWT_LOG_WARN, "Stream %lu: ignoring %lu bytes at offset %lu after RX finalized (rx_next_offset=%lu)",
+                     meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
+          }
+          break;
+        }
+
         // Skip fully duplicate data
         if (end <= meta->rx_next_offset) break;
 
@@ -457,7 +468,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           con->stats.rx_count_bytes += frame.stream.data_len;
           if (frame.stream.fin) {
             meta->rx_end = 1;
-            meta->rx_fin_offset = end;
+            YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (FIN received at offset %lu)",
+                     meta->stream_id, end);
           }
 
           uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
@@ -592,8 +604,15 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                  frame.reset_stream.final_size);
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.reset_stream.stream_id);
         if (meta) {
+          if (meta->rx_end) {
+            // RFC 9000 §4.5: already finalized, ignore duplicate RESET_STREAM
+            YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: ignoring duplicate RESET_STREAM (RX already finalized)",
+                     meta->stream_id);
+            break;
+          }
           meta->rx_end = 1;
-          meta->rx_fin_offset = frame.reset_stream.final_size;
+          YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (RESET_STREAM received)",
+                   meta->stream_id);
         }
         YAWT_Q_EventParam_t param;
         param.P_EVT_STREAM_RESET.stream_id = frame.reset_stream.stream_id;
