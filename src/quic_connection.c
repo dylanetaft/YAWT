@@ -247,14 +247,17 @@ static YAWT_Q_StreamMeta_t *_stream_meta_add(YAWT_Q_Connection_t *con, uint64_t 
   uint8_t stype = stream_id & 0x03;
   switch (stype) {
     case 0x00: // Client-initiated bidi: use peer's bidi_local
-      m->tx_max_data = con->peer_fc.max_stream_data_bidi_local;
+      m->fc.tx_max_data = con->peer_fc.max_stream_data_bidi_local;
+      m->fc.rx_max_data = con->local_fc.max_stream_data_bidi_local;
       break;
     case 0x01: // Server-initiated bidi: use peer's bidi_remote
-      m->tx_max_data = con->peer_fc.max_stream_data_bidi_remote;
+      m->fc.tx_max_data = con->peer_fc.max_stream_data_bidi_remote;
+      m->fc.rx_max_data = con->local_fc.max_stream_data_bidi_remote;
       break;
     case 0x02: // Client-initiated uni: use peer's uni
     case 0x03: // Server-initiated uni: use peer's uni
-      m->tx_max_data = con->peer_fc.max_stream_data_uni;
+      m->fc.tx_max_data = con->peer_fc.max_stream_data_uni;
+      m->fc.rx_max_data = con->local_fc.max_stream_data_uni;
       break;
   }
   
@@ -457,6 +460,31 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
             meta->rx_fin_offset = end;
           }
 
+          uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+          if (meta->fc.rx_max_data > 0 && pct > 0 && pct <= 100) {
+            uint64_t threshold = meta->fc.rx_max_data * pct / 100;
+            if (meta->rx_next_offset >= threshold) {
+              YAWT_Q_FlowControlInfo_t info = {
+                .type = YAWT_Q_FC_STREAM_RX,
+                .stream_id = meta->stream_id,
+                .current_limit = meta->fc.rx_max_data,
+                .consumed = meta->rx_next_offset
+              };
+              YAWT_Q_EventParam_t param;
+              param.P_EVT_FLOW_CONTROL.info = &info;
+              _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
+
+              if (meta->fc.rx_max_data <= threshold) {
+                uint64_t factor = YAWT_q_security_get()->fc_auto_increase_factor;
+                if (factor == 0) factor = 2;
+                uint64_t new_limit = meta->fc.rx_max_data * factor;
+                YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: auto-increased RX FC limit -> %lu",
+                         meta->stream_id, new_limit);
+                YAWT_q_con_set_stream_rx_limit(con, meta->stream_id, new_limit);
+              }
+            }
+          }
+
           YAWT_Q_EventParam_t param;
           param.P_EVT_STREAM.frame = &frame.stream;
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
@@ -485,14 +513,13 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_DATA updated to %lu", con->peer_fc.max_data);
         }
         break;
-      // RFC 9000 19.10 - it applies to the specific stream
       case YAWT_Q_FRAME_MAX_STREAM_DATA: {
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.max_stream_data.stream_id);
-        if (meta && frame.max_stream_data.max_stream_data > meta->tx_max_data) {
-          meta->tx_max_data = frame.max_stream_data.max_stream_data;
+        if (meta && frame.max_stream_data.max_stream_data > meta->fc.tx_max_data) {
+          meta->fc.tx_max_data = frame.max_stream_data.max_stream_data;
           meta->tx_fc_blocked = false;
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_STREAM_DATA stream %lu updated to %lu",
-                    frame.max_stream_data.stream_id, meta->tx_max_data);
+                    frame.max_stream_data.stream_id, meta->fc.tx_max_data);
         }
         break;
       }
@@ -767,10 +794,10 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
           continue;
         }
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, f->stream_id);
-        if (meta && meta->tx_next_offset > meta->tx_max_data) {
+        if (meta && meta->tx_next_offset > meta->fc.tx_max_data) {
           if (!meta->tx_fc_blocked) {
             meta->tx_fc_blocked = true;
-            YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, meta->tx_max_data);
+            YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, meta->fc.tx_max_data);
           }
           continue;
         }
@@ -979,7 +1006,7 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
 }
 
 YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                                         uint64_t app_error_code) {
+                                          uint64_t app_error_code) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
@@ -988,6 +1015,16 @@ YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream
 
   meta->rx_end = 1;
   return YAWT_q_enqueue_frame_stop_sending(con, stream_id, app_error_code);
+}
+
+void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t new_limit) {
+  if (!con) return;
+  YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
+  if (!meta) return;
+  if (new_limit > meta->fc.rx_max_data) {
+    meta->fc.rx_max_data = new_limit;
+    YAWT_q_enqueue_frame_max_stream_data(con, stream_id, new_limit);
+  }
 }
 
 // Global maintenance configuration

@@ -156,7 +156,18 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
  *       respond with RESET_STREAM. Returns error if stream doesn't exist or rx_end already set.
  */
 YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
-                                         uint64_t app_error_code);
+                                          uint64_t app_error_code);
+
+/**
+ * @ingroup QUIC_Connection
+ * @brief Update the RX flow control limit for a stream and send MAX_STREAM_DATA.
+ * @param con The QUIC connection.
+ * @param stream_id The stream whose limit is being raised.
+ * @param new_limit The new RX limit (must be > current limit).
+ * @note Called from within EVT_FLOW_CONTROL handler to communicate the app's decision.
+ *       If new_limit <= current limit, no action is taken.
+ */
+void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t new_limit);
 
 /**
  * @internal

@@ -4,6 +4,8 @@
 static YAWT_Q_SecurityPolicy_t _policy = {
   .min_idle_timeout_ms = 5000,
   .max_crypto_buffer_bytes = 65536,
+  .fc_threshold_percent = 75,
+  .fc_auto_increase_factor = 2,
 };
 
 static YAWT_Q_FlowControl_t _default_local_fc = {

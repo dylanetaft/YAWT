@@ -524,7 +524,39 @@ typedef enum {
    * to receive more data overall.
    */
   YAWT_Q_EVT_DATA_BLOCKED,
+
+  /**
+   * @brief Flow control threshold reached.
+   * Fired when RX consumption reaches fc_threshold_percent of the advertised limit.
+   * The app can call YAWT_q_con_set_stream_rx_limit() from within the handler to
+   * update the limit. If not called (or limit not increased), the library auto-increases
+   * by fc_auto_increase_factor and sends MAX_STREAM_DATA.
+   */
+  YAWT_Q_EVT_FLOW_CONTROL,
 } YAWT_Q_EventType_t;
+
+/**
+ * @ingroup QUIC
+ * @brief Flow control threshold type for EVT_FLOW_CONTROL.
+ */
+typedef enum {
+  YAWT_Q_FC_UNSET = 0x0,
+  YAWT_Q_FC_STREAM_RX,
+  YAWT_Q_FC_STREAM_TX,
+  YAWT_Q_FC_CONN_RX,
+  YAWT_Q_FC_CONN_TX,
+} YAWT_Q_FlowControlType_t;
+
+/**
+ * @ingroup QUIC
+ * @brief Flow control threshold info passed to EVT_FLOW_CONTROL handler.
+ */
+typedef struct {
+  YAWT_Q_FlowControlType_t type;
+  uint64_t stream_id;
+  uint64_t current_limit;
+  uint64_t consumed;
+} YAWT_Q_FlowControlInfo_t;
 
 /**
  * @ingroup QUIC
@@ -576,4 +608,8 @@ typedef union {
   struct {
     uint64_t max_data;
   } P_EVT_DATA_BLOCKED;
+
+  struct {
+    const YAWT_Q_FlowControlInfo_t *info;
+  } P_EVT_FLOW_CONTROL;
 } YAWT_Q_EventParam_t;

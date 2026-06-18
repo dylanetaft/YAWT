@@ -329,8 +329,22 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint6
  * @note Level: APPLICATION only. RFC 9000 §19.13.
  */
 YAWT_Q_Error_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
-                                                          uint64_t stream_id,
-                                                          uint64_t max_stream_data);
+                                                           uint64_t stream_id,
+                                                           uint64_t max_stream_data);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Encode a MAX_STREAM_DATA frame and push to tx_buffer.
+ * @param con The QUIC connection.
+ * @param stream_id The stream whose limit is being raised.
+ * @param max_stream_data The new stream-level flow control limit.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Level: APPLICATION only. RFC 9000 §19.10.
+ */
+YAWT_Q_Error_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
+                                                       uint64_t stream_id,
+                                                       uint64_t max_stream_data);
 
 struct YAWT_Q_Crypto;
 typedef struct YAWT_Q_Crypto_t YAWT_Q_Crypto_t;

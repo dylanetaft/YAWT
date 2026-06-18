@@ -988,8 +988,8 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint6
 }
 
 YAWT_Q_Error_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
-                                                          uint64_t stream_id,
-                                                          uint64_t max_stream_data) {
+                                                           uint64_t stream_id,
+                                                           uint64_t max_stream_data) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -1011,7 +1011,36 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con
 
   f.type = YAWT_Q_FRAME_STREAM_DATA_BLOCKED;
   f.level = YAWT_Q_LEVEL_APPLICATION;
-  f.stream_id = stream_id;
+  f.wire_len = cursor;
+
+  ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
+  return YAWT_Q_OK;
+}
+
+YAWT_Q_Error_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
+                                                       uint64_t stream_id,
+                                                       uint64_t max_stream_data) {
+  ANB_Slab_t *queue = con->tx_buffer;
+  YAWT_Q_WireFrame_t f;
+  memset(&f, 0, sizeof(f));
+
+  size_t cursor = 0;
+  uint64_t n;
+  YAWT_Q_Error_t err;
+
+  if (cursor + 1 > YAWT_Q_MAX_PKT_SIZE) return YAWT_Q_ERR_SHORT_BUFFER;
+  f.wire_data[cursor++] = 0x11;  // MAX_STREAM_DATA
+
+  err = YAWT_q_varint_encode(stream_id, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  err = YAWT_q_varint_encode(max_stream_data, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  if (err != YAWT_Q_OK) return err;
+  cursor += n;
+
+  f.type = YAWT_Q_FRAME_MAX_STREAM_DATA;
+  f.level = YAWT_Q_LEVEL_APPLICATION;
   f.wire_len = cursor;
 
   ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));

@@ -51,6 +51,16 @@ struct YAWT_Q_Connection_t {
 /**
  * @internal
  * @ingroup QUIC_Internal
+ * @brief Per-stream flow control limits.
+ */
+typedef struct {
+  uint64_t tx_max_data;
+  uint64_t rx_max_data;
+} YAWT_Q_StreamFC_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
  * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
  *       RFC 9000 §3.1/3.2: TX and RX are independent state machines.
@@ -62,7 +72,7 @@ typedef struct {
   uint64_t rx_next_offset;
   uint64_t tx_next_offset;
   uint64_t rx_fin_offset;
-  uint64_t tx_max_data;
+  YAWT_Q_StreamFC_t fc;
   uint8_t rx_end;   /* RX terminated: received FIN/RESET_STREAM, or sent STOP_SENDING */
   uint8_t tx_end;   /* TX terminated: sent FIN/RESET_STREAM, or received STOP_SENDING */
   bool tx_fc_blocked;  /* edge-trigger: STREAM_DATA_BLOCKED sent for this stream */
