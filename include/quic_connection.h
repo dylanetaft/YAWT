@@ -170,6 +170,16 @@ YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream
 void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t new_limit);
 
 /**
+ * @ingroup QUIC_Connection
+ * @brief Update the connection-level RX flow control limit and send MAX_DATA.
+ * @param con The QUIC connection.
+ * @param new_limit The new connection-level RX limit (must be > current limit).
+ * @note Called from within EVT_FLOW_CONTROL handler to communicate the app's decision.
+ *       If new_limit <= current limit, no action is taken.
+ */
+void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit);
+
+/**
  * @internal
  * @ingroup QUIC_Internal
  * @brief Update the peer's Connection ID.

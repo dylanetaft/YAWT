@@ -528,9 +528,12 @@ typedef enum {
   /**
    * @brief Flow control threshold reached.
    * Fired when RX consumption reaches fc_threshold_percent of the advertised limit.
-   * The app can call YAWT_q_con_set_stream_rx_limit() from within the handler to
-   * update the limit. If not called (or limit not increased), the library auto-increases
-   * by fc_auto_increase_factor and sends MAX_STREAM_DATA.
+   * Check the type field in YAWT_Q_FlowControlInfo_t to determine if this is a
+   * stream-level (YAWT_Q_FC_STREAM_RX) or connection-level (YAWT_Q_FC_CONN_RX) event.
+   * For stream-level: call YAWT_q_con_set_stream_rx_limit() to update the limit.
+   * For connection-level: call YAWT_q_con_set_conn_rx_limit() to update the limit.
+   * If not called (or limit not increased), the library auto-increases by
+   * fc_auto_increase_factor and sends MAX_STREAM_DATA or MAX_DATA.
    */
   YAWT_Q_EVT_FLOW_CONTROL,
 } YAWT_Q_EventType_t;

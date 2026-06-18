@@ -485,6 +485,29 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
             }
           }
 
+          if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
+            uint64_t conn_threshold = con->local_fc.max_data * pct / 100;
+            if (con->stats.rx_count_bytes >= conn_threshold) {
+              YAWT_Q_FlowControlInfo_t conn_info = {
+                .type = YAWT_Q_FC_CONN_RX,
+                .stream_id = 0,
+                .current_limit = con->local_fc.max_data,
+                .consumed = con->stats.rx_count_bytes
+              };
+              YAWT_Q_EventParam_t conn_param;
+              conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
+              _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
+
+              if (con->local_fc.max_data <= conn_threshold) {
+                uint64_t factor = YAWT_q_security_get()->fc_auto_increase_factor;
+                if (factor == 0) factor = 2;
+                uint64_t new_limit = con->local_fc.max_data * factor;
+                YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
+                YAWT_q_con_set_conn_rx_limit(con, new_limit);
+              }
+            }
+          }
+
           YAWT_Q_EventParam_t param;
           param.P_EVT_STREAM.frame = &frame.stream;
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
@@ -1024,6 +1047,14 @@ void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id
   if (new_limit > meta->fc.rx_max_data) {
     meta->fc.rx_max_data = new_limit;
     YAWT_q_enqueue_frame_max_stream_data(con, stream_id, new_limit);
+  }
+}
+
+void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit) {
+  if (!con) return;
+  if (new_limit > con->local_fc.max_data) {
+    con->local_fc.max_data = new_limit;
+    YAWT_q_enqueue_frame_max_data(con, new_limit);
   }
 }
 
