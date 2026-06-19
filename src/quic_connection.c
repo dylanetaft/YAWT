@@ -34,6 +34,7 @@ static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
   } else {
     con->close_reason[0] = '\0';
   }
+  if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
 }
 
 // RFC 9000 Appendix A: reconstruct full PN from truncated value
@@ -161,7 +162,6 @@ void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
   YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
                                          error_code, 0);
   _record_close(con, error_code, "local close", sizeof("local close") - 1);
-  con->stats.closing_at = DBL_MAX;
   YAWT_LOG(YAWT_LOG_INFO, "Closing connection: CID=%s, error=%lu",
             YAWT_q_cid_to_hex(&con->cid), error_code);
 }
@@ -380,6 +380,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
           YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), 0x0D, 0x06);
+          _record_close(con, 0x0D, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1);
           res.err = feed_err;
           return res;
         }
@@ -424,7 +425,6 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         _record_close(con, frame.connection_close.error_code,
                       (const char *)frame.connection_close.reason_phrase,
                       frame.connection_close.reason_phrase_len);
-        if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
         break;
       }
 
@@ -435,7 +435,6 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         _record_close(con, frame.connection_close_app.error_code,
                       (const char *)frame.connection_close_app.reason_phrase,
                       frame.connection_close_app.reason_phrase_len);
-        if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
         break;
       }
 
@@ -651,7 +650,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           YAWT_LOG(YAWT_LOG_ERROR, "STREAM_DATA_BLOCKED on send-only stream %lu",
                    frame.stream_data_blocked.stream_id);
           YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, 0x05, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
-          if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
+          _record_close(con, 0x05, "stream data blocked on send-only stream",
+                        sizeof("stream data blocked on send-only stream") - 1);
           break;
         }
         YAWT_LOG(YAWT_LOG_DEBUG, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
@@ -785,9 +785,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     }
 
     // Flush queued frames immediately (handshake replies, ACKs, etc.)
-    if (ANB_slab_item_count(con->tx_buffer) > 0) {
-      _drain_tx(con, now);
-    }
+    _drain_tx(con, now);
   }
   if (rc.err != YAWT_Q_OK) {
     printf("  parse error: %d at cursor %zu\n", rc.err, rc.cursor);
@@ -813,6 +811,7 @@ static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
 }
 
 static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
+  if (ANB_slab_item_count(con->tx_buffer) == 0) return;
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
         ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
@@ -1117,8 +1116,10 @@ const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void) {
 static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
   double closing = (*con)->stats.closing_at;
 
-  // Closing state: DBL_MAX means close queued but not yet flushed — stamp it now
+  // Closing state: DBL_MAX means close queued but not yet flushed — drain any
+  // final frames (e.g. CONNECTION_CLOSE), then stamp the real timestamp
   if (closing == DBL_MAX) {
+    _drain_tx(*con, now);
     (*con)->stats.closing_at = now;
     return 0;
   }
@@ -1200,8 +1201,6 @@ void YAWT_q_con_maintain(double now) {
     _maint_ping(con, idle_sec, now);
     _maint_retransmit(con, now);
 
-    if (ANB_slab_item_count(con->tx_buffer) > 0) {
-      _drain_tx(con, now);
-    }
+    _drain_tx(con, now);
   }
 }
