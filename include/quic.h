@@ -170,7 +170,7 @@ typedef struct {
   uint64_t cid_seq_num;     // highest NEW_CONNECTION_ID seq_num seen
   double last_rx;           // ev_now() timestamp of last packet received
   double last_tx;           // ev_now() timestamp of last packet sent
-  double closing_at;        // 0 = open, DBL_MAX = close pending flush, else timestamp of close sent
+  double closing_at;        // 0 = not closing, else timestamp when close period started
 } YAWT_Q_ConnectionStats_t;
 
 /**

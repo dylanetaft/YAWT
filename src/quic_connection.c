@@ -21,11 +21,17 @@ static YAWT_Q_EventHandler_t _event_handler = _noop_event_handler;
 // Forward declarations
 static void _drain_tx(YAWT_Q_Connection_t *con, double now);
 
+// Check if connection is in any closing state (RFC 9000 §10.2)
+static bool _is_closing(const YAWT_Q_Connection_t *con) {
+  return (con->state & (YAWT_Q_STATE_SELF_CLOSE_CLOSING | YAWT_Q_STATE_PEER_CLOSE_DRAINING)) != 0;
+}
+
 // Record why a connection is closing. The actual EVT_CLOSE is emitted later,
 // exactly once, by YAWT_q_con_free. reason is copied (bounded) so callers may
 // pass transient buffers or string literals.
 static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
-                          const char *reason, size_t reason_len) {
+                          const char *reason, size_t reason_len,
+                          YAWT_Q_ConnState_t state) {
   con->close_code = code;
   if (reason && reason_len) {
     if (reason_len >= sizeof(con->close_reason)) reason_len = sizeof(con->close_reason) - 1;
@@ -34,7 +40,7 @@ static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
   } else {
     con->close_reason[0] = '\0';
   }
-  if (con->stats.closing_at == 0) con->stats.closing_at = DBL_MAX;
+  con->state |= state;
 }
 
 // RFC 9000 Appendix A: reconstruct full PN from truncated value
@@ -157,11 +163,11 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
 }
 
 void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
-  if (!con || con->stats.closing_at != 0) return;
+  if (!con || _is_closing(con)) return;
 
   YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
                                          error_code, 0);
-  _record_close(con, error_code, "local close", sizeof("local close") - 1);
+  _record_close(con, error_code, "local close", sizeof("local close") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
   YAWT_LOG(YAWT_LOG_INFO, "Closing connection: CID=%s, error=%lu",
             YAWT_q_cid_to_hex(&con->cid), error_code);
 }
@@ -380,7 +386,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
           YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), 0x0D, 0x06);
-          _record_close(con, 0x0D, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1);
+          _record_close(con, 0x0D, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
           return res;
         }
@@ -424,7 +430,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         // _record_close copies it.
         _record_close(con, frame.connection_close.error_code,
                       (const char *)frame.connection_close.reason_phrase,
-                      frame.connection_close.reason_phrase_len);
+                      frame.connection_close.reason_phrase_len,
+                      YAWT_Q_STATE_PEER_CLOSE_DRAINING);
         break;
       }
 
@@ -434,7 +441,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
         _record_close(con, frame.connection_close_app.error_code,
                       (const char *)frame.connection_close_app.reason_phrase,
-                      frame.connection_close_app.reason_phrase_len);
+                      frame.connection_close_app.reason_phrase_len,
+                      YAWT_Q_STATE_PEER_CLOSE_DRAINING);
         break;
       }
 
@@ -651,7 +659,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                    frame.stream_data_blocked.stream_id);
           YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, 0x05, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
           _record_close(con, 0x05, "stream data blocked on send-only stream",
-                        sizeof("stream data blocked on send-only stream") - 1);
+                        sizeof("stream data blocked on send-only stream") - 1,
+                        YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
         }
         YAWT_LOG(YAWT_LOG_DEBUG, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
@@ -706,6 +715,19 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
 
     if (!con) {
       YAWT_LOG(YAWT_LOG_ERROR, "Failed to create connection for CID=%s", YAWT_q_cid_to_hex(&pkt.dest_cid));
+      continue;
+    }
+
+    // RFC 9000 §10.2: handle closing/draining states
+    if (con->state & YAWT_Q_STATE_PEER_CLOSE_DRAINING) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "draining: dropping packet");
+      continue;
+    }
+    if (con->state & YAWT_Q_STATE_SELF_CLOSE_CLOSING) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "closing: responding with CONNECTION_CLOSE");
+      YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
+                                             con->close_code, 0);
+      _drain_tx(con, now);
       continue;
     }
 
@@ -1112,14 +1134,12 @@ const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void) {
 }
 
 // Check if connection should be freed. Returns 1 if freed.
-// Handles: closing state (DBL_MAX -> stamp -> free after 3x PTO) and idle timeout.
+// Handles: closing state (stamp -> free after 3x PTO) and idle timeout.
 static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
   double closing = (*con)->stats.closing_at;
 
-  // Closing state: DBL_MAX means close queued but not yet flushed — drain any
-  // final frames (e.g. CONNECTION_CLOSE), then stamp the real timestamp
-  if (closing == DBL_MAX) {
-    _drain_tx(*con, now);
+  // Close initiated but timestamp not yet stamped — stamp it now
+  if (_is_closing(*con) && closing == 0) {
     (*con)->stats.closing_at = now;
     return 0;
   }
@@ -1143,7 +1163,7 @@ static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
   if (now - (*con)->stats.last_rx > idle_sec) {
     YAWT_LOG(YAWT_LOG_INFO, "Idle timeout: CID=%s, %.1fs since last rx",
               YAWT_q_cid_to_hex(&(*con)->cid), now - (*con)->stats.last_rx);
-    _record_close(*con, 0, "idle timeout", sizeof("idle timeout") - 1);
+    _record_close(*con, 0, "idle timeout", sizeof("idle timeout") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
     YAWT_q_con_free(con);
     return 1;
   }
@@ -1197,7 +1217,7 @@ void YAWT_q_con_maintain(double now) {
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
     double idle_sec = _effective_idle_timeout(con);
     if (_maint_kill(&con, idle_sec, now)) continue;
-    if (con->stats.closing_at != 0) continue;
+    if (con->state & YAWT_Q_STATE_PEER_CLOSE_DRAINING) continue;
     _maint_ping(con, idle_sec, now);
     _maint_retransmit(con, now);
 

@@ -89,6 +89,16 @@ typedef enum {
 
 /**
  * @ingroup QUIC
+ * @brief QUIC connection states (RFC 9000 §10.2). Bitwise flags.
+ */
+typedef enum {
+  YAWT_Q_STATE_OPEN                = 0x00,
+  YAWT_Q_STATE_SELF_CLOSE_CLOSING  = 0x01,
+  YAWT_Q_STATE_PEER_CLOSE_DRAINING = 0x02,
+} YAWT_Q_ConnState_t;
+
+/**
+ * @ingroup QUIC
  * @brief QUIC stream types (RFC 9000).
  */
 typedef enum {
