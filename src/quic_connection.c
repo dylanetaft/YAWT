@@ -355,12 +355,13 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
 static int _frame_allowed_in_packet(YAWT_Q_Frame_Type_t frame, YAWT_Q_Packet_Type_t pkt_type) {
   switch (pkt_type) {
     case YAWT_Q_PKT_TYPE_INITIAL:
-      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_ACK ||
-             frame == YAWT_Q_FRAME_CRYPTO || frame == YAWT_Q_FRAME_CONNECTION_CLOSE;
+      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_PING ||
+             frame == YAWT_Q_FRAME_ACK || frame == YAWT_Q_FRAME_CRYPTO ||
+             frame == YAWT_Q_FRAME_CONNECTION_CLOSE;
     case YAWT_Q_PKT_TYPE_HANDSHAKE:
-      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_ACK ||
-             frame == YAWT_Q_FRAME_CRYPTO || frame == YAWT_Q_FRAME_CONNECTION_CLOSE ||
-             frame == YAWT_Q_FRAME_HANDSHAKE_DONE;
+      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_PING ||
+             frame == YAWT_Q_FRAME_ACK || frame == YAWT_Q_FRAME_CRYPTO ||
+             frame == YAWT_Q_FRAME_CONNECTION_CLOSE || frame == YAWT_Q_FRAME_HANDSHAKE_DONE;
     case YAWT_Q_PKT_TYPE_0RTT:
       return frame != YAWT_Q_FRAME_CRYPTO && frame != YAWT_Q_FRAME_CONNECTION_CLOSE &&
              frame != YAWT_Q_FRAME_CONNECTION_CLOSE_APP && frame != YAWT_Q_FRAME_HANDSHAKE_DONE &&
