@@ -41,6 +41,7 @@ static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
     con->close_reason[0] = '\0';
   }
   con->state |= state;
+  con->closing_rx_count = 0;
 }
 
 // RFC 9000 Appendix A: reconstruct full PN from truncated value
@@ -724,6 +725,13 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       continue;
     }
     if (con->state & YAWT_Q_STATE_SELF_CLOSE_CLOSING) {
+      con->closing_rx_count++;
+      // RFC 9000 §10.2.1: exponential backoff on closing-state responses.
+      // Respond at packet counts that are powers of 2 (1, 2, 4, 8, 16, ...).
+      if ((con->closing_rx_count & (con->closing_rx_count - 1)) != 0) {
+        YAWT_LOG(YAWT_LOG_DEBUG, "closing: rate-limited, dropping packet");
+        continue;
+      }
       YAWT_LOG(YAWT_LOG_DEBUG, "closing: responding with CONNECTION_CLOSE");
       YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
                                              con->close_code, 0);

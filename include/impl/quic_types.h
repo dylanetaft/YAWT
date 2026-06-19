@@ -47,6 +47,7 @@ struct YAWT_Q_Connection_t {
   uint64_t close_code;              // recorded by close triggers, emitted once by con_free
   char close_reason[256];           // bounded, null-terminated; "" if none
   YAWT_Q_ConnState_t state;         // RFC 9000 §10.2: OPEN, SELF_CLOSE_CLOSING, or PEER_CLOSE_DRAINING
+  uint32_t closing_rx_count;        // RFC 9000 §10.2.1: packet counter for closing-state rate limiting
 };
 
 /**
