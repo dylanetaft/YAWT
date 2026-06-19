@@ -299,7 +299,7 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
       meta->rx_next_offset += f->data_len;
       con->stats.rx_count_bytes += f->data_len;
       if (f->fin) {
-        meta->rx_end = 1;
+        meta->state |= YAWT_Q_STREAM_FIN_RECEIVED;
         YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (buffered FIN drained at offset %lu)",
                  meta->stream_id, f->offset + f->data_len);
       }
@@ -488,7 +488,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
         // RFC 9000 §4.5: ignore data after stream RX is finalized (FIN/RESET_STREAM/STOP_SENDING).
         // We don't enforce strict final-size validation — remote's problem if they send more.
-        if (meta->rx_end) {
+        if (!_stream_should_rx(meta)) {
           if (end > meta->rx_next_offset) {
             YAWT_LOG(YAWT_LOG_WARN, "Stream %lu: ignoring %lu bytes at offset %lu after RX finalized (rx_next_offset=%lu)",
                      meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
@@ -506,7 +506,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           meta->rx_next_offset = end;
           con->stats.rx_count_bytes += frame.stream.data_len;
           if (frame.stream.fin) {
-            meta->rx_end = 1;
+            meta->state |= YAWT_Q_STREAM_FIN_RECEIVED;
             YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (FIN received at offset %lu)",
                      meta->stream_id, end);
           }
@@ -591,7 +591,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.max_stream_data.stream_id);
         if (meta && frame.max_stream_data.max_stream_data > meta->fc.tx_max_data) {
           meta->fc.tx_max_data = frame.max_stream_data.max_stream_data;
-          meta->tx_fc_blocked = false;
+          meta->state &= ~YAWT_Q_STREAM_TX_BLOCKED_SENT;
           YAWT_LOG(YAWT_LOG_DEBUG, "MAX_STREAM_DATA stream %lu updated to %lu",
                     frame.max_stream_data.stream_id, meta->fc.tx_max_data);
         }
@@ -643,13 +643,13 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                  frame.reset_stream.final_size);
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.reset_stream.stream_id);
         if (meta) {
-          if (meta->rx_end) {
+          if (!_stream_should_rx(meta)) {
             // RFC 9000 §4.5: already finalized, ignore duplicate RESET_STREAM
             YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: ignoring duplicate RESET_STREAM (RX already finalized)",
                      meta->stream_id);
             break;
           }
-          meta->rx_end = 1;
+          meta->state |= YAWT_Q_STREAM_RESET_RECEIVED;
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (RESET_STREAM received)",
                    meta->stream_id);
         }
@@ -927,9 +927,9 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
           continue;
         }
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, f->stream_id);
-        if (meta && meta->tx_next_offset > meta->fc.tx_max_data) {
-          if (!meta->tx_fc_blocked) {
-            meta->tx_fc_blocked = true;
+        if (meta && meta->tx_next_offset >= meta->fc.tx_max_data) {
+          if (_stream_should_tx(meta) && !(meta->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
+            meta->state |= YAWT_Q_STREAM_TX_BLOCKED_SENT;
             YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, meta->fc.tx_max_data);
           }
           continue;
@@ -1039,7 +1039,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     meta = _stream_meta_add(con, stream_id);
     if (!meta) return YAWT_Q_ERR_ALLOC;
   }
-  if (meta->tx_end) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!_stream_should_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
   size_t total_len = 0;
   for (int i = 0; i < iov_count; i++) {
@@ -1058,7 +1058,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     sf.frame.fin = 1;
     YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
-    meta->tx_end = 1;
+    meta->state |= YAWT_Q_STREAM_FIN_SENT;
     return YAWT_Q_OK;
   }
 
@@ -1104,7 +1104,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     remaining -= chunk_len;
   }
 
-  if (fin) meta->tx_end = 1;
+  if (fin) meta->state |= YAWT_Q_STREAM_FIN_SENT;
   return YAWT_Q_OK;
 }
 
@@ -1128,9 +1128,9 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
   if (!meta) return YAWT_Q_ERR_INVALID_PARAM;
-  if (meta->tx_end) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!_stream_should_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
-  meta->tx_end = 1;
+  meta->state |= YAWT_Q_STREAM_RESET_SENT;
   YAWT_Q_Error_t err = YAWT_q_enqueue_frame_reset_stream(con, stream_id, app_error_code, meta->tx_next_offset);
   if (err != YAWT_Q_OK) return err;
 
@@ -1144,9 +1144,9 @@ YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
   if (!meta) return YAWT_Q_ERR_INVALID_PARAM;
-  if (meta->rx_end) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!_stream_should_rx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
-  meta->rx_end = 1;
+  meta->state |= YAWT_Q_STREAM_STOPPED_SENT;
   return YAWT_q_enqueue_frame_stop_sending(con, stream_id, app_error_code);
 }
 

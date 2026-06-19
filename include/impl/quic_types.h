@@ -63,21 +63,57 @@ typedef struct {
 /**
  * @internal
  * @ingroup QUIC_Internal
+ * @brief Stream state flags (bitwise enum).
+ * @note RFC 9000 §3.1/3.2: TX and RX are independent state machines.
+ *       If the metadata exists, both directions are active by default.
+ *       These flags track *why* a direction terminated.
+ */
+typedef enum {
+  YAWT_Q_STREAM_FIN_SENT         = 0x01,  // We sent FIN → TX Data Sent state
+  YAWT_Q_STREAM_RESET_SENT       = 0x02,  // We sent RESET_STREAM → TX Reset Sent state
+  YAWT_Q_STREAM_STOPPED_RECEIVED = 0x04,  // We received STOP_SENDING → TX terminated by peer
+  YAWT_Q_STREAM_FIN_RECEIVED     = 0x08,  // We received FIN → RX Size Known state
+  YAWT_Q_STREAM_RESET_RECEIVED   = 0x10,  // We received RESET_STREAM → RX Reset Recvd state
+  YAWT_Q_STREAM_STOPPED_SENT     = 0x20,  // We sent STOP_SENDING → RX terminated by us
+  YAWT_Q_STREAM_TX_BLOCKED_SENT  = 0x40,  // edge-trigger: sent STREAM_DATA_BLOCKED for this stream
+} YAWT_Q_StreamState_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
  * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
  *       RFC 9000 §3.1/3.2: TX and RX are independent state machines.
- *       tx_end: we sent FIN, we sent RESET_STREAM, or we received STOP_SENDING (peer said "stop sending").
- *       rx_end: we received FIN, we received RESET_STREAM, or we sent STOP_SENDING (we said "stop sending").
+ *       If the metadata exists, both directions are active by default.
+ *       The state field tracks termination reasons (FIN, RESET, STOP_SENDING).
  */
 typedef struct {
   uint64_t stream_id;
   uint64_t rx_next_offset;
   uint64_t tx_next_offset;
   YAWT_Q_StreamFC_t fc;
-  uint8_t rx_end;   /* RX terminated: received FIN/RESET_STREAM, or sent STOP_SENDING */
-  uint8_t tx_end;   /* TX terminated: sent FIN/RESET_STREAM, or received STOP_SENDING */
-  bool tx_fc_blocked;  /* edge-trigger: STREAM_DATA_BLOCKED sent for this stream */
+  uint8_t state;  // bitwise OR of YAWT_Q_StreamState_t flags
 } YAWT_Q_StreamMeta_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Check if stream should transmit data.
+ * @note Returns true if TX is active (no FIN sent, no RESET sent, not stopped by peer).
+ */
+static inline bool _stream_should_tx(const YAWT_Q_StreamMeta_t *m) {
+  return !(m->state & (YAWT_Q_STREAM_FIN_SENT | YAWT_Q_STREAM_RESET_SENT | YAWT_Q_STREAM_STOPPED_RECEIVED));
+}
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Check if stream should receive data.
+ * @note Returns true if RX is active (no FIN received, no RESET received, not stopped by us).
+ */
+static inline bool _stream_should_rx(const YAWT_Q_StreamMeta_t *m) {
+  return !(m->state & (YAWT_Q_STREAM_FIN_RECEIVED | YAWT_Q_STREAM_RESET_RECEIVED | YAWT_Q_STREAM_STOPPED_SENT));
+}
 
 /**
  * @internal

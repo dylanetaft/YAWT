@@ -138,9 +138,9 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
  * @param stream_id The stream to reset.
  * @param app_error_code Application error code.
  * @return YAWT_Q_OK on success, or an error code.
- * @note RFC 9000 §3.1: Transitions TX to "Reset Sent" state. Sets tx_end=1, enqueues
+ * @note RFC 9000 §3.1: Transitions TX to "Reset Sent" state. Sets RESET_SENT flag, enqueues
  *       RESET_STREAM with final_size=tx_next_offset, and removes pending STREAM frames
- *       from tx_buffer. Returns error if stream doesn't exist or tx_end already set.
+ *       from tx_buffer. Returns error if stream doesn't exist or TX already terminated.
  */
 YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                          uint64_t app_error_code);
@@ -152,8 +152,8 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
  * @param stream_id The stream to stop receiving.
  * @param app_error_code Application error code.
  * @return YAWT_Q_OK on success, or an error code.
- * @note RFC 9000 §3.2: Sets rx_end=1 and enqueues STOP_SENDING. Per §3.3, peer SHOULD
- *       respond with RESET_STREAM. Returns error if stream doesn't exist or rx_end already set.
+ * @note RFC 9000 §3.2: Sets STOPPED_SENT flag and enqueues STOP_SENDING. Per §3.3, peer SHOULD
+ *       respond with RESET_STREAM. Returns error if stream doesn't exist or RX already terminated.
  */
 YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                           uint64_t app_error_code);
