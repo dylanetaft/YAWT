@@ -351,16 +351,47 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
   }
 }
 
+// RFC 9000 §12.4: frames allowed per packet type
+static int _frame_allowed_in_packet(YAWT_Q_Frame_Type_t frame, YAWT_Q_Packet_Type_t pkt_type) {
+  switch (pkt_type) {
+    case YAWT_Q_PKT_TYPE_INITIAL:
+      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_ACK ||
+             frame == YAWT_Q_FRAME_CRYPTO || frame == YAWT_Q_FRAME_CONNECTION_CLOSE;
+    case YAWT_Q_PKT_TYPE_HANDSHAKE:
+      return frame == YAWT_Q_FRAME_PADDING || frame == YAWT_Q_FRAME_ACK ||
+             frame == YAWT_Q_FRAME_CRYPTO || frame == YAWT_Q_FRAME_CONNECTION_CLOSE ||
+             frame == YAWT_Q_FRAME_HANDSHAKE_DONE;
+    case YAWT_Q_PKT_TYPE_0RTT:
+      return frame != YAWT_Q_FRAME_CRYPTO && frame != YAWT_Q_FRAME_CONNECTION_CLOSE &&
+             frame != YAWT_Q_FRAME_CONNECTION_CLOSE_APP && frame != YAWT_Q_FRAME_HANDSHAKE_DONE &&
+             frame != YAWT_Q_FRAME_NEW_TOKEN;
+    case YAWT_Q_PKT_TYPE_1RTT:
+      return frame != YAWT_Q_FRAME_CRYPTO;
+    default:
+      return 1;
+  }
+}
+
 // This function parses and dispatches rx quic frames
 static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                                                   YAWT_Q_Packet_t *pkt) {
   YAWT_Q_FrameHandler_Res_t res = { .err = YAWT_Q_OK, .requires_ack = 0 };
   YAWT_Q_ReadCursor_t frc = { .data = pkt->payload, .len = pkt->payload_len, .cursor = 0, .err = YAWT_Q_OK };
+  int frame_count = 0;
 
   while (frc.cursor < frc.len && frc.err == YAWT_Q_OK) {
     YAWT_Q_Frame_t frame;
     YAWT_q_parse_frame(&frc, pkt->type, &frame);
     if (frc.err != YAWT_Q_OK) break;
+    frame_count++;
+
+    // RFC 9000 §12.4: reject frames not allowed in this packet type
+    if (!_frame_allowed_in_packet(frame.type, pkt->type)) {
+      YAWT_LOG(YAWT_LOG_WARN, "PROTOCOL_VIOLATION: frame 0x%02x not allowed in %s",
+               frame.type, _pkt_type_name(pkt->type));
+      res.err = YAWT_Q_ERR_INVALID_PACKET;
+      return res;
+    }
 
     // RFC 9000 §13.2: only ACK and PADDING are non-ack-eliciting
     if (frame.type != YAWT_Q_FRAME_ACK && frame.type != YAWT_Q_FRAME_PADDING &&
@@ -683,6 +714,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
     YAWT_LOG(YAWT_LOG_ERROR, "Frame parse error: %s (%d)", YAWT_q_err_str(frc.err), frc.err);
     res.err = frc.err;
   }
+  // RFC 9000 §12.4: packets with no frames are a protocol violation
+  if (frame_count == 0 && res.err == YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "PROTOCOL_VIOLATION: empty packet (no frames)");
+    res.err = YAWT_Q_ERR_INVALID_PACKET;
+  }
   return res;
 }
 
@@ -694,6 +730,19 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     YAWT_Q_Packet_t pkt;
     YAWT_q_parse_packet(&rc, &pkt);
     if (rc.err != YAWT_Q_OK || rc.cursor == prev) break;
+
+    // RFC 9000 §10.3: discard packets smaller than 21 bytes
+    size_t pkt_len = rc.cursor - prev;
+    if (pkt_len < 21) {
+      YAWT_LOG(YAWT_LOG_WARN, "discarding packet < 21 bytes (%zu)", pkt_len);
+      continue;
+    }
+
+    // RFC 9000 §14.1: server must discard Initial packets in datagrams < 1200 bytes
+    if (pkt.type == YAWT_Q_PKT_TYPE_INITIAL && prev == 0 && len < 1200) {
+      YAWT_LOG(YAWT_LOG_WARN, "discarding Initial in datagram < 1200 bytes (%zu)", len);
+      break;
+    }
 
     printf("  packet: %s (consumed %zu bytes)\n", _pkt_type_name(pkt.type), rc.cursor - prev);
 
@@ -808,6 +857,12 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                pkt.payload_len > 3 ? pkt.payload[3] : 0);
     }
     YAWT_Q_FrameHandler_Res_t res = _handle_frames(con, &pkt);
+
+    // RFC 9000 §12.4: PROTOCOL_VIOLATION for invalid frames or empty packets
+    if (res.err != YAWT_Q_OK) {
+      YAWT_q_con_close(con, 0x0a);
+      continue;
+    }
 
     // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
     if (res.requires_ack) {
