@@ -34,3 +34,10 @@ if(YAWT_ENABLE_LOGGING)
 endif()
 
 add_test(NAME yawt_tests COMMAND yawt_tests)
+
+if(BUILD_EXAMPLES)
+  add_test(NAME h3_server_integration
+    COMMAND ${CMAKE_COMMAND} -E env YAWT_BUILD_DIR=${CMAKE_INSTALL_PREFIX}/..
+            python3 ${CMAKE_CURRENT_SOURCE_DIR}/integration/test_h3_server.py
+  )
+endif()

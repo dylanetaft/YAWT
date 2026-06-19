@@ -12,7 +12,7 @@
 #include <h3_types.h>
 #include <h3_header.h>
 
-#define LISTEN_PORT 4433
+#define DEFAULT_PORT 4433
 #define BUF_SIZE 65535
 
 static int sockfd;
@@ -154,10 +154,14 @@ static void maintain_cb(EV_P_ ev_timer *w, int revents) {
 int main(int argc, char *argv[]) {
   const char *cert_file = "cert.pem";
   const char *key_file = "key.pem";
+  uint16_t port = DEFAULT_PORT;
 
   if (argc >= 3) {
     cert_file = argv[1];
     key_file = argv[2];
+  }
+  if (argc >= 4) {
+    port = (uint16_t)atoi(argv[3]);
   }
 
   gnutls_global_init();
@@ -182,7 +186,7 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in bind_addr = {
     .sin_family = AF_INET,
-    .sin_port = htons(LISTEN_PORT),
+    .sin_port = htons(port),
     .sin_addr.s_addr = INADDR_ANY,
   };
 
@@ -192,7 +196,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  printf("listening on udp :%d\n", LISTEN_PORT);
+  printf("listening on udp :%d\n", port);
 
   struct ev_loop *loop = ev_default_loop(0);
   ev_io udp_watcher;
