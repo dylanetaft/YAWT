@@ -165,8 +165,8 @@ typedef struct {
   uint64_t tx_count_bytes;
   uint64_t rx_count_bytes;
   // RFC 9000 Section 12.3 - Counters for each space, indexed by YAWT_Q_Encryption_Level_t
-  uint64_t pkt_num_tx[4];   // per encryption level TX packet number
-  uint64_t pkt_num_rx[4];   // per encryption level RX packet number (largest seen)
+  uint64_t next_pkt_num_tx[4];   // per encryption level: next TX packet number to send
+  uint64_t next_pkt_num_rx[4];   // per encryption level: next expected RX packet number
   uint64_t cid_seq_num;     // highest NEW_CONNECTION_ID seq_num seen
   double last_rx;           // ev_now() timestamp of last packet received
   double last_tx;           // ev_now() timestamp of last packet sent

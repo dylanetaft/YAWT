@@ -746,22 +746,23 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     con->stats.last_rx = now;
 
     // Reconstruct full packet number from truncated value
-    uint64_t full_pn = _reconstruct_pn(con->stats.pkt_num_rx[level], pkt.packet_num, pkt.packet_number_length);
+    uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
+    uint64_t full_pn = _reconstruct_pn(largest_pn, pkt.packet_num, pkt.packet_number_length);
     pkt.packet_num = (uint32_t)full_pn;
     
     // RFC 9000 §12.3: "A receiver MUST discard a newly unprotected packet unless it is
     // certain that it has not processed another packet with the same packet number."
-    // We only track the high-water mark, so any full_pn <= the largest seen PN is
+    // We only track the high-water mark, so any full_pn < the next expected PN is
     // discarded.  Because we skip frame processing and ACK enqueuing below, the
     // sender's loss detector will not receive an ACK and will retransmit any
     // ack-eliciting frames (e.g. reliable stream data) in a new packet.
-    if (full_pn <= con->stats.pkt_num_rx[level]) {
-      YAWT_LOG(YAWT_LOG_DEBUG, "discarding duplicate/old PN %lu <= %lu at level %d",
-               full_pn, con->stats.pkt_num_rx[level], level);
+    if (full_pn < con->stats.next_pkt_num_rx[level]) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "discarding duplicate/old PN %lu < %lu at level %d",
+               full_pn, con->stats.next_pkt_num_rx[level], level);
       continue;
     }
     
-    con->stats.pkt_num_rx[level] = full_pn;
+    con->stats.next_pkt_num_rx[level] = full_pn + 1;
 
     // Parse frames from decrypted payload
     if (pkt.payload_len >= 8) {
@@ -808,7 +809,7 @@ static YAWT_Q_Packet_Type_t _level_to_pkt_type(uint8_t level) {
 
 // Get next packet number for a given level
 static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
-  return (uint32_t)con->stats.pkt_num_tx[level]++;
+  return (uint32_t)con->stats.next_pkt_num_tx[level]++;
 }
 
 static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
