@@ -92,7 +92,8 @@ typedef enum {
   YAWT_Q_ERR_INVALID_PARAM,
   YAWT_Q_ERR_ALLOC,
   YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED,
-  YAWT_Q_ERR_FRAME_TOO_LARGE
+  YAWT_Q_ERR_FRAME_TOO_LARGE,
+  YAWT_Q_ERR_TLS_ALERT
 } YAWT_Q_Error_t;
 
 /**
@@ -112,6 +113,7 @@ static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
     case YAWT_Q_ERR_ALLOC:         return "ALLOC";
     case YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED: return "CRYPTO_BUFFER_EXCEEDED";
     case YAWT_Q_ERR_FRAME_TOO_LARGE: return "FRAME_TOO_LARGE";
+    case YAWT_Q_ERR_TLS_ALERT:     return "TLS_ALERT";
     default:                         return "UNKNOWN";
   }
 }

@@ -51,6 +51,8 @@ typedef struct YAWT_Q_Crypto_t {
 
   YAWT_Q_FlowControl_t *peer_fc;  // points to connection's peer_fc
   YAWT_Q_FlowControl_t *local_fc; // points to connection's local_fc
+
+  uint8_t last_tls_alert;         // last TLS alert received (0 = none)
 } YAWT_Q_Crypto_t;
 typedef struct YAWT_Q_Crypto_Cred_t {
   gnutls_certificate_credentials_t cred;
@@ -187,11 +189,13 @@ static int _on_alert(gnutls_session_t session,
                       gnutls_record_encryption_level_t level,
                       gnutls_alert_level_t alert_level,
                       gnutls_alert_description_t alert_desc) {
-  (void)session;
+  YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
   (void)level;
   (void)alert_level;
-  (void)alert_desc;
-  // TODO: propagate alert to connection layer
+  if (crypto && alert_desc != 0) {
+    crypto->last_tls_alert = (uint8_t)alert_desc;
+    YAWT_LOG(YAWT_LOG_WARN, "TLS alert received: %d (%s)", alert_desc, gnutls_alert_get_name(alert_desc));
+  }
   return 0;
 }
 
@@ -531,11 +535,24 @@ YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   if (offset == crypto->rx_crypto_next_offset[level]) {
     int ret = _crypto_handshake_write(crypto, level,
                                        frame->crypto.data, frame->crypto.len);
-    if (ret < 0) return YAWT_Q_ERR_INVALID_PACKET;
+    if (ret < 0) {
+      // Check if this was caused by a TLS alert
+      if (crypto->last_tls_alert != 0) {
+        return YAWT_Q_ERR_TLS_ALERT;
+      }
+      return YAWT_Q_ERR_INVALID_PACKET;
+    }
     crypto->rx_crypto_next_offset[level] = end;
 
     // Check if any buffered frames are now contiguous
-    return _drain_crypto_buf(crypto) < 0 ? YAWT_Q_ERR_INVALID_PACKET : YAWT_Q_OK;
+    int drain_ret = _drain_crypto_buf(crypto);
+    if (drain_ret < 0) {
+      if (crypto->last_tls_alert != 0) {
+        return YAWT_Q_ERR_TLS_ALERT;
+      }
+      return YAWT_Q_ERR_INVALID_PACKET;
+    }
+    return YAWT_Q_OK;
   }
 
   // Out-of-order: buffer for later, enforcing security cap (RFC 9000 §21.6)
@@ -887,6 +904,14 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto) {
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level) {
   if (!crypto || level < 0 || level > 3) return 0;
   return crypto->level_keys[level].state != YAWT_Q_KEY_STATE_INACTIVE;
+}
+
+uint8_t YAWT_q_crypto_get_tls_alert(const YAWT_Q_Crypto_t *crypto) {
+  return crypto ? crypto->last_tls_alert : 0;
+}
+
+void YAWT_q_crypto_clear_tls_alert(YAWT_Q_Crypto_t *crypto) {
+  if (crypto) crypto->last_tls_alert = 0;
 }
 
 

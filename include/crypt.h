@@ -250,3 +250,21 @@ int YAWT_q_crypto_is_handshake_complete(const YAWT_Q_Crypto_t *crypto);
  * @return Non-zero if keys are available, 0 otherwise.
  */
 int YAWT_q_crypto_key_level_available(const YAWT_Q_Crypto_t *crypto, YAWT_Q_Encryption_Level_t level);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Get the last TLS alert received, if any.
+ * @param crypto The crypto object.
+ * @return The TLS alert description code (0 = no alert received).
+ * @note RFC 9000 §22.5: CRYPTO_ERROR = 0x0100 + tls_alert_code.
+ */
+uint8_t YAWT_q_crypto_get_tls_alert(const YAWT_Q_Crypto_t *crypto);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Clear the stored TLS alert.
+ * @param crypto The crypto object.
+ */
+void YAWT_q_crypto_clear_tls_alert(YAWT_Q_Crypto_t *crypto);

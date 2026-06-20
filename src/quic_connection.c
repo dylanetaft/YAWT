@@ -540,8 +540,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_Q_Error_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
-          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), 0x0D, 0x06);
-          _record_close(con, 0x0D, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
+          _record_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          res.err = feed_err;
+          return res;
+        }
+        if (feed_err == YAWT_Q_ERR_TLS_ALERT) {
+          uint8_t alert_code = YAWT_q_crypto_get_tls_alert(con->crypto);
+          uint64_t crypto_error = 0x0100 + alert_code;
+          YAWT_LOG(YAWT_LOG_ERROR, "TLS alert received: code=%d, sending CRYPTO_ERROR 0x%lx", alert_code, crypto_error);
+          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), crypto_error, YAWT_Q_FRAME_CRYPTO);
+          _record_close(con, crypto_error, "TLS alert", sizeof("TLS alert") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
           return res;
         }
@@ -719,9 +728,10 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         break;
 
       case YAWT_Q_FRAME_NEW_CONNECTION_ID:
+        // TODO connection migration: implement CID pool for migration support
+        YAWT_LOG(YAWT_LOG_WARN, "NEW_CONNECTION_ID received but migration not supported");
         if (frame.new_connection_id.seq_num > con->stats.cid_seq_num) {
           con->stats.cid_seq_num = frame.new_connection_id.seq_num;
-          YAWT_q_con_update_peer_cid(con, &frame.new_connection_id.cid);
         }
         break;
 
@@ -806,8 +816,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (is_uni && !peer_initiated) {
           YAWT_LOG(YAWT_LOG_ERROR, "STREAM_DATA_BLOCKED on send-only stream %lu",
                    frame.stream_data_blocked.stream_id);
-          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, 0x05, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
-          _record_close(con, 0x05, "stream data blocked on send-only stream",
+          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_STREAM_STATE_ERROR, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
+          _record_close(con, YAWT_Q_ERROR_STREAM_STATE_ERROR, "stream data blocked on send-only stream",
                         sizeof("stream data blocked on send-only stream") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
