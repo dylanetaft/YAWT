@@ -136,6 +136,56 @@ static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
   }
 }
 
+// RFC 9000 §4.1: Connection-level flow control threshold check.
+// This applies only to stream data and should NOT be added to DATAGRAM
+// or other unreliable frame handlers, as they do not count towards
+// connection flow control limits.
+
+static void _preemptive_fc_conn_rx_limit_check(YAWT_Q_Connection_t *con)
+{
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
+    uint64_t conn_threshold = con->local_fc.max_data * pct / 100;
+    if (con->stats.rx_count_bytes >= conn_threshold) {
+      YAWT_Q_FlowControlInfo_t conn_info = {
+        .type = YAWT_Q_FC_CONN_RX,
+        .stream_id = 0,
+        .current_limit = con->local_fc.max_data,
+        .consumed = con->stats.rx_count_bytes
+      };
+      YAWT_Q_EventParam_t conn_param;
+      conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
+      _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
+
+      _fc_auto_adjust_conn_rx(con, con->local_fc.max_data);
+    }
+  }
+}
+
+static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta)
+{
+
+  // The amount of data we have received on stream is close to FC limits
+  // alert app space as a courtesy to avoid stalls
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (meta->fc.rx_max_data > 0 && pct > 0 && pct <= 100) {
+    uint64_t threshold = meta->fc.rx_max_data * pct / 100;
+    if (meta->stats.rx_count_bytes >= threshold) {
+      YAWT_Q_FlowControlInfo_t info = {
+        .type = YAWT_Q_FC_STREAM_RX,
+        .stream_id = meta->stream_id,
+        .current_limit = meta->fc.rx_max_data,
+        .consumed = meta->stats.rx_count_bytes
+      };
+      YAWT_Q_EventParam_t param;
+      param.P_EVT_FLOW_CONTROL.info = &info;
+      _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
+
+      _fc_auto_adjust_stream_rx(con, meta->stream_id, meta->fc.rx_max_data);
+    }
+  }
+}
+
 YAWT_Q_Connection_t *_hash_cid = NULL;   // Hash table by our CID
 YAWT_Q_Connection_t *_hash_odcid = NULL; // Hash table by original DCID (temporary, pre-handshake)
 
@@ -331,7 +381,7 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
       YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                 meta->stream_id, f->data_len, f->offset);
       meta->rx_next_offset += f->data_len;
-      con->stats.rx_count_bytes += f->data_len;
+
       if (f->fin) {
         meta->state |= YAWT_Q_STREAM_FIN_RECEIVED;
         YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (buffered FIN drained at offset %lu)",
@@ -538,36 +588,21 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
         // Skip fully duplicate data
         if (end <= meta->rx_next_offset) break;
+        //count all bytes towards FC regardless of order, per RFC 9000 §4.5
+        con->stats.rx_count_bytes += frame.stream.data_len;
+        meta->stats.rx_count_bytes += frame.stream.data_len;
+        _preemptive_fc_stream_rx_limit_check(con, meta);
+        _preemptive_fc_conn_rx_limit_check(con);
 
         if (frame.stream.offset == meta->rx_next_offset) {
           // In order — deliver directly from frame.stream.data (still points into UDP buffer).
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset);
           meta->rx_next_offset = end;
-          con->stats.rx_count_bytes += frame.stream.data_len;
           if (frame.stream.fin) {
             meta->state |= YAWT_Q_STREAM_FIN_RECEIVED;
             YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (FIN received at offset %lu)",
                      meta->stream_id, end);
-          }
-          // The amount of data we have received on stream is close to FC limits
-          // alert app space as a courtesy to avoid stalls
-          uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
-          if (meta->fc.rx_max_data > 0 && pct > 0 && pct <= 100) {
-            uint64_t threshold = meta->fc.rx_max_data * pct / 100;
-            if (meta->rx_next_offset >= threshold) {
-              YAWT_Q_FlowControlInfo_t info = {
-                .type = YAWT_Q_FC_STREAM_RX,
-                .stream_id = meta->stream_id,
-                .current_limit = meta->fc.rx_max_data,
-                .consumed = meta->rx_next_offset
-              };
-              YAWT_Q_EventParam_t param;
-              param.P_EVT_FLOW_CONTROL.info = &info;
-              _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
-
-              _fc_auto_adjust_stream_rx(con, meta->stream_id, meta->fc.rx_max_data);
-            }
           }
 
           YAWT_Q_EventParam_t param;
@@ -575,11 +610,12 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
           _drain_stream_rx(con, meta);
+
         } else {
           // Out of order — alloc in slab, copy struct + data, single copy
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: buffering %lu bytes at offset %lu (expected %lu)",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
-          
+
           uint8_t *slot = ANB_slab_alloc_item(con->stream_rx, sizeof(YAWT_Q_Frame_BufferedStream_t));
           if (slot) {
             YAWT_Q_Frame_BufferedStream_t *buf = (YAWT_Q_Frame_BufferedStream_t *)slot;
@@ -720,7 +756,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_DEBUG, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
                  frame.stream_data_blocked.stream_id, frame.stream_data_blocked.max_stream_data);
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.stream_data_blocked.stream_id);
-        uint64_t consumed = meta ? meta->tx_next_offset : 0;
+        uint64_t consumed = meta ? meta->stats.tx_count_bytes : 0;
         YAWT_Q_FlowControlInfo_t info = {
           .type = YAWT_Q_FC_STREAM_TX,
           .stream_id = frame.stream_data_blocked.stream_id,
@@ -901,26 +937,6 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       continue;
     }
 
-    // The amount of data we have received on connection is close to FC limits
-    // alert app space as a courtesy to avoid stalls
-    uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
-    if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
-      uint64_t conn_threshold = con->local_fc.max_data * pct / 100;
-      if (con->stats.rx_count_bytes >= conn_threshold) {
-        YAWT_Q_FlowControlInfo_t conn_info = {
-          .type = YAWT_Q_FC_CONN_RX,
-          .stream_id = 0,
-          .current_limit = con->local_fc.max_data,
-          .consumed = con->stats.rx_count_bytes
-        };
-        YAWT_Q_EventParam_t conn_param;
-        conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
-        _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
-
-        _fc_auto_adjust_conn_rx(con, con->local_fc.max_data);
-      }
-    }
-
     // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
     if (res.requires_ack) {
       YAWT_q_enqueue_frame_ack(con, level, pkt.packet_num);
@@ -985,7 +1001,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
 
       // RFC 9000 §4.1: flow control — hold STREAM frames until within limits.
       // Bytes are counted optimistically at enqueue time (in send_stream);
-      // frames stay buffered here until MAX_DATA / MAX_STREAM_DATA raises limits.
+      // frames stay buffered here until MAX_DATA / MAX_STREAM_DATA raises limits
       if (f->type == YAWT_Q_FRAME_STREAM) {
         if (con->stats.tx_count_bytes > con->peer_fc.max_data) {
           if (!con->data_blocked) {
@@ -995,8 +1011,8 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
           continue;
         }
         YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, f->stream_id);
-        if (meta && meta->tx_next_offset >= meta->fc.tx_max_data) {
-          if (_stream_should_tx(meta) && !(meta->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
+        if (meta && meta->stats.tx_count_bytes >= meta->fc.tx_max_data) {
+          if (_stream_state_allows_tx(meta) && !(meta->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
             meta->state |= YAWT_Q_STREAM_TX_BLOCKED_SENT;
             YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, meta->fc.tx_max_data);
           }
@@ -1110,7 +1126,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     meta = _stream_meta_add(con, stream_id);
     if (!meta) return YAWT_Q_ERR_ALLOC;
   }
-  if (!_stream_should_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!_stream_state_allows_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
   size_t total_len = 0;
   for (int i = 0; i < iov_count; i++) {
@@ -1170,6 +1186,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
 
     meta->tx_next_offset += chunk_len;
     con->stats.tx_count_bytes += chunk_len;
+    meta->stats.tx_count_bytes += chunk_len;
     remaining -= chunk_len;
   }
 
@@ -1197,7 +1214,7 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
 
   YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, stream_id);
   if (!meta) return YAWT_Q_ERR_INVALID_PARAM;
-  if (!_stream_should_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!_stream_state_allows_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
   meta->state |= YAWT_Q_STREAM_RESET_SENT;
   YAWT_Q_Error_t err = YAWT_q_enqueue_frame_reset_stream(con, stream_id, app_error_code, meta->tx_next_offset);

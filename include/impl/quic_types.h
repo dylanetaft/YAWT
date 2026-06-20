@@ -53,6 +53,18 @@ struct YAWT_Q_Connection_t {
 /**
  * @internal
  * @ingroup QUIC_Internal
+ * @brief Per-stream byte counters for flow control (RFC 9000 §4.1).
+ * @note Parallel to YAWT_Q_ConnectionStats_t but per-stream.
+ *       Tracks cumulative stream body bytes including out-of-order data.
+ */
+typedef struct {
+  uint64_t tx_count_bytes;  // Cumulative TX stream body bytes for flow control
+  uint64_t rx_count_bytes;  // Cumulative RX stream body bytes for flow control
+} YAWT_Q_StreamStats_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Per-stream flow control limits.
  */
 typedef struct {
@@ -92,6 +104,7 @@ typedef struct {
   uint64_t rx_next_offset;
   uint64_t tx_next_offset;
   YAWT_Q_StreamFC_t fc;
+  YAWT_Q_StreamStats_t stats;
   uint8_t state;  // bitwise OR of YAWT_Q_StreamState_t flags
 } YAWT_Q_StreamMeta_t;
 
@@ -99,9 +112,10 @@ typedef struct {
  * @internal
  * @ingroup QUIC_Internal
  * @brief Check if stream should transmit data.
+ * If the stream is just blocked, we'll buffer
  * @note Returns true if TX is active (no FIN sent, no RESET sent, not stopped by peer).
  */
-static inline bool _stream_should_tx(const YAWT_Q_StreamMeta_t *m) {
+static inline bool _stream_state_allows_tx(const YAWT_Q_StreamMeta_t *m) {
   return !(m->state & (YAWT_Q_STREAM_FIN_SENT | YAWT_Q_STREAM_RESET_SENT | YAWT_Q_STREAM_STOPPED_RECEIVED));
 }
 
