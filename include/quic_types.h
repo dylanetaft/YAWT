@@ -521,30 +521,14 @@ typedef enum {
   YAWT_Q_EVT_STREAM_STOP_SENDING,
 
   /**
-   * @brief Peer is blocked from sending stream data due to our flow control limits.
-   * The peer wants to send us data on this stream, but our advertised
-   * max_stream_data limit is preventing it. Consider raising the limit by
-   * sending MAX_STREAM_DATA if we want to receive more data on this stream.
-   */
-  YAWT_Q_EVT_STREAM_DATA_BLOCKED,
-
-  /**
-   * @brief Peer is blocked from sending any data due to our connection-level flow control.
-   * The peer wants to send us data, but our advertised max_data limit is
-   * preventing it. Consider raising the limit by sending MAX_DATA if we want
-   * to receive more data overall.
-   */
-  YAWT_Q_EVT_DATA_BLOCKED,
-
-  /**
-   * @brief Flow control threshold reached.
-   * Fired when RX consumption reaches fc_threshold_percent of the advertised limit.
-   * Check the type field in YAWT_Q_FlowControlInfo_t to determine if this is a
-   * stream-level (YAWT_Q_FC_STREAM_RX) or connection-level (YAWT_Q_FC_CONN_RX) event.
-   * For stream-level: call YAWT_q_con_set_stream_rx_limit() to update the limit.
-   * For connection-level: call YAWT_q_con_set_conn_rx_limit() to update the limit.
-   * If not called (or limit not increased), the library auto-increases by
-   * fc_auto_increase_factor and sends MAX_STREAM_DATA or MAX_DATA.
+   * @brief Flow control threshold reached or peer blocked.
+   * Fired when:
+   * - RX consumption reaches fc_threshold_percent of the advertised limit (STREAM_RX/CONN_RX).
+   *   App should call YAWT_q_con_set_stream_rx_limit() or YAWT_q_con_set_conn_rx_limit()
+   *   to update the limit, or library auto-increases by fc_auto_increase_factor.
+   * - Peer sent DATA_BLOCKED or STREAM_DATA_BLOCKED (STREAM_TX/CONN_TX), indicating they
+   *   are blocked on our advertised limits. App may raise limits to unblock peer.
+   * Check the type field in YAWT_Q_FlowControlInfo_t to determine the trigger.
    */
   YAWT_Q_EVT_FLOW_CONTROL,
 } YAWT_Q_EventType_t;
@@ -552,6 +536,19 @@ typedef enum {
 /**
  * @ingroup QUIC
  * @brief Flow control threshold type for EVT_FLOW_CONTROL.
+ * @note Each type indicates what triggered the event:
+ *       - STREAM_RX: Our RX consumption on a stream reached fc_threshold_percent
+ *                    of the advertised limit. App should call YAWT_q_con_set_stream_rx_limit()
+ *                    or library auto-increases.
+ *       - STREAM_TX: Peer sent STREAM_DATA_BLOCKED for a stream, indicating they are
+ *                    blocked from sending due to our advertised max_stream_data limit.
+ *                    App may call YAWT_q_con_set_stream_rx_limit() to raise the limit.
+ *       - CONN_RX: Our connection-level RX consumption reached fc_threshold_percent
+ *                  of the advertised limit. App should call YAWT_q_con_set_conn_rx_limit()
+ *                  or library auto-increases.
+ *       - CONN_TX: Peer sent DATA_BLOCKED, indicating they are blocked from sending
+ *                  due to our advertised max_data limit. App may call
+ *                  YAWT_q_con_set_conn_rx_limit() to raise the limit.
  */
 typedef enum {
   YAWT_Q_FC_UNSET = 0x0,
@@ -613,15 +610,6 @@ typedef union {
     uint64_t stream_id;
     uint64_t app_error_code;
   } P_EVT_STREAM_STOP_SENDING;
-
-  struct {
-    uint64_t stream_id;
-    uint64_t max_stream_data;
-  } P_EVT_STREAM_DATA_BLOCKED;
-
-  struct {
-    uint64_t max_data;
-  } P_EVT_DATA_BLOCKED;
 
   struct {
     const YAWT_Q_FlowControlInfo_t *info;

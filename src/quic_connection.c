@@ -21,6 +21,14 @@ static YAWT_Q_EventHandler_t _event_handler = _noop_event_handler;
 // Forward declarations
 static void _drain_tx(YAWT_Q_Connection_t *con, double now);
 
+// Calculate new auto-increased flow control limit.
+// Returns current_val * fc_auto_increase_factor (default 2x if factor is 0).
+static uint64_t _get_new_auto_fc_limit(uint64_t fc_current_val) {
+  uint64_t factor = YAWT_q_security_get()->fc_auto_increase_factor;
+  if (factor == 0) factor = 2;
+  return fc_current_val * factor;
+}
+
 // Check if connection is in any closing state (RFC 9000 §10.2)
 static bool _is_closing(const YAWT_Q_Connection_t *con) {
   return (con->state & (YAWT_Q_STATE_SELF_CLOSE_CLOSING | YAWT_Q_STATE_PEER_CLOSE_DRAINING)) != 0;
@@ -511,7 +519,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
             YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (FIN received at offset %lu)",
                      meta->stream_id, end);
           }
-
+          // The amount of data we have received on stream is close to FC limits
+          // alert app space as a courtesy to avoid stalls
           uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
           if (meta->fc.rx_max_data > 0 && pct > 0 && pct <= 100) {
             uint64_t threshold = meta->fc.rx_max_data * pct / 100;
@@ -527,35 +536,10 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
               _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
 
               if (meta->fc.rx_max_data <= threshold) {
-                uint64_t factor = YAWT_q_security_get()->fc_auto_increase_factor;
-                if (factor == 0) factor = 2;
-                uint64_t new_limit = meta->fc.rx_max_data * factor;
+                uint64_t new_limit = _get_new_auto_fc_limit(meta->fc.rx_max_data);
                 YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: auto-increased RX FC limit -> %lu",
                          meta->stream_id, new_limit);
                 YAWT_q_con_set_stream_rx_limit(con, meta->stream_id, new_limit);
-              }
-            }
-          }
-
-          if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
-            uint64_t conn_threshold = con->local_fc.max_data * pct / 100;
-            if (con->stats.rx_count_bytes >= conn_threshold) {
-              YAWT_Q_FlowControlInfo_t conn_info = {
-                .type = YAWT_Q_FC_CONN_RX,
-                .stream_id = 0,
-                .current_limit = con->local_fc.max_data,
-                .consumed = con->stats.rx_count_bytes
-              };
-              YAWT_Q_EventParam_t conn_param;
-              conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
-              _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
-
-              if (con->local_fc.max_data <= conn_threshold) {
-                uint64_t factor = YAWT_q_security_get()->fc_auto_increase_factor;
-                if (factor == 0) factor = 2;
-                uint64_t new_limit = con->local_fc.max_data * factor;
-                YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
-                YAWT_q_con_set_conn_rx_limit(con, new_limit);
               }
             }
           }
@@ -677,9 +661,15 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_DEBUG, "DATA_BLOCKED received: max_data=%lu",
                  frame.data_blocked.max_data);
         {
+          YAWT_Q_FlowControlInfo_t info = {
+            .type = YAWT_Q_FC_CONN_TX,
+            .stream_id = 0,
+            .current_limit = frame.data_blocked.max_data,
+            .consumed = con->stats.tx_count_bytes
+          };
           YAWT_Q_EventParam_t param;
-          param.P_EVT_DATA_BLOCKED.max_data = frame.data_blocked.max_data;
-          _event_handler(con, YAWT_Q_EVT_DATA_BLOCKED, param);
+          param.P_EVT_FLOW_CONTROL.info = &info;
+          _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
         }
         break;
 
@@ -698,10 +688,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         }
         YAWT_LOG(YAWT_LOG_DEBUG, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
                  frame.stream_data_blocked.stream_id, frame.stream_data_blocked.max_stream_data);
+        YAWT_Q_StreamMeta_t *meta = _stream_meta_find(con->stream_meta, frame.stream_data_blocked.stream_id);
+        uint64_t consumed = meta ? meta->tx_next_offset : 0;
+        YAWT_Q_FlowControlInfo_t info = {
+          .type = YAWT_Q_FC_STREAM_TX,
+          .stream_id = frame.stream_data_blocked.stream_id,
+          .current_limit = frame.stream_data_blocked.max_stream_data,
+          .consumed = consumed
+        };
         YAWT_Q_EventParam_t param;
-        param.P_EVT_STREAM_DATA_BLOCKED.stream_id = frame.stream_data_blocked.stream_id;
-        param.P_EVT_STREAM_DATA_BLOCKED.max_stream_data = frame.stream_data_blocked.max_stream_data;
-        _event_handler(con, YAWT_Q_EVT_STREAM_DATA_BLOCKED, param);
+        param.P_EVT_FLOW_CONTROL.info = &info;
+        _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
         break;
       }
 
@@ -863,6 +860,30 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     if (res.err != YAWT_Q_OK) {
       YAWT_q_con_close(con, 0x0a);
       continue;
+    }
+
+    // The amount of data we have received on connection is close to FC limits
+    // alert app space as a courtesy to avoid stalls
+    uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+    if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
+      uint64_t conn_threshold = con->local_fc.max_data * pct / 100;
+      if (con->stats.rx_count_bytes >= conn_threshold) {
+        YAWT_Q_FlowControlInfo_t conn_info = {
+          .type = YAWT_Q_FC_CONN_RX,
+          .stream_id = 0,
+          .current_limit = con->local_fc.max_data,
+          .consumed = con->stats.rx_count_bytes
+        };
+        YAWT_Q_EventParam_t conn_param;
+        conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
+        _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
+
+        if (con->local_fc.max_data <= conn_threshold) {
+          uint64_t new_limit = _get_new_auto_fc_limit(con->local_fc.max_data);
+          YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
+          YAWT_q_con_set_conn_rx_limit(con, new_limit);
+        }
+      }
     }
 
     // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
