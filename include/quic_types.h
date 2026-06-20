@@ -144,6 +144,30 @@ typedef enum {
 } YAWT_Q_Frame_Type_t;
 
 /**
+ * @ingroup QUIC
+ * @brief QUIC transport error codes (RFC 9000 §20.1).
+ */
+typedef enum {
+  YAWT_Q_ERROR_NO_ERROR                 = 0x00,
+  YAWT_Q_ERROR_INTERNAL_ERROR           = 0x01,
+  YAWT_Q_ERROR_CONNECTION_REFUSED       = 0x02,
+  YAWT_Q_ERROR_FLOW_CONTROL_ERROR       = 0x03,
+  YAWT_Q_ERROR_STREAM_LIMIT_ERROR       = 0x04,
+  YAWT_Q_ERROR_STREAM_STATE_ERROR       = 0x05,
+  YAWT_Q_ERROR_FINAL_SIZE_ERROR         = 0x06,
+  YAWT_Q_ERROR_FRAME_ENCODING_ERROR     = 0x07,
+  YAWT_Q_ERROR_TRANSPORT_PARAMETER_ERROR = 0x08,
+  YAWT_Q_ERROR_CONNECTION_ID_LIMIT_ERROR = 0x09,
+  YAWT_Q_ERROR_PROTOCOL_VIOLATION       = 0x0a,
+  YAWT_Q_ERROR_INVALID_TOKEN            = 0x0b,
+  YAWT_Q_ERROR_APPLICATION_ERROR        = 0x0c,
+  YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED   = 0x0d,
+  YAWT_Q_ERROR_KEY_UPDATE_ERROR         = 0x0e,
+  YAWT_Q_ERROR_AEAD_LIMIT_REACHED       = 0x0f,
+  YAWT_Q_ERROR_NO_VIABLE_PATH           = 0x10,
+} YAWT_Q_ErrorCode_t;
+
+/**
  * @internal
  * @ingroup QUIC_Internal
  * @brief QUIC long packet types.

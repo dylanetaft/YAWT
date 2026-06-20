@@ -186,6 +186,44 @@ static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Connection_t *con, YAWT_
   }
 }
 
+static void _preemptive_fc_conn_tx_limit_check(YAWT_Q_Connection_t *con)
+{
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (con->peer_fc.max_data > 0 && pct > 0 && pct <= 100) {
+    uint64_t conn_threshold = con->peer_fc.max_data * pct / 100;
+    if (con->stats.tx_count_bytes >= conn_threshold) {
+      YAWT_Q_FlowControlInfo_t conn_info = {
+        .type = YAWT_Q_FC_CONN_TX,
+        .stream_id = 0,
+        .current_limit = con->peer_fc.max_data,
+        .consumed = con->stats.tx_count_bytes
+      };
+      YAWT_Q_EventParam_t conn_param;
+      conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
+      _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
+    }
+  }
+}
+
+static void _preemptive_fc_stream_tx_limit_check(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta)
+{
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (meta->fc.tx_max_data > 0 && pct > 0 && pct <= 100) {
+    uint64_t threshold = meta->fc.tx_max_data * pct / 100;
+    if (meta->stats.tx_count_bytes >= threshold) {
+      YAWT_Q_FlowControlInfo_t info = {
+        .type = YAWT_Q_FC_STREAM_TX,
+        .stream_id = meta->stream_id,
+        .current_limit = meta->fc.tx_max_data,
+        .consumed = meta->stats.tx_count_bytes
+      };
+      YAWT_Q_EventParam_t param;
+      param.P_EVT_FLOW_CONTROL.info = &info;
+      _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
+    }
+  }
+}
+
 YAWT_Q_Connection_t *_hash_cid = NULL;   // Hash table by our CID
 YAWT_Q_Connection_t *_hash_odcid = NULL; // Hash table by original DCID (temporary, pre-handshake)
 
@@ -593,6 +631,27 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         meta->stats.rx_count_bytes += frame.stream.data_len;
         _preemptive_fc_stream_rx_limit_check(con, meta);
         _preemptive_fc_conn_rx_limit_check(con);
+
+        // RFC 9000 §4.1: Hard enforcement - peer MUST NOT exceed advertised limits
+        if (meta->stats.rx_count_bytes > meta->fc.rx_max_data) {
+          YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: stream %lu exceeded limit (%lu > %lu)",
+                   meta->stream_id, meta->stats.rx_count_bytes, meta->fc.rx_max_data);
+          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "stream flow control violation",
+                        sizeof("stream flow control violation") - 1,
+                        YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          break;
+        }
+
+        if (con->stats.rx_count_bytes > con->local_fc.max_data) {
+          YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: connection exceeded limit (%lu > %lu)",
+                   con->stats.rx_count_bytes, con->local_fc.max_data);
+          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "connection flow control violation",
+                        sizeof("connection flow control violation") - 1,
+                        YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          break;
+        }
 
         if (frame.stream.offset == meta->rx_next_offset) {
           // In order — deliver directly from frame.stream.data (still points into UDP buffer).
@@ -1187,6 +1246,8 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     meta->tx_next_offset += chunk_len;
     con->stats.tx_count_bytes += chunk_len;
     meta->stats.tx_count_bytes += chunk_len;
+    _preemptive_fc_stream_tx_limit_check(con, meta);
+    _preemptive_fc_conn_tx_limit_check(con);
     remaining -= chunk_len;
   }
 
