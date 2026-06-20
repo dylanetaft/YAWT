@@ -10,6 +10,7 @@
 
 #pragma once
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * @ingroup Security
@@ -26,6 +27,7 @@ typedef struct {
   uint64_t max_streams_bidi;            /**< 0x08: max concurrent bidirectional streams */
   uint64_t max_streams_uni;             /**< 0x09: max concurrent unidirectional streams */
   uint64_t max_datagram_frame_size;     /**< 0x20: RFC 9221, 0 = datagrams not supported */
+  bool disable_active_migration;        /**< 0x0c: true if peer sent disable_active_migration */
 } YAWT_Q_FlowControl_t;
 
 /**

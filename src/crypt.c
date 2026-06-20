@@ -265,6 +265,7 @@ static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t 
       case 0x08: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_streams_bidi); break;
       case 0x09: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_streams_uni); break;
       case 0x20: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_datagram_frame_size); break;
+      case 0x0c: crypto->peer_fc->disable_active_migration = true; break;
       default: break;
     }
     rc.cursor = param_end;
@@ -333,6 +334,11 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
     if (ret < 0) return ret;
     total += 2 + vlen;
   }
+
+  // TODO connection migration
+  ret = _tp_append(extdata, 0x0c, NULL, 0);
+  if (ret < 0) return ret;
+  total += 2;
 
   return (int)total;
 }
