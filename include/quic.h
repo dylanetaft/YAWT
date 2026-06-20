@@ -162,8 +162,8 @@ typedef struct {
  * @brief Connection-level counters and packet number tracking.
  */
 typedef struct {
-  uint64_t tx_count_bytes;
-  uint64_t rx_count_bytes;
+  uint64_t tx_count_bytes;  // Pre-validation: cumulative wire bytes for anti-amplification (RFC 9000 §8.1). Post-validation: cumulative stream body bytes for connection flow control (RFC 9000 §4.1). Zeroed on address validation.
+  uint64_t rx_count_bytes;  // Pre-validation: cumulative payload bytes for anti-amplification (RFC 9000 §8.1). Post-validation: cumulative stream body bytes for connection flow control (RFC 9000 §4.1). Zeroed on address validation.
   // RFC 9000 Section 12.3 - Counters for each space, indexed by YAWT_Q_Encryption_Level_t
   uint64_t next_pkt_num_tx[4];   // per encryption level: next TX packet number to send
   uint64_t next_pkt_num_rx[4];   // per encryption level: next expected RX packet number

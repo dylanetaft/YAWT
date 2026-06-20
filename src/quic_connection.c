@@ -29,6 +29,32 @@ static uint64_t _get_new_auto_fc_limit(uint64_t fc_current_val) {
   return fc_current_val * factor;
 }
 
+// Auto-adjust stream RX limit if userspace didn't adjust after threshold event.
+// Called both preemptively (threshold reached) and reactively (peer sent STREAM_DATA_BLOCKED).
+static void _fc_auto_adjust_stream_rx(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t current_limit) {
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (current_limit == 0 || pct == 0 || pct > 100) return;
+  uint64_t threshold = current_limit * pct / 100;
+  if (current_limit <= threshold) {
+    uint64_t new_limit = _get_new_auto_fc_limit(current_limit);
+    YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: auto-increased RX FC limit -> %lu", stream_id, new_limit);
+    YAWT_q_con_set_stream_rx_limit(con, stream_id, new_limit);
+  }
+}
+
+// Auto-adjust connection RX limit if userspace didn't adjust after threshold event.
+// Called both preemptively (threshold reached) and reactively (peer sent DATA_BLOCKED).
+static void _fc_auto_adjust_conn_rx(YAWT_Q_Connection_t *con, uint64_t current_limit) {
+  uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
+  if (current_limit == 0 || pct == 0 || pct > 100) return;
+  uint64_t threshold = current_limit * pct / 100;
+  if (current_limit <= threshold) {
+    uint64_t new_limit = _get_new_auto_fc_limit(current_limit);
+    YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
+    YAWT_q_con_set_conn_rx_limit(con, new_limit);
+  }
+}
+
 // Check if connection is in any closing state (RFC 9000 §10.2)
 static bool _is_closing(const YAWT_Q_Connection_t *con) {
   return (con->state & (YAWT_Q_STATE_SELF_CLOSE_CLOSING | YAWT_Q_STATE_PEER_CLOSE_DRAINING)) != 0;
@@ -314,7 +340,7 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
 
       YAWT_Q_EventParam_t param;
       param.P_EVT_STREAM.frame = f;
-      f->data = bf->data;  // point to the slab's copy of the frame data
+      f->data = bf->data; //points at slab copy
       _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
       ANB_slab_pop_item(con->stream_rx, &iter);
@@ -445,6 +471,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (YAWT_q_crypto_is_handshake_complete(con->crypto) && con->original_dcid.len > 0) {
           YAWT_q_con_clear_odcid(con);
 
+          // RFC 9000 §8.1: address validated after successful handshake
+          con->state |= YAWT_Q_STATE_ADDR_VALIDATED;
+          con->stats.rx_count_bytes = 0;
+          con->stats.tx_count_bytes = 0;
+
           YAWT_LOG(YAWT_LOG_INFO, "Peer flow control: max_data=%lu, streams_bidi=%lu, streams_uni=%lu",
                     con->peer_fc.max_data, con->peer_fc.max_streams_bidi, con->peer_fc.max_streams_uni);
           // RFC 9000 §19.20: server MUST send HANDSHAKE_DONE in a 1-RTT packet
@@ -535,12 +566,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
               param.P_EVT_FLOW_CONTROL.info = &info;
               _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
 
-              if (meta->fc.rx_max_data <= threshold) {
-                uint64_t new_limit = _get_new_auto_fc_limit(meta->fc.rx_max_data);
-                YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: auto-increased RX FC limit -> %lu",
-                         meta->stream_id, new_limit);
-                YAWT_q_con_set_stream_rx_limit(con, meta->stream_id, new_limit);
-              }
+              _fc_auto_adjust_stream_rx(con, meta->stream_id, meta->fc.rx_max_data);
             }
           }
 
@@ -661,6 +687,9 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_DEBUG, "DATA_BLOCKED received: max_data=%lu",
                  frame.data_blocked.max_data);
         {
+          // Peer is blocked on our advertised limit. We shouldn't normally hit this
+          // because we proactively update limits at threshold, but if we do, try
+          // to auto-adjust to unblock the peer.
           YAWT_Q_FlowControlInfo_t info = {
             .type = YAWT_Q_FC_CONN_TX,
             .stream_id = 0,
@@ -670,6 +699,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           YAWT_Q_EventParam_t param;
           param.P_EVT_FLOW_CONTROL.info = &info;
           _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
+
+          _fc_auto_adjust_conn_rx(con, frame.data_blocked.max_data);
         }
         break;
 
@@ -699,6 +730,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_Q_EventParam_t param;
         param.P_EVT_FLOW_CONTROL.info = &info;
         _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, param);
+
+        // Peer is blocked on our advertised limit. We shouldn't normally hit this
+        // because we proactively update limits at threshold, but if we do, try
+        // to auto-adjust to unblock the peer.
+        _fc_auto_adjust_stream_rx(con, frame.stream_data_blocked.stream_id, frame.stream_data_blocked.max_stream_data);
         break;
       }
 
@@ -821,6 +857,9 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     }
 
     con->stats.last_rx = now;
+    if (!(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+      con->stats.rx_count_bytes += pkt.payload_len;
+    }
 
     // Reconstruct full packet number from truncated value
     uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
@@ -878,11 +917,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
         conn_param.P_EVT_FLOW_CONTROL.info = &conn_info;
         _event_handler(con, YAWT_Q_EVT_FLOW_CONTROL, conn_param);
 
-        if (con->local_fc.max_data <= conn_threshold) {
-          uint64_t new_limit = _get_new_auto_fc_limit(con->local_fc.max_data);
-          YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
-          YAWT_q_con_set_conn_rx_limit(con, new_limit);
-        }
+        _fc_auto_adjust_conn_rx(con, con->local_fc.max_data);
       }
     }
 
@@ -919,6 +954,17 @@ static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
 
 static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
   if (ANB_slab_item_count(con->tx_buffer) == 0) return;
+
+  // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
+  // received before address validation. Clients are not subject to this limit.
+  if (con->is_server && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+    if (con->stats.tx_count_bytes >= 3 * con->stats.rx_count_bytes) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "anti-amplification limit reached: tx=%lu, rx=%lu, limit=%lu",
+               con->stats.tx_count_bytes, con->stats.rx_count_bytes, 3 * con->stats.rx_count_bytes);
+      return;
+    }
+  }
+
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
         ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
@@ -1006,6 +1052,9 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
     param.P_EVT_TX.peer = &con->peer_addr;
     _event_handler(con, YAWT_Q_EVT_TX, param);
     con->stats.last_tx = now;
+    if (!(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+      con->stats.tx_count_bytes += send_size;
+    }
 
     YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%u, %zu bytes, first 20: "
              "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x "
@@ -1120,8 +1169,6 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     if (err != YAWT_Q_OK) return err;
 
     meta->tx_next_offset += chunk_len;
-    // RFC 9000 §4.1: flow control is offset-based — count bytes once here when
-    // the offset advances, not on retransmit. Retransmits don't consume budget.
     con->stats.tx_count_bytes += chunk_len;
     remaining -= chunk_len;
   }
