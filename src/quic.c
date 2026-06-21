@@ -527,6 +527,10 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
 
   switch (frame_type) {
     case YAWT_Q_FRAME_PADDING:
+      while (rc->cursor < rc->len && rc->data[rc->cursor] == 0x00) {
+        rc->cursor++;
+      }
+      break;
     case YAWT_Q_FRAME_PING:
     case YAWT_Q_FRAME_HANDSHAKE_DONE:
       break;

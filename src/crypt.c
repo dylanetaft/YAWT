@@ -290,11 +290,22 @@ static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t 
 static int _tp_append(gnutls_buffer_t extdata, uint8_t id,
                        const uint8_t *val, size_t val_len) {
   int ret;
-  ret = gnutls_buffer_append_data(extdata, &id, 1);
+  uint8_t buf[8];
+  uint64_t vlen;
+  
+  // Encode ID as varint
+  YAWT_Q_Error_t err = YAWT_q_varint_encode(id, buf, sizeof(buf), &vlen);
+  if (err != YAWT_Q_OK) return -1;
+  ret = gnutls_buffer_append_data(extdata, buf, vlen);
   if (ret < 0) return ret;
-  uint8_t len = (uint8_t)val_len;
-  ret = gnutls_buffer_append_data(extdata, &len, 1);
+  
+  // Encode length as varint
+  err = YAWT_q_varint_encode(val_len, buf, sizeof(buf), &vlen);
+  if (err != YAWT_Q_OK) return -1;
+  ret = gnutls_buffer_append_data(extdata, buf, vlen);
   if (ret < 0) return ret;
+  
+  // Append value
   if (val_len > 0) {
     ret = gnutls_buffer_append_data(extdata, val, val_len);
     if (ret < 0) return ret;
@@ -324,13 +335,14 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   YAWT_Q_FlowControl_t *lfc = crypto->local_fc;
   struct { uint8_t id; uint64_t val; } fc_params[] = {
     { 0x01, lfc->max_idle_timeout },
+    { 0x03, 65527 }, // max_udp_payload_size (RFC 9000 §18.2: default 65527)
     { 0x04, lfc->max_data },
     { 0x05, lfc->max_stream_data_bidi_local },
     { 0x06, lfc->max_stream_data_bidi_remote },
     { 0x07, lfc->max_stream_data_uni },
     { 0x08, lfc->max_streams_bidi },
     { 0x09, lfc->max_streams_uni },
-    { 0x20, lfc->max_datagram_frame_size },
+    { 0x0e, 2 }, // active_connection_id_limit (RFC 9000 §18.2: MUST be >= 2)
   };
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];
