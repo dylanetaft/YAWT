@@ -107,7 +107,7 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
  * @internal
  * @ingroup QUIC_Internal
  * @brief Initialize per-connection crypto state.
- * @param is_server 1 for server, 0 for client.
+ * @param role The endpoint role (client or server).
  * @param cred The shared credential handle.
  * @param original_dcid Client's random DCID from first Initial (for transport params).
  * @param our_cid Our source connection ID (for transport params).
@@ -116,7 +116,7 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
  * @param err Output error code on failure (can be NULL).
  * @return Allocated crypto object, or NULL on error.
  */
-YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
+YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
                     const YAWT_Q_Cid_t *our_cid,
                     YAWT_Q_FlowControl_t *local_fc,

@@ -41,7 +41,7 @@ struct YAWT_Q_Connection_t {
   YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
   YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
   bool data_blocked;              /* edge-trigger: connection-level DATA_BLOCKED sent */
-  bool is_server;                 /* 1 if we are the server, 0 if client */
+  YAWT_Q_Con_Role_t role;         /* client or server */
   YAWT_Q_ConnectionStats_t stats;   // byte counters
   void *user_data;                  // opaque app/H3 state; QUIC never dereferences it
   uint64_t close_code;              // recorded by close triggers, emitted once by con_free

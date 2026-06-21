@@ -100,6 +100,15 @@ typedef enum {
 
 /**
  * @ingroup QUIC
+ * @brief QUIC endpoint role.
+ */
+typedef enum {
+  YAWT_Q_ROLE_CLIENT = 0,
+  YAWT_Q_ROLE_SERVER = 1,
+} YAWT_Q_Con_Role_t;
+
+/**
+ * @ingroup QUIC
  * @brief QUIC stream types (RFC 9000).
  */
 typedef enum {

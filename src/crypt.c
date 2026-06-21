@@ -30,7 +30,7 @@ typedef struct YAWT_Q_Level_Keys_t {
 
 typedef struct YAWT_Q_Crypto_t {
   gnutls_session_t session;
-  int is_server;
+  YAWT_Q_Con_Role_t role;
 
   // Keys per encryption level (Initial=0, Early=1, Handshake=2, Application=3)
   YAWT_Q_Level_Keys_t level_keys[4];
@@ -347,7 +347,7 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   return (int)total;
 }
 
-YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
+YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t *cred,
                     const YAWT_Q_Cid_t *original_dcid,
                     const YAWT_Q_Cid_t *our_cid,
                     YAWT_Q_FlowControl_t *local_fc,
@@ -366,7 +366,7 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
     return NULL;
   }
   int ret;
-  crypto->is_server = is_server;
+  crypto->role = role;
   crypto->local_fc = local_fc;
   crypto->peer_fc = peer_fc;
   crypto->rx_crypto_buf = ANB_slab_create(4096);
@@ -374,7 +374,7 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(int is_server, YAWT_Q_Crypto_Cred_t *cred,
   YAWT_q_cid_set(&crypto->original_dcid, original_dcid->id, original_dcid->len);
   YAWT_q_cid_set(&crypto->our_cid, our_cid->id, our_cid->len);
 
-  unsigned int flags = is_server
+  unsigned int flags = (role == YAWT_Q_ROLE_SERVER)
     ? GNUTLS_SERVER | GNUTLS_NO_AUTO_SEND_TICKET
     : GNUTLS_CLIENT;
   ret = gnutls_init(&crypto->session, flags);
@@ -626,8 +626,8 @@ int YAWT_q_crypto_derive_initial_keys(YAWT_Q_Crypto_t *crypto,
   if (ret < 0) return ret;
 
   // Step 4: assign read/write based on role
-  const uint8_t *read_secret = crypto->is_server ? client_secret : server_secret;
-  const uint8_t *write_secret = crypto->is_server ? server_secret : client_secret;
+  const uint8_t *read_secret = (crypto->role == YAWT_Q_ROLE_SERVER) ? client_secret : server_secret;
+  const uint8_t *write_secret = (crypto->role == YAWT_Q_ROLE_SERVER) ? server_secret : client_secret;
 
   memcpy(keys->secret_read, read_secret, hash_len);
   memcpy(keys->secret_write, write_secret, hash_len);

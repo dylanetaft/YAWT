@@ -241,10 +241,11 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->stream_meta = ANB_slab_create(4096);
   con->peer_addr = info->peer_addr;
   con->local_fc = info->local_fc ? *info->local_fc : *YAWT_q_security_get_default_fc();
-  con->crypto = YAWT_q_crypto_init(info->is_server, info->cred,
+  con->crypto = YAWT_q_crypto_init(info->is_server ? YAWT_Q_ROLE_SERVER : YAWT_Q_ROLE_CLIENT,
+                                    info->cred,
                                     &info->original_dcid, &con->cid,
                                     &con->local_fc, &con->peer_fc, NULL);
-  con->is_server = info->is_server;
+  con->role = info->is_server ? YAWT_Q_ROLE_SERVER : YAWT_Q_ROLE_CLIENT;
   HASH_ADD(hh_cid, _hash_cid, cid.id, con->cid.len, con);
 
   // Temporary index by original DCID (removed once client uses our real CID)
@@ -285,11 +286,37 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   *con = NULL;
 }
 
+// RFC 9000 §10.2.3: CONNECTION_CLOSE level selection based on role and handshake state.
+// Pre-handshake: server sends Initial + Handshake, client sends Handshake + 1-RTT.
+// Post-handshake: send at Application level only.
+static void _send_connection_close(YAWT_Q_Connection_t *con, uint64_t error_code, uint64_t frame_type) {
+  int hs_complete = YAWT_q_crypto_is_handshake_complete(con->crypto);
+
+  if (hs_complete) {
+    YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, error_code, frame_type);
+  } else {
+    if (con->role == YAWT_Q_ROLE_SERVER) {
+      // Server: Initial + Handshake
+      if (YAWT_q_crypto_key_level_available(con->crypto, YAWT_Q_LEVEL_INITIAL)) {
+        YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_INITIAL, error_code, frame_type);
+      }
+      if (YAWT_q_crypto_key_level_available(con->crypto, YAWT_Q_LEVEL_HANDSHAKE)) {
+        YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_HANDSHAKE, error_code, frame_type);
+      }
+    } else {
+      // Client: Handshake + 1-RTT
+      if (YAWT_q_crypto_key_level_available(con->crypto, YAWT_Q_LEVEL_HANDSHAKE)) {
+        YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_HANDSHAKE, error_code, frame_type);
+      }
+      YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, error_code, frame_type);
+    }
+  }
+}
+
 void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
   if (!con || _is_closing(con)) return;
 
-  YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
-                                         error_code, 0);
+  _send_connection_close(con, error_code, 0);
   _record_close(con, error_code, "local close", sizeof("local close") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
   YAWT_LOG(YAWT_LOG_INFO, "Closing connection: CID=%s, error=%lu",
             YAWT_q_cid_to_hex(&con->cid), error_code);
@@ -573,7 +600,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_Q_Error_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
-          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
+          _send_connection_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
           _record_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
           return res;
@@ -582,7 +609,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           uint8_t alert_code = YAWT_q_crypto_get_tls_alert(con->crypto);
           uint64_t crypto_error = 0x0100 + alert_code;
           YAWT_LOG(YAWT_LOG_ERROR, "TLS alert received: code=%d, sending CRYPTO_ERROR 0x%lx", alert_code, crypto_error);
-          YAWT_q_enqueue_frame_connection_close(con, _pkt_type_to_level(pkt->type), crypto_error, YAWT_Q_FRAME_CRYPTO);
+          _send_connection_close(con, crypto_error, YAWT_Q_FRAME_CRYPTO);
           _record_close(con, crypto_error, "TLS alert", sizeof("TLS alert") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
           return res;
@@ -659,7 +686,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         // RFC 9000 §4.5: Validate data against known final size
         YAWT_Q_ErrorCode_t fs_err = _check_final_size(meta, frame.stream.offset, frame.stream.data_len, frame.stream.fin);
         if (fs_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
-          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+          _send_connection_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
           _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error",
                         sizeof("final size error") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
@@ -687,7 +714,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (meta->stats.rx_count_bytes > meta->fc.rx_max_data) {
           YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: stream %lu exceeded limit (%lu > %lu)",
                    meta->stream_id, meta->stats.rx_count_bytes, meta->fc.rx_max_data);
-          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _send_connection_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
           _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "stream flow control violation",
                         sizeof("stream flow control violation") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
@@ -697,7 +724,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (con->stats.rx_count_bytes > con->local_fc.max_data) {
           YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: connection exceeded limit (%lu > %lu)",
                    con->stats.rx_count_bytes, con->local_fc.max_data);
-          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _send_connection_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
           _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "connection flow control violation",
                         sizeof("connection flow control violation") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
@@ -721,7 +748,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
           YAWT_Q_ErrorCode_t drain_err = _drain_stream_rx(con, meta);
           if (drain_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
-            YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+            _send_connection_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
             _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error in buffered data",
                           sizeof("final size error in buffered data") - 1,
                           YAWT_Q_STATE_SELF_CLOSE_CLOSING);
@@ -863,11 +890,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
       case YAWT_Q_FRAME_STREAM_DATA_BLOCKED: {
         uint8_t stype = frame.stream_data_blocked.stream_id & 0x03;
         int is_uni = (stype & 0x02) != 0;
-        int peer_initiated = ((stype & 0x01) != 0) != con->is_server;
+        int peer_initiated = ((stype & 0x01) != 0) != (con->role == YAWT_Q_ROLE_SERVER);
         if (is_uni && !peer_initiated) {
           YAWT_LOG(YAWT_LOG_ERROR, "STREAM_DATA_BLOCKED on send-only stream %lu",
                    frame.stream_data_blocked.stream_id);
-          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_STREAM_STATE_ERROR, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
+          _send_connection_close(con, YAWT_Q_ERROR_STREAM_STATE_ERROR, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
           _record_close(con, YAWT_Q_ERROR_STREAM_STATE_ERROR, "stream data blocked on send-only stream",
                         sizeof("stream data blocked on send-only stream") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
@@ -972,8 +999,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
         continue;
       }
       YAWT_LOG(YAWT_LOG_DEBUG, "closing: responding with CONNECTION_CLOSE");
-      YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION,
-                                             con->close_code, 0);
+      _send_connection_close(con, con->close_code, 0);
       _drain_tx(con, now);
       continue;
     }
@@ -1093,7 +1119,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
 
   // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
   // received before address validation. Clients are not subject to this limit.
-  if (con->is_server && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+  if (con->role == YAWT_Q_ROLE_SERVER && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
     if (con->stats.tx_count_bytes >= 3 * con->stats.rx_count_bytes) {
       YAWT_LOG(YAWT_LOG_DEBUG, "anti-amplification limit reached: tx=%lu, rx=%lu, limit=%lu",
                con->stats.tx_count_bytes, con->stats.rx_count_bytes, 3 * con->stats.rx_count_bytes);
