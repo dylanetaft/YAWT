@@ -53,6 +53,7 @@ typedef struct YAWT_Q_Crypto_t {
   YAWT_Q_FlowControl_t *local_fc; // points to connection's local_fc
 
   uint8_t last_tls_alert;         // last TLS alert received (0 = none)
+  char hostname[256];             // SNI hostname for client connections
 } YAWT_Q_Crypto_t;
 typedef struct YAWT_Q_Crypto_Cred_t {
   gnutls_certificate_credentials_t cred;
@@ -308,9 +309,11 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   size_t total = 0;
 
   // RFC 9000 §18.2: server MUST include original_destination_connection_id (0x00)
-  ret = _tp_append(extdata, 0x00, crypto->original_dcid.id, crypto->original_dcid.len);
-  if (ret < 0) return ret;
-  total += 2 + crypto->original_dcid.len;
+  if (crypto->role == YAWT_Q_ROLE_SERVER) {
+    ret = _tp_append(extdata, 0x00, crypto->original_dcid.id, crypto->original_dcid.len);
+    if (ret < 0) return ret;
+    total += 2 + crypto->original_dcid.len;
+  }
 
   // RFC 9000 §18.2: both endpoints MUST include initial_source_connection_id (0x0f)
   ret = _tp_append(extdata, 0x0f, crypto->our_cid.id, crypto->our_cid.len);
@@ -451,6 +454,19 @@ int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto) {
     return 0; // normal — ClientHello buffered in out_buf
   }
   return ret; // error
+}
+
+void YAWT_q_crypto_set_hostname(YAWT_Q_Crypto_t *crypto, const char *hostname) {
+  if (!crypto || !hostname) return;
+  size_t len = strlen(hostname);
+  if (len >= sizeof(crypto->hostname)) len = sizeof(crypto->hostname) - 1;
+  memcpy(crypto->hostname, hostname, len);
+  crypto->hostname[len] = '\0';
+  if (crypto->role == YAWT_Q_ROLE_CLIENT && crypto->session) {
+    gnutls_server_name_set(crypto->session, GNUTLS_NAME_DNS,
+                            crypto->hostname, len);
+    gnutls_session_set_verify_cert(crypto->session, crypto->hostname, 0);
+  }
 }
 
 // Write contiguous data to GnuTLS and drive the handshake forward

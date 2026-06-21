@@ -43,6 +43,7 @@ typedef struct YAWT_Q_Con_Create_Info_t {
   YAWT_Q_Cid_t original_dcid;
   YAWT_Q_PeerAddr_t peer_addr;
   YAWT_Q_FlowControl_t *local_fc;  // NULL = use global defaults
+  const char *hostname;            // SNI hostname for client connections (NULL for server)
 } YAWT_Q_Con_Create_Info_t;
 
 /**
@@ -75,6 +76,18 @@ typedef struct {
  * @note Registers it in the CID hash. Lifetime: until YAWT_q_con_free.
  */
 YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
+
+/**
+ * @ingroup QUIC_Connection
+ * @brief Initiate a QUIC connection as a client.
+ * @param info Connection creation parameters (is_server=0, peer_addr=server, hostname=SNI).
+ * @param now Current time (e.g., from ev_now()).
+ * @return Pointer to the new connection, or NULL on failure.
+ * @note Generates a random DCID, creates the connection, derives initial keys,
+ *       starts the TLS handshake (producing ClientHello), and emits the first
+ *       Initial packet via EVT_TX. The event handler must be installed before calling.
+ */
+YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now);
 
 /**
  * @ingroup QUIC_Connection

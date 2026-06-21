@@ -620,7 +620,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_len, frame_hdr);
   if (frame_hdr_len == 0) return YAWT_H3_ERR_SHORT_BUFFER;
 
-  uint64_t stream_id = 3;
+  uint64_t stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 2 : 3;
   YAWT_Q_IoVec_t iov[3] = {
     { stream_type_buf, stream_type_len },
     { frame_hdr, frame_hdr_len },

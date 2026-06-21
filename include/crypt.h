@@ -179,6 +179,17 @@ int YAWT_q_crypto_start(YAWT_Q_Crypto_t *crypto);
 /**
  * @internal
  * @ingroup QUIC_Internal
+ * @brief Set the SNI hostname for client connections.
+ * @param crypto The crypto object.
+ * @param hostname The hostname to use for SNI and certificate verification.
+ * @note Must be called before YAWT_q_crypto_start(). Enables SNI and server
+ *       certificate verification for client connections.
+ */
+void YAWT_q_crypto_set_hostname(YAWT_Q_Crypto_t *crypto, const char *hostname);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Derive Initial encryption keys from client's Destination Connection ID (RFC 9001 §5.2).
  * @param crypto The crypto object.
  * @param dcid The client's Destination Connection ID.

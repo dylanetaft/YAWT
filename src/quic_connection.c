@@ -20,6 +20,7 @@ static YAWT_Q_EventHandler_t _event_handler = _noop_event_handler;
 
 // Forward declarations
 static void _drain_tx(YAWT_Q_Connection_t *con, double now);
+static void _push_crypto_frames(YAWT_Q_Connection_t *con);
 
 // Calculate new auto-increased flow control limit.
 // Returns current_val * fc_auto_increase_factor (default 2x if factor is 0).
@@ -246,6 +247,9 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
                                     &info->original_dcid, &con->cid,
                                     &con->local_fc, &con->peer_fc, NULL);
   con->role = info->is_server ? YAWT_Q_ROLE_SERVER : YAWT_Q_ROLE_CLIENT;
+  if (!info->is_server && info->hostname) {
+    YAWT_q_crypto_set_hostname(con->crypto, info->hostname);
+  }
   HASH_ADD(hh_cid, _hash_cid, cid.id, con->cid.len, con);
 
   // Temporary index by original DCID (removed once client uses our real CID)
@@ -258,6 +262,41 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   YAWT_LOG(YAWT_LOG_INFO, "Created connection: CID=%s",
             YAWT_q_cid_to_hex(&con->cid));
 
+  return con;
+}
+
+YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now) {
+  if (!info || info->is_server) return NULL;
+
+  YAWT_Q_Cid_t dcid;
+  dcid.len = YAWT_Q_CID_LEN;
+  YAWT_q_crypto_random_nonce(dcid.id, dcid.len);
+  YAWT_q_cid_set(&info->peer_cid, dcid.id, dcid.len);
+  YAWT_q_cid_set(&info->original_dcid, dcid.id, dcid.len);
+
+  YAWT_Q_Connection_t *con = YAWT_q_con_create(info);
+  if (!con) return NULL;
+
+  con->version = 0x00000001;
+
+  if (YAWT_q_crypto_derive_initial_keys(con->crypto, &dcid) < 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "Failed to derive initial keys for client DCID=%s",
+              YAWT_q_cid_to_hex(&dcid));
+    YAWT_q_con_free(&con);
+    return NULL;
+  }
+
+  if (YAWT_q_crypto_start(con->crypto) < 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "Failed to start TLS handshake");
+    YAWT_q_con_free(&con);
+    return NULL;
+  }
+
+  _push_crypto_frames(con);
+  _drain_tx(con, now);
+
+  YAWT_LOG(YAWT_LOG_INFO, "Client connection initiated: CID=%s, DCID=%s",
+            YAWT_q_cid_to_hex(&con->cid), YAWT_q_cid_to_hex(&dcid));
   return con;
 }
 
@@ -635,8 +674,9 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
           YAWT_LOG(YAWT_LOG_INFO, "Peer flow control: max_data=%lu, streams_bidi=%lu, streams_uni=%lu",
                     con->peer_fc.max_data, con->peer_fc.max_streams_bidi, con->peer_fc.max_streams_uni);
-          // RFC 9000 §19.20: server MUST send HANDSHAKE_DONE in a 1-RTT packet
-          YAWT_q_enqueue_frame_handshake_done(con);
+          if (con->role == YAWT_Q_ROLE_SERVER) {
+            YAWT_q_enqueue_frame_handshake_done(con);
+          }
 
           YAWT_Q_EventParam_t param;
           memset(&param, 0, sizeof(param));
@@ -646,7 +686,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
       }
 
       case YAWT_Q_FRAME_HANDSHAKE_DONE:
-        YAWT_LOG(YAWT_LOG_INFO, "TODO: handshake done, drop handshake keys");
+        YAWT_LOG(YAWT_LOG_INFO, "HANDSHAKE_DONE received");
         break;
 
       case YAWT_Q_FRAME_CONNECTION_CLOSE: {
@@ -983,6 +1023,14 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     if (!con) {
       YAWT_LOG(YAWT_LOG_ERROR, "Failed to create connection for CID=%s", YAWT_q_cid_to_hex(&pkt.dest_cid));
       continue;
+    }
+
+    if (con->role == YAWT_Q_ROLE_CLIENT && pkt.type == YAWT_Q_PKT_TYPE_INITIAL
+        && con->peer_cid.len > 0 && pkt.src_cid.len > 0
+        && memcmp(con->peer_cid.id, pkt.src_cid.id, pkt.src_cid.len) != 0) {
+      YAWT_q_cid_set(&con->peer_cid, pkt.src_cid.id, pkt.src_cid.len);
+      YAWT_LOG(YAWT_LOG_INFO, "Client: updated peer CID to server SCID=%s",
+                YAWT_q_cid_to_hex(&con->peer_cid));
     }
 
     // RFC 9000 §10.2: handle closing/draining states
