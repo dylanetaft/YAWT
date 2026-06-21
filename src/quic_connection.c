@@ -1114,10 +1114,15 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
     uint8_t *item;
 
     while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
-      if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+      if (item_size != sizeof(YAWT_Q_WireFrame_t))  { //defensive check, should never happen
+        YAWT_LOG(YAWT_LOG_ERROR, "invalid item in tx_buffer: size %zu (expected %zu), skipping",
+                 item_size, sizeof(YAWT_Q_WireFrame_t));
+        abort();
+      }
       YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
 
-      if (f->level != lvl || f->last_sent != 0) continue;
+      //see process_ack - this removes frames from tx_buffer
+      if (f->level != lvl || f->last_sent != 0) continue; 
 
       // RFC 9000 §4.1: flow control — hold STREAM frames until within limits.
       // Bytes are counted optimistically at enqueue time (in send_stream);
