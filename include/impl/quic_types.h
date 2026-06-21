@@ -103,6 +103,7 @@ typedef struct {
   uint64_t stream_id;
   uint64_t rx_next_offset;
   uint64_t tx_next_offset;
+  uint64_t rx_final_size;  // RFC 9000 §4.5: final size once known (FIN or RESET_STREAM)
   YAWT_Q_StreamFC_t fc;
   YAWT_Q_StreamStats_t stats;
   uint8_t state;  // bitwise OR of YAWT_Q_StreamState_t flags

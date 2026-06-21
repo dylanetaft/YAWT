@@ -97,7 +97,7 @@ static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint
 
 // Check if a packet number falls within any range acknowledged by an ACK frame.
 // Walks the first range then the gap/range pairs from ack->ranges.
-static int _pn_is_acked(uint32_t pn, const YAWT_Q_Frame_ACK_t *ack) {
+static int _pn_is_acked(uint64_t pn, const YAWT_Q_Frame_ACK_t *ack) {
   uint64_t hi = ack->largest_ack;
   uint64_t lo = hi - ack->first_ack_range;
   if (pn >= lo && pn <= hi) return 1;
@@ -406,8 +406,36 @@ static uint64_t _stream_count_by_type(ANB_Slab_t *meta_slab, uint8_t stream_type
   return count;
 }
 
+// RFC 9000 §4.5: Validate stream data against known final size.
+// Returns YAWT_Q_ERROR_NO_ERROR if data is within bounds, YAWT_Q_ERROR_FINAL_SIZE_ERROR if violation.
+// Updates rx_final_size if FIN is set and final size not yet known.
+static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t offset, uint64_t data_len, int fin) {
+  uint64_t end = offset + data_len;
+  bool fin_received = (meta->state & YAWT_Q_STREAM_FIN_RECEIVED) != 0;
+  
+  if (fin_received) {
+    if (end > meta->rx_final_size) {
+      YAWT_LOG(YAWT_LOG_ERROR, "FINAL_SIZE_ERROR: stream %lu data at offset %lu len %lu exceeds final size %lu",
+               meta->stream_id, offset, data_len, meta->rx_final_size);
+      return YAWT_Q_ERROR_FINAL_SIZE_ERROR;
+    }
+  }
+  
+  if (fin) {
+    if (fin_received && end != meta->rx_final_size) {
+      YAWT_LOG(YAWT_LOG_ERROR, "FINAL_SIZE_ERROR: stream %lu conflicting final size %lu (expected %lu)",
+               meta->stream_id, end, meta->rx_final_size);
+      return YAWT_Q_ERROR_FINAL_SIZE_ERROR;
+    }
+    meta->rx_final_size = end;
+  }
+  
+  return YAWT_Q_ERROR_NO_ERROR;
+}
+
 // Drain contiguous stream frames from rx buffer for a given stream
-static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta) {
+// Returns YAWT_Q_ERROR_NO_ERROR on success, or YAWT_Q_ERROR_FINAL_SIZE_ERROR on violation
+static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -416,6 +444,10 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
     YAWT_Q_Frame_Stream_t *f = &bf->frame;
     if (f->stream_id != meta->stream_id) continue;
     if (f->offset == meta->rx_next_offset) {
+      // RFC 9000 §4.5: Validate buffered data against known final size
+      YAWT_Q_ErrorCode_t fs_err = _check_final_size(meta, f->offset, f->data_len, f->fin);
+      if (fs_err != YAWT_Q_ERROR_NO_ERROR) return fs_err;
+
       YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                 meta->stream_id, f->data_len, f->offset);
       meta->rx_next_offset += f->data_len;
@@ -434,6 +466,7 @@ static void _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta
       ANB_slab_pop_item(con->stream_rx, &iter);
     }
   }
+  return YAWT_Q_ERROR_NO_ERROR;
 }
 
 // Push outbound CRYPTO frames into tx_buffer.
@@ -623,8 +656,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         }
         uint64_t end = frame.stream.offset + frame.stream.data_len;
 
+        // RFC 9000 §4.5: Validate data against known final size
+        YAWT_Q_ErrorCode_t fs_err = _check_final_size(meta, frame.stream.offset, frame.stream.data_len, frame.stream.fin);
+        if (fs_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
+          YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error",
+                        sizeof("final size error") - 1,
+                        YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          break;
+        }
+
         // RFC 9000 §4.5: ignore data after stream RX is finalized (FIN/RESET_STREAM/STOP_SENDING).
-        // We don't enforce strict final-size validation — remote's problem if they send more.
         if (!_stream_should_rx(meta)) {
           if (end > meta->rx_next_offset) {
             YAWT_LOG(YAWT_LOG_WARN, "Stream %lu: ignoring %lu bytes at offset %lu after RX finalized (rx_next_offset=%lu)",
@@ -677,7 +719,13 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           param.P_EVT_STREAM.frame = &frame.stream;
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
-          _drain_stream_rx(con, meta);
+          YAWT_Q_ErrorCode_t drain_err = _drain_stream_rx(con, meta);
+          if (drain_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
+            YAWT_q_enqueue_frame_connection_close(con, YAWT_Q_LEVEL_APPLICATION, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+            _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error in buffered data",
+                          sizeof("final size error in buffered data") - 1,
+                          YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          }
 
         } else {
           // Out of order — alloc in slab, copy struct + data, single copy
@@ -765,6 +813,9 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
                      meta->stream_id);
             break;
           }
+          // TODO: RFC 9000 §4.5 — validate frame.reset_stream.final_size against meta->rx_final_size
+          // if FIN_RECEIVED is set. If they differ, close with FINAL_SIZE_ERROR.
+          // Deferred: RESET_STREAM handling needs more work (flow control accounting, etc.)
           meta->state |= YAWT_Q_STREAM_RESET_RECEIVED;
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: RX finalized (RESET_STREAM received)",
                    meta->stream_id);
@@ -969,7 +1020,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     // Reconstruct full packet number from truncated value
     uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
     uint64_t full_pn = _reconstruct_pn(largest_pn, pkt.packet_num, pkt.packet_number_length);
-    pkt.packet_num = (uint32_t)full_pn;
+    pkt.packet_num = full_pn;
     
     // RFC 9000 §12.3: "A receiver MUST discard a newly unprotected packet unless it is
     // certain that it has not processed another packet with the same packet number."
@@ -1033,8 +1084,8 @@ static YAWT_Q_Packet_Type_t _level_to_pkt_type(uint8_t level) {
 
 
 // Get next packet number for a given level
-static uint32_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
-  return (uint32_t)con->stats.next_pkt_num_tx[level]++;
+static uint64_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
+  return con->stats.next_pkt_num_tx[level]++;
 }
 
 static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
@@ -1103,8 +1154,18 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
       continue;
     }
 
+    // RFC 9000 §12.3: If sending packet number reaches 2^62-1, sender MUST close
+    // connection without CONNECTION_CLOSE or further packets.
+    if (con->stats.next_pkt_num_tx[lvl] >= (1ULL << 62)) {
+      YAWT_LOG(YAWT_LOG_ERROR, "packet number overflow: level %d reached 2^62-1, closing connection", lvl);
+      _record_close(con, YAWT_Q_ERROR_AEAD_LIMIT_REACHED, "packet number space exhausted",
+                    sizeof("packet number space exhausted") - 1,
+                    YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+      return;
+    }
+
     YAWT_Q_Packet_Type_t pkt_type = _level_to_pkt_type(lvl);
-    uint32_t pn = _next_pn(con, lvl);
+    uint64_t pn = _next_pn(con, lvl);
 
     YAWT_Q_Packet_t pkt;
     memset(&pkt, 0, sizeof(pkt));
@@ -1141,7 +1202,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
       con->stats.tx_count_bytes += send_size;
     }
 
-    YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%u, %zu bytes, first 20: "
+    YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%lu, %zu bytes, first 20: "
              "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x "
              "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
              _pkt_type_name(pkt_type), pn, send_size,

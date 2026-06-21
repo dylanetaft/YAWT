@@ -200,7 +200,7 @@ typedef struct {
   uint8_t reserved;
   uint8_t reserved_zero;
   uint8_t packet_number_length;
-  uint32_t packet_num;
+  uint64_t packet_num;
   uint8_t *payload;
   size_t payload_len;
 

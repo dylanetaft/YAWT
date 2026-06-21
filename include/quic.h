@@ -150,7 +150,7 @@ typedef struct {
   uint64_t stream_id;
 
   // Send tracking (maintained by con_maintain's retransmit pass)
-  uint32_t packet_num;              // PN this was sent in (0 if unsent)
+  uint64_t packet_num;              // PN this was sent in (0 if unsent)
   double last_sent;                 // ev_now() timestamp of last send (0 = needs (re)sending)
   uint32_t retransmit_count;        // attempts so far; drives exponential backoff
 

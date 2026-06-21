@@ -749,6 +749,10 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
   nonce[10] ^= (uint8_t)(pkt->packet_num >> 8);
   nonce[9]  ^= (uint8_t)(pkt->packet_num >> 16);
   nonce[8]  ^= (uint8_t)(pkt->packet_num >> 24);
+  nonce[7]  ^= (uint8_t)(pkt->packet_num >> 32);
+  nonce[6]  ^= (uint8_t)(pkt->packet_num >> 40);
+  nonce[5]  ^= (uint8_t)(pkt->packet_num >> 48);
+  nonce[4]  ^= (uint8_t)(pkt->packet_num >> 56);
 
   gnutls_aead_cipher_hd_t cipher;
   gnutls_datum_t key_d = { .data = (void *)keys->key_read, .size = keys->key_len };
@@ -800,7 +804,7 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
   ret = YAWT_q_crypto_decrypt_payload(pkt, crypto);
   if (ret < 0) return ret;
 
-  YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted %zu bytes (PN=%u, pn_len=%u)",
+  YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted %zu bytes (PN=%lu, pn_len=%u)",
            pkt->payload_len, pkt->packet_num, pkt->packet_number_length);
   return 0;
 }
@@ -824,7 +828,7 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
 
   size_t pn_offset = pkt->pn_offset;
   uint8_t pn_length = pkt->packet_number_length;
-  uint32_t packet_num = pkt->packet_num;
+  uint64_t packet_num = pkt->packet_num;
 
   size_t header_len = pn_offset + pn_length;
   if (header_len >= packet_len) return -1;
@@ -841,6 +845,10 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
   nonce[10] ^= (uint8_t)(packet_num >> 8);
   nonce[9]  ^= (uint8_t)(packet_num >> 16);
   nonce[8]  ^= (uint8_t)(packet_num >> 24);
+  nonce[7]  ^= (uint8_t)(packet_num >> 32);
+  nonce[6]  ^= (uint8_t)(packet_num >> 40);
+  nonce[5]  ^= (uint8_t)(packet_num >> 48);
+  nonce[4]  ^= (uint8_t)(packet_num >> 56);
 
   // AEAD encrypt
   gnutls_aead_cipher_hd_t cipher;

@@ -10,8 +10,8 @@ def load_csv(filename: str, delimiter: str, text_delimiter: Optional[str] = None
         return pd.read_csv(filename, sep=delimiter, quotechar=text_delimiter, header=0)
     else:
         if not text_delimiter:
-            return pd.read_csv(filename, sep=delimiter, header=None, names=columns, quoting=csv.QUOTE_NONE)
-        return pd.read_csv(filename, sep=delimiter, quotechar=text_delimiter, header=None, names=columns)
+            return pd.read_csv(filename, sep=delimiter, header=None, names=columns, quoting=csv.QUOTE_NONE, usecols=columns)
+        return pd.read_csv(filename, sep=delimiter, quotechar=text_delimiter, header=None, names=columns, usecols=columns)
 
 
 def get_distinct_rows(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
