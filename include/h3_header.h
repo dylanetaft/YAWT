@@ -43,11 +43,10 @@ void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section);
  * @param value The field value.
  * @param value_len The field value length.
  * @return YAWT_H3_OK on success, or an error code.
- * @note Does not resolve QPACK indexes (i_static=0, i_name=0).
  */
 YAWT_H3_Error_t YAWT_h3_header_add(YAWT_H3_HeaderFields_t *section,
-                                    const char *name, size_t name_len,
-                                    const char *value, size_t value_len);
+                                     const char *name, size_t name_len,
+                                     const char *value, size_t value_len);
 
 /**
  * @ingroup H3_Headers
@@ -58,59 +57,7 @@ YAWT_H3_Error_t YAWT_h3_header_add(YAWT_H3_HeaderFields_t *section,
  * @return YAWT_H3_OK on success, or an error code.
  */
 YAWT_H3_Error_t YAWT_h3_header_add_str(YAWT_H3_HeaderFields_t *section,
-                                        const char *name, const char *value);
-
-/**
- * @ingroup H3_Headers
- * @brief Add a field with pre-resolved QPACK static table indexes.
- * @param section The header fields section.
- * @param name The field name.
- * @param name_len The field name length.
- * @param value The field value.
- * @param value_len The field value length.
- * @param i_static Full name-value match in QPACK static table.
- * @param i_name Name-only match in QPACK static table.
- * @return YAWT_H3_OK on success, or an error code.
- */
-YAWT_H3_Error_t YAWT_h3_header_add_static(YAWT_H3_HeaderFields_t *section,
-                                           const char *name, size_t name_len,
-                                           const char *value, size_t value_len,
-                                           size_t i_static, size_t i_name);
-
-/**
- * @ingroup H3_Headers
- * @brief Add a field with pre-resolved indexes using null-terminated strings.
- * @param section The header fields section.
- * @param name The field name.
- * @param value The field value.
- * @param i_static Full name-value match in QPACK static table.
- * @param i_name Name-only match in QPACK static table.
- * @return YAWT_H3_OK on success, or an error code.
- */
-YAWT_H3_Error_t YAWT_h3_header_add_str_static(YAWT_H3_HeaderFields_t *section,
-                                               const char *name, const char *value,
-                                               size_t i_static, size_t i_name);
-
-/**
- * @ingroup H3_Headers
- * @brief Resolve QPACK static table indexes for a name/value pair.
- * @param name The field name.
- * @param name_len The field name length.
- * @param value The field value.
- * @param value_len The field value length.
- * @return A populated YAWT_H3_Header_Field_t; pass to add_static or use directly.
- */
-YAWT_H3_Header_Field_t YAWT_h3_header_resolve(const char *name, size_t name_len,
-                                               const char *value, size_t value_len);
-
-/**
- * @ingroup H3_Headers
- * @brief Resolve QPACK static table indexes using null-terminated strings.
- * @param name The field name.
- * @param value The field value.
- * @return A populated YAWT_H3_Header_Field_t.
- */
-YAWT_H3_Header_Field_t YAWT_h3_header_resolve_str(const char *name, const char *value);
+                                         const char *name, const char *value);
 
 /**
  * @ingroup H3_Headers

@@ -68,9 +68,9 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       snprintf(cl_buf, sizeof(cl_buf), "%zu", body_len);
 
       YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
-      YAWT_h3_header_add_str_static(resp, ":status", "200", 25, 0);
-      YAWT_h3_header_add_str_static(resp, "content-type", "text/html", 0, 44);
-      YAWT_h3_header_add_str_static(resp, "content-length", cl_buf, 0, 4);
+      YAWT_h3_header_add_str(resp, ":status", "200");
+      YAWT_h3_header_add_str(resp, "content-type", "text/html");
+      YAWT_h3_header_add_str(resp, "content-length", cl_buf);
 
       YAWT_h3_send_headers(h3con, sid, resp, 0);
       YAWT_h3_send_data(h3con, sid, (const uint8_t *)body, body_len, 1);

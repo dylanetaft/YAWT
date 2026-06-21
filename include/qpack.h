@@ -106,7 +106,7 @@ YAWT_QPACK_FieldLineRepType_t YAWT_H3_QPACK_decode_field_line_msb(uint8_t byte, 
  * @param written Pointer to receive the number of bytes written.
  * @param out_type Pointer to receive the representation type that was encoded (can be NULL).
  * @return YAWT_QPACK_OK on success, or an error code.
- * @note Chooses the representation based on field->i_static and field->i_name.
+ * @note Looks up the field in the static table at encode time to choose the best representation.
  */
 YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
     const YAWT_H3_Header_Field_t *field,

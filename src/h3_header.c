@@ -13,27 +13,22 @@
 // ---------------------------------------------------------------------------
 
 typedef struct {
-  size_t   i_static;   // QPACK static table index for full name-value (0 = not indexed)
-  size_t   i_name;     // QPACK static table index for name only (0 = not indexed)
   size_t   name_len;
   size_t   value_len;
   char     data[];     // VLA: name\0 + value\0
 } _YAWT_H3_Header_BufferedField_t;
 
 // ---------------------------------------------------------------------------
-// Internal: store a field with given indexes.
+// Internal: store a field.
 // ---------------------------------------------------------------------------
 
 static YAWT_H3_Error_t _store_field(YAWT_H3_HeaderFields_t *section,
-                                     const char *name, size_t name_len,
-                                     const char *value, size_t value_len,
-                                     size_t i_static, size_t i_name) {
+                                      const char *name, size_t name_len,
+                                      const char *value, size_t value_len) {
   size_t total = sizeof(_YAWT_H3_Header_BufferedField_t) + name_len + 1 + value_len + 1;
   _YAWT_H3_Header_BufferedField_t *bf =
       (_YAWT_H3_Header_BufferedField_t *)ANB_slab_alloc_item(section->slab, total);
 
-  bf->i_static = i_static;
-  bf->i_name = i_name;
   bf->name_len = name_len;
   bf->value_len = value_len;
 
@@ -89,67 +84,16 @@ void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section) {
 // ---------------------------------------------------------------------------
 
 YAWT_H3_Error_t YAWT_h3_header_add(YAWT_H3_HeaderFields_t *section,
-                                    const char *name, size_t name_len,
-                                    const char *value, size_t value_len) {
+                                     const char *name, size_t name_len,
+                                     const char *value, size_t value_len) {
   if (!section || !name || !value) return YAWT_H3_ERR_INVALID_PARAM;
-  return _store_field(section, name, name_len, value, value_len, 0, 0);
+  return _store_field(section, name, name_len, value, value_len);
 }
 
 YAWT_H3_Error_t YAWT_h3_header_add_str(YAWT_H3_HeaderFields_t *section,
-                                        const char *name, const char *value) {
+                                         const char *name, const char *value) {
   if (!name || !value) return YAWT_H3_ERR_INVALID_PARAM;
   return YAWT_h3_header_add(section, name, strlen(name), value, strlen(value));
-}
-
-// ---------------------------------------------------------------------------
-// Add a field with pre-resolved QPACK static table indexes
-// ---------------------------------------------------------------------------
-
-YAWT_H3_Error_t YAWT_h3_header_add_static(YAWT_H3_HeaderFields_t *section,
-                                           const char *name, size_t name_len,
-                                           const char *value, size_t value_len,
-                                           size_t i_static, size_t i_name) {
-  if (!section || !name || !value) return YAWT_H3_ERR_INVALID_PARAM;
-  return _store_field(section, name, name_len, value, value_len, i_static, i_name);
-}
-
-YAWT_H3_Error_t YAWT_h3_header_add_str_static(YAWT_H3_HeaderFields_t *section,
-                                               const char *name, const char *value,
-                                               size_t i_static, size_t i_name) {
-  if (!name || !value) return YAWT_H3_ERR_INVALID_PARAM;
-  return YAWT_h3_header_add_static(section, name, strlen(name), value, strlen(value),
-                                    i_static, i_name);
-}
-
-// ---------------------------------------------------------------------------
-// Convenience: resolve QPACK static table indexes for a name/value pair.
-// Returns a populated YAWT_H3_Header_Field_t; caller passes it to add_static.
-// ---------------------------------------------------------------------------
-
-YAWT_H3_Header_Field_t YAWT_h3_header_resolve(const char *name, size_t name_len,
-                                               const char *value, size_t value_len) {
-  YAWT_H3_Header_Field_t f = {0};
-  f.name = name;
-  f.value = value;
-  f.name_len = name_len;
-  f.value_len = value_len;
-
-  int idx = YAWT_qpack_static_find_entry(name, value);
-  if (idx >= 0) {
-    f.i_static = (size_t)idx;
-    return f;
-  }
-
-  idx = YAWT_qpack_static_find_name(name);
-  if (idx >= 0) {
-    f.i_name = (size_t)idx;
-  }
-
-  return f;
-}
-
-YAWT_H3_Header_Field_t YAWT_h3_header_resolve_str(const char *name, const char *value) {
-  return YAWT_h3_header_resolve(name, strlen(name), value, strlen(value));
 }
 
 // Helper: build a view from a buffered field.
@@ -159,8 +103,6 @@ static YAWT_H3_Header_Field_t _field_view_from_buffered(const _YAWT_H3_Header_Bu
   v.value = bf->data + bf->name_len + 1;
   v.name_len = bf->name_len;
   v.value_len = bf->value_len;
-  v.i_static = bf->i_static;
-  v.i_name = bf->i_name;
   return v;
 }
 
@@ -329,10 +271,9 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             const YAWT_QPACK_StaticEntry_t *e = YAWT_qpack_static_get(idx);
             if (!e) return YAWT_QPACK_ERR_MALFORMED;
 
-            if (YAWT_h3_header_add_static(out,
+            if (YAWT_h3_header_add(out,
                     e->name, strlen(e->name),
-                    e->value, strlen(e->value),
-                    (size_t)idx, 0) != YAWT_H3_OK)
+                    e->value, strlen(e->value)) != YAWT_H3_OK)
                 return YAWT_QPACK_ERR_MALFORMED;
             break;
         }
@@ -353,9 +294,9 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             err = _h3_decode_string_literal(&cur, &rem, out, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;
 
-            if (YAWT_h3_header_add_static(out,
+            if (YAWT_h3_header_add(out,
                     e->name, strlen(e->name),
-                    (const char *)val, vlen, 0, (size_t)idx) != YAWT_H3_OK)
+                    (const char *)val, vlen) != YAWT_H3_OK)
                 return YAWT_QPACK_ERR_MALFORMED;
             break;
         }
@@ -366,13 +307,30 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             err = _h3_decode_string_literal(&cur, &rem, out, &np, &nlen);
             if (err != YAWT_QPACK_OK) return err;
 
+            // Copy name to local buffer before decoding value (which overwrites huff_scratch)
+            char name_buf[256];
+            char *name_ptr = name_buf;
+            if (nlen >= sizeof(name_buf)) {
+                name_ptr = malloc(nlen + 1);
+                if (!name_ptr) return YAWT_QPACK_ERR_SHORT_BUFFER;
+            }
+            memcpy(name_ptr, np, nlen);
+            name_ptr[nlen] = '\0';
+
             const uint8_t *vp = NULL; size_t vlen = 0;
             err = _h3_decode_string_literal(&cur, &rem, out, &vp, &vlen);
-            if (err != YAWT_QPACK_OK) return err;
+            if (err != YAWT_QPACK_OK) {
+                if (name_ptr != name_buf) free(name_ptr);
+                return err;
+            }
 
-            if (YAWT_h3_header_add(out, (const char *)np, nlen,
-                                   (const char *)vp, vlen) != YAWT_H3_OK)
+            if (YAWT_h3_header_add(out, name_ptr, nlen,
+                                   (const char *)vp, vlen) != YAWT_H3_OK) {
+                if (name_ptr != name_buf) free(name_ptr);
                 return YAWT_QPACK_ERR_MALFORMED;
+            }
+
+            if (name_ptr != name_buf) free(name_ptr);
             break;
         }
 
@@ -464,15 +422,23 @@ size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers) {
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
     YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
 
-    if (v.i_static > 0) {
-      size += _prefix_int_size(v.i_static, 6);
-    } else if (v.i_name > 0) {
-      size += _prefix_int_size(v.i_name, 4);
-      size += _string_literal_size(v.value_len);
+    // Look up in static table at encode time
+    int idx = YAWT_qpack_static_find_entry(v.name, v.value);
+    if (idx >= 0) {
+      // Indexed representation
+      size += 1 + _prefix_int_size((uint64_t)idx, 6);
     } else {
-      size += 1;  // 0x20 prefix byte
-      size += _string_literal_size(v.name_len);
-      size += _string_literal_size(v.value_len);
+      idx = YAWT_qpack_static_find_name(v.name);
+      if (idx >= 0) {
+        // Literal w/ Name Reference
+        size += 1 + _prefix_int_size((uint64_t)idx, 4);
+        size += _string_literal_size(v.value_len);
+      } else {
+        // Literal w/ Literal Name
+        size += 1;  // 0x20 prefix byte
+        size += _string_literal_size(v.name_len);
+        size += _string_literal_size(v.value_len);
+      }
     }
   }
 

@@ -761,44 +761,52 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
 
   size_t off = 0;
 
-  if (field->i_static > 0) {
+  // Look up in static table at encode time
+  int idx = YAWT_qpack_static_find_entry(field->name, field->value);
+  if (idx >= 0) {
+    // Indexed Field Line representation
     if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
     buf[off] = 0xC0;
     uint64_t cons = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-        buf + off, len - off, 2, (uint64_t)field->i_static, &cons);
+        buf + off, len - off, 2, (uint64_t)idx, &cons);
     if (err != YAWT_QPACK_OK) return err;
     off += (size_t)cons;
     if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_INDEXED;
-  } else if (field->i_name > 0) {
-    if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-    buf[off] = 0x50;
-    uint64_t cons = 0;
-    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-        buf + off, len - off, 4, (uint64_t)field->i_name, &cons);
-    if (err != YAWT_QPACK_OK) return err;
-    off += (size_t)cons;
-
-    size_t slen = 0;
-    err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
-    if (err != YAWT_QPACK_OK) return err;
-    off += slen;
-    if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF;
   } else {
-    if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-    buf[off] = 0x20;
-    off++;
+    idx = YAWT_qpack_static_find_name(field->name);
+    if (idx >= 0) {
+      // Literal w/ Name Reference
+      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+      buf[off] = 0x50;
+      uint64_t cons = 0;
+      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+          buf + off, len - off, 4, (uint64_t)idx, &cons);
+      if (err != YAWT_QPACK_OK) return err;
+      off += (size_t)cons;
 
-    size_t slen = 0;
-    YAWT_QPACK_Error_t err = _encode_string_literal(
-        buf + off, len - off, field->name, field->name_len, &slen);
-    if (err != YAWT_QPACK_OK) return err;
-    off += slen;
+      size_t slen = 0;
+      err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+      if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF;
+    } else {
+      // Literal w/ Literal Name
+      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+      buf[off] = 0x20;
+      off++;
 
-    err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
-    if (err != YAWT_QPACK_OK) return err;
-    off += slen;
-    if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME;
+      size_t slen = 0;
+      YAWT_QPACK_Error_t err = _encode_string_literal(
+          buf + off, len - off, field->name, field->name_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+
+      err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+      if (err != YAWT_QPACK_OK) return err;
+      off += slen;
+      if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME;
+    }
   }
 
   *written = off;
@@ -808,15 +816,10 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
 size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *field) {
   if (!field) return 0;
 
-  if (field->i_static > 0) {
-    return 1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES;
-  } else if (field->i_name > 0) {
-    return 1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES +
-           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->value_len;
-  } else {
-    return 1 +
-           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->name_len +
-           1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->value_len;
-  }
+  // Return worst-case size (literal w/ literal name) since we don't know
+  // the actual representation until encode time
+  return 1 +
+         1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->name_len +
+         1 + YAWT_QPACK_PREFIX_INT_MAX_BYTES + field->value_len;
 }
 

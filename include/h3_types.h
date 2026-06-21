@@ -206,15 +206,12 @@ typedef struct {
  * @ingroup H3_Headers
  * @brief Public view of a header field.
  * @warning Points into slab memory, do not free or mutate.
- * @note i_static and i_name are QPACK static table indexes pre-resolved at add time.
  */
 typedef struct {
   const char *name;
   const char *value;
   size_t      name_len;
   size_t      value_len;
-  size_t      i_static;  // full name-value match in QPACK static table (0 = none)
-  size_t      i_name;    // name-only match in QPACK static table (0 = none)
 } YAWT_H3_Header_Field_t;
 
 
