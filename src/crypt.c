@@ -394,8 +394,11 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
   ret = gnutls_init(&crypto->session, flags);
   if (ret < 0) goto fail;
 
+  // RFC 9001 §8.4: QUIC prohibits TLS 1.3 middlebox compatibility mode
+  // (non-empty legacy_session_id / ChangeCipherSpec). %DISABLE_TLS13_COMPAT_MODE
+  // makes GnuTLS send an empty legacy_session_id, as required for QUIC.
   ret = gnutls_priority_set_direct(crypto->session,
-                                    "NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
+                                    "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
   if (ret < 0) goto fail;
 
   ret = gnutls_credentials_set(crypto->session, GNUTLS_CRD_CERTIFICATE,
@@ -408,9 +411,9 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
   gnutls_handshake_set_secret_function(crypto->session, _on_secret);
   gnutls_alert_set_read_function(crypto->session, _on_alert);
 
-  // Set ALPN to "h3"
+  // Set ALPN to "h3" (mandatory for HTTP/3 over QUIC)
   gnutls_datum_t alpn = { .data = (unsigned char *)"h3", .size = 2 };
-  ret = gnutls_alpn_set_protocols(crypto->session, &alpn, 1, 0);
+  ret = gnutls_alpn_set_protocols(crypto->session, &alpn, 1, GNUTLS_ALPN_MANDATORY);
   if (ret < 0) goto fail;
 
   // Register QUIC transport parameters extension (RFC 9000 §18)
