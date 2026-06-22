@@ -159,6 +159,7 @@ static void _parse_pkt_initial(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
   YAWT_q_varint_decode(rc, &wire_len);
   if (rc->err != YAWT_Q_OK) return;
   size_t pkt_end = rc->cursor + wire_len;
+  YAWT_LOG(YAWT_LOG_DEBUG, "INITIAL PKT WIRE LEN =%lu, pkt_end=%zu", wire_len, pkt_end);
 
   _parse_common(rc, pkt, pkt_start, pkt_end);
 }
@@ -530,6 +531,7 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
       while (rc->cursor < rc->len && rc->data[rc->cursor] == 0x00) {
         rc->cursor++;
       }
+      YAWT_LOG(YAWT_LOG_DEBUG, "Parsed PADDING frame, len=%zu", rc->cursor);
       break;
     case YAWT_Q_FRAME_PING:
     case YAWT_Q_FRAME_HANDSHAKE_DONE:
@@ -1102,6 +1104,8 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
     default: return -1;
   }
 
+   YAWT_LOG(YAWT_LOG_DEBUG, "tx pkt payload: %s",
+    YAWT_q_blob_to_hex(pkt->payload, pkt->payload_len));
   if (rc < 0) return rc;
 
   // Encrypt (not for Retry)

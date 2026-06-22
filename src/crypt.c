@@ -317,19 +317,19 @@ static int _tp_append(gnutls_buffer_t extdata, uint8_t id,
 static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   YAWT_Q_Crypto_t *crypto = gnutls_session_get_ptr(session);
   int ret;
-  size_t total = 0;
+
+  YAWT_LOG(YAWT_LOG_INFO, "_tp_send called for %s", 
+           crypto->role == YAWT_Q_ROLE_SERVER ? "server" : "client");
 
   // RFC 9000 §18.2: server MUST include original_destination_connection_id (0x00)
   if (crypto->role == YAWT_Q_ROLE_SERVER) {
     ret = _tp_append(extdata, 0x00, crypto->original_dcid.id, crypto->original_dcid.len);
     if (ret < 0) return ret;
-    total += 2 + crypto->original_dcid.len;
   }
 
   // RFC 9000 §18.2: both endpoints MUST include initial_source_connection_id (0x0f)
   ret = _tp_append(extdata, 0x0f, crypto->our_cid.id, crypto->our_cid.len);
   if (ret < 0) return ret;
-  total += 2 + crypto->our_cid.len;
 
   // Flow control parameters — encode from connection's local_fc
   YAWT_Q_FlowControl_t *lfc = crypto->local_fc;
@@ -351,15 +351,13 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
     if (err != YAWT_Q_OK) return -1;
     ret = _tp_append(extdata, fc_params[i].id, vbuf, vlen);
     if (ret < 0) return ret;
-    total += 2 + vlen;
   }
 
   // TODO connection migration
   ret = _tp_append(extdata, 0x0c, NULL, 0);
   if (ret < 0) return ret;
-  total += 2;
 
-  return (int)total;
+  return 0;
 }
 
 YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t *cred,
@@ -417,7 +415,8 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
   // Register QUIC transport parameters extension (RFC 9000 §18)
   unsigned int ext_flags = GNUTLS_EXT_FLAG_TLS
                          | GNUTLS_EXT_FLAG_CLIENT_HELLO
-                         | GNUTLS_EXT_FLAG_EE;
+                         | GNUTLS_EXT_FLAG_EE
+                         | GNUTLS_EXT_FLAG_IGNORE_CLIENT_REQUEST;
   ret = gnutls_session_ext_register(crypto->session,
                                      "QUIC Transport Parameters",
                                      QUIC_TP_EXT_TYPE,

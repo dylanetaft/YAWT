@@ -73,6 +73,23 @@ static inline const char *YAWT_q_cid_to_hex(const YAWT_Q_Cid_t *cid) {
 }
 
 /**
+// * @internal
+// * @ingroup QUIC_Internal_Internal
+// * @brief Format a binary blob as a hex string.
+// * @param data Pointer to the binary data.
+// * @param len Length of the binary data.
+// * @return Pointer to a static buffer containing the hex string (not thread-safe).
+ */
+static inline const char *YAWT_q_blob_to_hex(const uint8_t *data, size_t len) {
+  static char buf[YAWT_Q_MAX_PKT_SIZE * 2 + 1];
+  memset(buf, 0, sizeof(buf));
+  for (size_t i = 0; i < len && i < YAWT_Q_MAX_PKT_SIZE; i++) {
+    sprintf(buf + 2 * i, "%02x", data[i]);
+  }
+  return buf;
+}
+
+/**
  * @internal
  * @ingroup QUIC_Internal
  * @brief QUIC packet types (all 5 forms).

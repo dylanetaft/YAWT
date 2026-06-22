@@ -605,6 +605,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
     YAWT_Q_Frame_t frame;
     YAWT_q_parse_frame(&frc, pkt->type, &frame);
     if (frc.err != YAWT_Q_OK) break;
+    YAWT_LOG(YAWT_LOG_DEBUG, "Parsed Frame: type=0x%02x, cursor=%zu, len=%zu",
+             frame.type, frc.cursor - frc.len, frc.len);
     frame_count++;
 
     // RFC 9000 §12.4: reject frames not allowed in this packet type
@@ -979,14 +981,38 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
   return res;
 }
 
+// Screaming into the void, padding frames belong in packets
+// but some implementations set the len of initial frames to shorter
+// than the UDP payload, and pad outside the packet
+// I think they are not following spec so I am adding this for compatibility
+static bool _rx_skip_padding(YAWT_Q_ReadCursor_t *rc) {
+  bool has_padding = false;
+  size_t prev = rc->cursor;
+  //no valid packet starts with byte 0x00
+  while (rc->cursor < rc->len && rc->data[rc->cursor] == 0x00) {
+    rc->cursor++;
+  }
+  if (rc->cursor > prev) {
+    has_padding = true;
+    YAWT_LOG(YAWT_LOG_DEBUG, "Skipped %zu bytes of padding before packet start", rc->cursor - prev);
+  }
+  return has_padding;
+}
+
 void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                               const YAWT_Q_PeerAddr_t *peer_addr, double now) {
   YAWT_Q_ReadCursor_t rc = { .data = data, .len = len, .cursor = 0, .err = YAWT_Q_OK };
+  YAWT_LOG(YAWT_LOG_DEBUG, "Received datagram, processing");
   while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "Cursor at %zu of %zu bytes pre pkt parse", rc.cursor, rc.len); 
     size_t prev = rc.cursor;
+
+    if (_rx_skip_padding(&rc)) continue;
+
     YAWT_Q_Packet_t pkt;
     YAWT_q_parse_packet(&rc, &pkt);
     if (rc.err != YAWT_Q_OK || rc.cursor == prev) break;
+    YAWT_LOG(YAWT_LOG_DEBUG, "Cursor at %zu of %zu bytes post pkt parse", rc.cursor, rc.len);
 
     // RFC 9000 §10.3: discard packets smaller than 21 bytes
     size_t pkt_len = rc.cursor - prev;
@@ -1110,19 +1136,11 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     
     con->stats.next_pkt_num_rx[level] = full_pn + 1;
 
+
+   YAWT_LOG(YAWT_LOG_DEBUG, "pkt type: %u rx pkt payload: %s",pkt.type,
+    YAWT_q_blob_to_hex(pkt.payload, pkt.payload_len));
+
     // Parse frames from decrypted payload
-    if (pkt.payload_len >= 8) {
-      YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload first bytes: %02x %02x %02x %02x %02x %02x %02x %02x",
-               pkt.payload[0], pkt.payload[1], pkt.payload[2], pkt.payload[3],
-               pkt.payload[4], pkt.payload[5], pkt.payload[6], pkt.payload[7]);
-    } else {
-      YAWT_LOG(YAWT_LOG_DEBUG, "Decrypted payload (%zu bytes): %02x %02x %02x %02x",
-               pkt.payload_len,
-               pkt.payload_len > 0 ? pkt.payload[0] : 0,
-               pkt.payload_len > 1 ? pkt.payload[1] : 0,
-               pkt.payload_len > 2 ? pkt.payload[2] : 0,
-               pkt.payload_len > 3 ? pkt.payload[3] : 0);
-    }
     YAWT_Q_FrameHandler_Res_t res = _handle_frames(con, &pkt);
 
     // RFC 9000 §12.4: PROTOCOL_VIOLATION for invalid frames or empty packets
@@ -1140,7 +1158,8 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     _drain_tx(con, now);
   }
   if (rc.err != YAWT_Q_OK) {
-    printf("  parse error: %d at cursor %zu\n", rc.err, rc.cursor);
+    YAWT_LOG(YAWT_LOG_ERROR, "Packet parse error: %s (%d) at cursor %zu",
+             YAWT_q_err_str(rc.err), rc.err, rc.cursor);
   }
 }
 
@@ -1280,16 +1299,6 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
     if (!(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
       con->stats.tx_count_bytes += send_size;
     }
-
-    YAWT_LOG(YAWT_LOG_DEBUG, "sent %s packet: PN=%lu, %zu bytes, first 20: "
-             "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x "
-             "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-             _pkt_type_name(pkt_type), pn, send_size,
-             wire_data[0], wire_data[1], wire_data[2], wire_data[3],
-             wire_data[4], wire_data[5], wire_data[6], wire_data[7],
-             wire_data[8], wire_data[9], wire_data[10], wire_data[11],
-             wire_data[12], wire_data[13], wire_data[14], wire_data[15],
-             wire_data[16], wire_data[17], wire_data[18], wire_data[19]);
 
     // Mark frames as sent. ACK frames are one-shot — RFC 9000 §13.2.1 says ACK
     // info is regenerated from current rx state, never retransmitted — so pop
