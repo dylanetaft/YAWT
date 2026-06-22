@@ -353,9 +353,11 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
     if (ret < 0) return ret;
   }
 
-  // TODO connection migration
-  ret = _tp_append(extdata, 0x0c, NULL, 0);
-  if (ret < 0) return ret;
+  // RFC 9000 §18.2: disable_active_migration (0x0c) is server-only
+  if (crypto->role == YAWT_Q_ROLE_SERVER) {
+    ret = _tp_append(extdata, 0x0c, NULL, 0);
+    if (ret < 0) return ret;
+  }
 
   return 0;
 }
@@ -383,7 +385,6 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
   crypto->local_fc = local_fc;
   crypto->peer_fc = peer_fc;
   crypto->rx_crypto_buf = ANB_slab_create(4096);
-  // Set CIDs for transport parameters (RFC 9000 §18.2)
   YAWT_q_cid_set(&crypto->original_dcid, original_dcid->id, original_dcid->len);
   YAWT_q_cid_set(&crypto->our_cid, our_cid->id, our_cid->len);
 
@@ -413,10 +414,14 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
   if (ret < 0) goto fail;
 
   // Register QUIC transport parameters extension (RFC 9000 §18)
+  // For client: send in ClientHello, receive in EncryptedExtensions
+  // For server: receive in ClientHello, send in EncryptedExtensions
   unsigned int ext_flags = GNUTLS_EXT_FLAG_TLS
                          | GNUTLS_EXT_FLAG_CLIENT_HELLO
-                         | GNUTLS_EXT_FLAG_EE
-                         | GNUTLS_EXT_FLAG_IGNORE_CLIENT_REQUEST;
+                         | GNUTLS_EXT_FLAG_EE;
+  if (crypto->role == YAWT_Q_ROLE_SERVER) {
+    ext_flags |= GNUTLS_EXT_FLAG_IGNORE_CLIENT_REQUEST;
+  }
   ret = gnutls_session_ext_register(crypto->session,
                                      "QUIC Transport Parameters",
                                      QUIC_TP_EXT_TYPE,
