@@ -67,6 +67,15 @@ typedef enum {
   YAWT_Q_LEVEL_APPLICATION = 3
 } YAWT_Q_Encryption_Level_t;
 
+static inline YAWT_Q_Encryption_Level_t YAWT_q_pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
+  switch (type) {
+    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
+    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
+    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
+    default:                         return YAWT_Q_LEVEL_APPLICATION;
+  }
+}
+
 /**
  * @ingroup Crypt
  * @brief Per-level key state — tracks lifecycle of encryption keys at each level.

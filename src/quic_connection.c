@@ -398,16 +398,6 @@ static const char *_pkt_type_name(YAWT_Q_Packet_Type_t type) {
   }
 }
 
-// Map long header packet type bits to encryption level
-static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t type) {
-  switch (type) {
-    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
-    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
-    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
-    default:                         return YAWT_Q_LEVEL_APPLICATION;
-  }
-}
-
 YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
   if (!cid || cid->len == 0) return NULL;
   YAWT_Q_Connection_t *con = NULL;
@@ -641,7 +631,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
       case YAWT_Q_FRAME_ACK:
         YAWT_LOG(YAWT_LOG_DEBUG, "ACK: largest=%lu, first_range=%lu",
                  frame.ack.largest_ack, frame.ack.first_ack_range);
-        _process_ack(con, _pkt_type_to_level(pkt->type), &frame.ack);
+        _process_ack(con, YAWT_q_pkt_type_to_level(pkt->type), &frame.ack);
         break;
 
       case YAWT_Q_FRAME_CRYPTO: {
@@ -650,7 +640,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
 
         YAWT_Q_Error_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
-          YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", _pkt_type_to_level(pkt->type));
+          YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", YAWT_q_pkt_type_to_level(pkt->type));
           _send_connection_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
           _record_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
@@ -1088,7 +1078,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       continue;
     }
 
-    YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt.type);
+    YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(pkt.type);
     int lvl_key_avail = YAWT_q_crypto_key_level_available(con->crypto, level);
 
     // For Initial packets: derive keys from DCID if not done yet

@@ -534,16 +534,6 @@ static int _crypto_handshake_write(YAWT_Q_Crypto_t *crypto,
   return 0;
 }
 
-// Map packet type to encryption level
-static YAWT_Q_Encryption_Level_t _pkt_type_to_level(YAWT_Q_Packet_Type_t pkt_type) {
-  switch (pkt_type) {
-    case YAWT_Q_PKT_TYPE_INITIAL:   return YAWT_Q_LEVEL_INITIAL;
-    case YAWT_Q_PKT_TYPE_0RTT:      return YAWT_Q_LEVEL_EARLY;
-    case YAWT_Q_PKT_TYPE_HANDSHAKE: return YAWT_Q_LEVEL_HANDSHAKE;
-    default:                         return YAWT_Q_LEVEL_APPLICATION;
-  }
-}
-
 // Drain buffered out-of-order CRYPTO frames that are now contiguous
 static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   ANB_SlabIter_t iter = {0};
@@ -551,7 +541,7 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   uint8_t *item;
   while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
     YAWT_Q_Frame_t *buffered = (YAWT_Q_Frame_t *)item;
-    YAWT_Q_Encryption_Level_t lvl = _pkt_type_to_level(buffered->pkt_type);
+    YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->pkt_type);
 
     if (buffered->crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
       int ret = _crypto_handshake_write(crypto, lvl,
@@ -566,7 +556,7 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
 
 YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                                     const YAWT_Q_Frame_t *frame) {
-  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(frame->pkt_type);
+  YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(frame->pkt_type);
 
   // Reject CRYPTO frames at levels that are no longer active
   if (crypto->level_keys[level].state != YAWT_Q_KEY_STATE_ACTIVE) {
@@ -714,7 +704,7 @@ static gnutls_cipher_algorithm_t _hp_cipher_for_aead(int aead_cipher) {
 
 int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
   if (!pkt || !crypto) return -1;
-  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(pkt->type);
   if (!YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
   size_t pn_offset = pkt->pn_offset;
@@ -778,7 +768,7 @@ int YAWT_q_crypto_unprotect_header(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
 int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
   if (!pkt || !crypto) return -1;
 
-  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(pkt->type);
   if (!YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
   uint8_t *packet = pkt->raw;
@@ -863,7 +853,7 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
 int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
                                   const YAWT_Q_Packet_t *pkt,
                                   YAWT_Q_Crypto_t *crypto) {
-  YAWT_Q_Encryption_Level_t level = _pkt_type_to_level(pkt->type);
+  YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(pkt->type);
   if (!packet || !YAWT_q_crypto_key_level_available(crypto, level)) return -1;
   const YAWT_Q_Level_Keys_t *keys = &crypto->level_keys[level];
 
