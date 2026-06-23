@@ -19,9 +19,6 @@
  * @ingroup H3_Headers
  * @brief Create a new header fields backed by an ANB_Slab.
  * @return A heap-allocated YAWT_H3_HeaderFields_t*, or NULL on failure.
- * @note Optionally includes a scratch blob for decode. The pointer itself may be
- *       null-checked (non-NULL means resources were allocated and destroy should
- *       be called later).
  */
 YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void);
 
@@ -29,8 +26,7 @@ YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void);
  * @ingroup H3_Headers
  * @brief Destroy a header fields section.
  * @param section The header fields to destroy.
- * @note Destroys its slab (and any huff_scratch blob) and frees the
- *       YAWT_H3_HeaderFields_t struct itself.
+ * @note Destroys its slab and frees the YAWT_H3_HeaderFields_t struct itself.
  */
 void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section);
 
@@ -99,8 +95,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
  * @param out The output header fields section.
  * @return YAWT_QPACK_OK on success, or an error code.
  * @note Only static table entries and literal representations are supported.
- *       Huffman-encoded strings are decoded into out->huff_scratch (ANB_Blob_t).
- *       Name/value pairs are copied into out->slab using the existing header field storage.
+ *       Name/value pairs are copied into out->slab.
  *       On error the section may be left partially populated; caller (h3 layer)
  *       typically destroys it.
  */

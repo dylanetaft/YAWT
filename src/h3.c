@@ -464,9 +464,6 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
            qf->stream_id, qf->offset, qf->data_len, qf->fin);
-  for (size_t i = 0; i < qf->data_len && i < 32; i++) {
-    YAWT_LOG(YAWT_LOG_DEBUG, "  data[%zu] = 0x%02x", i, qf->data[i]);
-  }
 
   YAWT_Q_ReadCursor_t rc = {
     .data = qf->data,

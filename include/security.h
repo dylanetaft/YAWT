@@ -77,6 +77,7 @@ typedef struct {
   uint64_t max_frame_buffer_bytes; /**< Max bytes the H3 layer accumulates for one
                                     *   must-buffer frame (SETTINGS/HEADERS); a frame
                                     *   whose Length exceeds this is rejected, not buffered */
+  uint64_t max_header_string_len;  /**< Max decoded length of a single header string (name or value) */
 } YAWT_H3_SecurityPolicy_t;
 
 /**

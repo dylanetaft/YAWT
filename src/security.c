@@ -21,6 +21,7 @@ static YAWT_Q_FlowControl_t _default_local_fc = {
 
 static YAWT_H3_SecurityPolicy_t _h3_policy = {
   .max_frame_buffer_bytes = 32768,
+  .max_header_string_len = 4 * 1024 * 1024,
 };
 
 

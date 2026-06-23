@@ -55,14 +55,6 @@ YAWT_H3_HeaderFields_t *YAWT_h3_header_fields_create(void) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating slab");
     abort();
   }
-  const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-  size_t init = (sec && sec->max_frame_buffer_bytes)
-                ? sec->max_frame_buffer_bytes : 4096;
-  section->huff_scratch = ANB_blob_create(init);
-  if (!section->huff_scratch) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM allocating huff_scratch");
-    abort();
-  }
   return section;
 }
 
@@ -71,10 +63,6 @@ void YAWT_h3_header_fields_destroy(YAWT_H3_HeaderFields_t *section) {
   if (section->slab) {
     ANB_slab_destroy(section->slab);
     section->slab = NULL;
-  }
-  if (section->huff_scratch) {
-    ANB_blob_destroy(section->huff_scratch);
-    section->huff_scratch = NULL;
   }
   free(section);
 }
@@ -169,12 +157,12 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 // ---------------------------------------------------------------------------
 
 // Decode one string literal from the block (H bit + 7+ length + payload).
-// On Huffman, decodes into the section's huff_scratch blob (grows on demand).
-// Returns pointer/len into the (possibly reallocated) blob data.
+// On Huffman, decodes into scratch blob at offset (grows on demand).
+// Returns pointer/len into the blob data. Caller advances offset by *out_len.
 // Advances the caller's cur/remaining.
 static YAWT_QPACK_Error_t _h3_decode_string_literal(
     const uint8_t **cur, size_t *remaining,
-    YAWT_H3_HeaderFields_t *section,
+    ANB_Blob_t *scratch, size_t offset,
     const uint8_t **out, size_t *out_len)
 {
     if (*remaining == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
@@ -184,43 +172,24 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
     uint64_t str_len = 0;
     uint64_t cons = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_prefix_int(
-        *cur, *remaining, 1 /* offset after H */, &str_len, &cons);
+        *cur, *remaining, 1, &str_len, &cons);
     if (err != YAWT_QPACK_OK) return err;
 
     if (*remaining < cons + (size_t)str_len) return YAWT_QPACK_ERR_SHORT_BUFFER;
 
     const uint8_t *str_data = *cur + cons;
 
-    size_t needed = (size_t)str_len;
-    if (huff) needed = needed * 2 + 128;
-    size_t cap = ANB_blob_capacity(section->huff_scratch);
-    if (cap < needed) {
-        ANB_blob_realloc(section->huff_scratch, needed);
-    }
-
-    uint8_t *buf = ANB_blob_data(section->huff_scratch);
-    cap = ANB_blob_capacity(section->huff_scratch);
+    uint8_t *buf = ANB_blob_data(scratch) + offset;
+    size_t cap = ANB_blob_capacity(scratch) - offset;
 
     if (huff) {
         size_t decoded = 0;
         err = YAWT_QPACK_huff_decode_string(str_data, (size_t)str_len,
                                             buf, cap, &decoded);
-        while (err == YAWT_QPACK_ERR_SHORT_BUFFER && cap < (size_t)str_len * 8) {
-            ANB_blob_realloc(section->huff_scratch, cap * 2);
-            buf = ANB_blob_data(section->huff_scratch);
-            cap = ANB_blob_capacity(section->huff_scratch);
-            err = YAWT_QPACK_huff_decode_string(str_data, (size_t)str_len,
-                                                buf, cap, &decoded);
-        }
         if (err != YAWT_QPACK_OK) return err;
         *out = buf;
         *out_len = decoded;
     } else {
-        if ((size_t)str_len > cap) {
-            ANB_blob_realloc(section->huff_scratch, (size_t)str_len);
-            buf = ANB_blob_data(section->huff_scratch);
-            cap = ANB_blob_capacity(section->huff_scratch);
-        }
         memcpy(buf, str_data, (size_t)str_len);
         *out = buf;
         *out_len = (size_t)str_len;
@@ -238,13 +207,19 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 {
     if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
 
+    static ANB_Blob_t *s_scratch = NULL;
+    if (!s_scratch) {
+        const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
+        s_scratch = ANB_blob_create(sec->max_header_string_len);
+        if (!s_scratch) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    }
+
     size_t pcons = 0;
     uint64_t ric = 0, base = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_header_block_prefix(
         data, len, &ric, &base, &pcons);
     if (err != YAWT_QPACK_OK) return err;
 
-    // Static-only: reject anything that would require the dynamic table.
     if (ric != 0) {
         return YAWT_QPACK_ERR_REQUIRED_INSERT_COUNT;
     }
@@ -260,7 +235,6 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 
         switch (rep) {
         case YAWT_QPACK_FIELD_LINE_INDEXED: {
-            // 1 T Index(6+)
             int T = (b >> 6) & 1;
             uint64_t idx = 0, cons = 0;
             err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 1, &idx, &cons);
@@ -279,7 +253,6 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
         }
 
         case YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF: {
-            // 0 1 N T Index(4+)
             int T = (b >> 4) & 1;
             uint64_t idx = 0, cons = 0;
             err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &idx, &cons);
@@ -290,8 +263,9 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             const YAWT_QPACK_StaticEntry_t *e = YAWT_qpack_static_get(idx);
             if (!e) return YAWT_QPACK_ERR_MALFORMED;
 
+            size_t scratch_offset = 0;
             const uint8_t *val = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, out, &val, &vlen);
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;
 
             if (YAWT_h3_header_add(out,
@@ -302,35 +276,19 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
         }
 
         case YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME: {
-            // 0 0 1 N H ...
+            size_t scratch_offset = 0;
             const uint8_t *np = NULL; size_t nlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, out, &np, &nlen);
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &np, &nlen);
             if (err != YAWT_QPACK_OK) return err;
-
-            // Copy name to local buffer before decoding value (which overwrites huff_scratch)
-            char name_buf[256];
-            char *name_ptr = name_buf;
-            if (nlen >= sizeof(name_buf)) {
-                name_ptr = malloc(nlen + 1);
-                if (!name_ptr) return YAWT_QPACK_ERR_SHORT_BUFFER;
-            }
-            memcpy(name_ptr, np, nlen);
-            name_ptr[nlen] = '\0';
+            scratch_offset += nlen;
 
             const uint8_t *vp = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, out, &vp, &vlen);
-            if (err != YAWT_QPACK_OK) {
-                if (name_ptr != name_buf) free(name_ptr);
-                return err;
-            }
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &vp, &vlen);
+            if (err != YAWT_QPACK_OK) return err;
 
-            if (YAWT_h3_header_add(out, name_ptr, nlen,
-                                   (const char *)vp, vlen) != YAWT_H3_OK) {
-                if (name_ptr != name_buf) free(name_ptr);
+            if (YAWT_h3_header_add(out, (const char *)np, nlen,
+                                   (const char *)vp, vlen) != YAWT_H3_OK)
                 return YAWT_QPACK_ERR_MALFORMED;
-            }
-
-            if (name_ptr != name_buf) free(name_ptr);
             break;
         }
 

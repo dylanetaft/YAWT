@@ -175,13 +175,9 @@ typedef struct {
 /**
  * @ingroup H3_Headers
  * @brief Header fields — backed by ANB_Slab internally.
- * @note huff_scratch (ANB_Blob_t) is used during QPACK decode of Huffman-encoded
- *       literals in header field lines; allocated upfront in YAWT_h3_header_fields_create
- *       and grown as needed.
  */
 typedef struct {
   ANB_Slab_t *slab;        // stores _YAWT_H3_BufferedField_t entries
-  ANB_Blob_t *huff_scratch; // huffman decode scratch space, as far as I know only headers use huffman
 } YAWT_H3_HeaderFields_t;
 
 /**
