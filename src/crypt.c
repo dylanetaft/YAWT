@@ -224,6 +224,9 @@ YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                                   ca_file,
                                                   GNUTLS_X509_FMT_PEM);
     if (ret < 0) goto fail;
+  } else {
+    ret = gnutls_certificate_set_x509_system_trust(cred->cred);
+    if (ret < 0) goto fail;
   }
 
   return cred;

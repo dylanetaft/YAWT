@@ -180,6 +180,12 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
   memcpy(stream->hdr + accumulated_before, chunk->data, take);
   stream->accumulated += take;
 
+  YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu accumulating %zu bytes for stream type (total %zu), chunk offset=%lu",
+           stream->id, take, stream->accumulated, chunk->offset);
+  for (size_t i = 0; i < stream->accumulated && i < 16; i++) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "  hdr[%zu] = 0x%02x", i, stream->hdr[i]);
+  }
+
   YAWT_Q_ReadCursor_t rc = {0};
   rc.data = stream->hdr;
   rc.len = stream->accumulated;
@@ -207,9 +213,10 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
                stream->id);
       return YAWT_H3_ERR_MALFORMED;
     default:
-      YAWT_LOG(YAWT_LOG_ERROR, "h3: unknown uni stream type 0x%lx, stream_id=%lu",
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: unknown/GREASE uni stream type 0x%lx, stream_id=%lu (will drain)",
                wire, stream->id);
-      return YAWT_H3_ERR_MALFORMED;
+      stream->type = YAWT_H3_STREAM_UNKNOWN;
+      return YAWT_H3_OK;
   }
 }
 
@@ -455,6 +462,12 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
     return;
   }
 
+  YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
+           qf->stream_id, qf->offset, qf->data_len, qf->fin);
+  for (size_t i = 0; i < qf->data_len && i < 32; i++) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "  data[%zu] = 0x%02x", i, qf->data[i]);
+  }
+
   YAWT_Q_ReadCursor_t rc = {
     .data = qf->data,
     .len = qf->data_len,
@@ -493,7 +506,8 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
       break;
     case YAWT_H3_STREAM_QPACK:
     case YAWT_H3_STREAM_WEBTRANSPORT:
-      // TODO: silently drain unknown uni stream types
+    case YAWT_H3_STREAM_UNKNOWN:
+      rc.cursor = rc.len;
       break;
     default:
       YAWT_LOG(YAWT_LOG_ERROR, "h3: unhandled stream type %d for stream_id=%lu",

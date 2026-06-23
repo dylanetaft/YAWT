@@ -74,6 +74,8 @@ typedef enum {
  * @note RFC 9114 §6.2, RFC 9204 §4.2, draft-15. The first varint on a client
  *       uni stream selects its role; we read it once into the per-stream slot.
  *       Bidi (request) streams have no such prefix.
+ * @note RFC 9287 defines GREASE values for stream types. Endpoints MUST tolerate
+ *       unknown stream types (RFC 9114 §6.2.3) and silently drain them.
  */
 typedef enum {
   YAWT_H3_STREAM_WIRE_CONTROL      = 0x00, /**< Control stream (RFC 9114 §6.2.1) */
@@ -93,7 +95,8 @@ typedef enum {
   YAWT_H3_STREAM_PUSH,       /**< Push stream (RFC 9114 §6.2.2) */
   YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
   YAWT_H3_STREAM_QPACK,      /**< QPACK encoder/decoder stream */
-  YAWT_H3_STREAM_WEBTRANSPORT /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_WEBTRANSPORT, /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_UNKNOWN     /**< Unknown/GREASE stream type (RFC 9114 §6.2.3, RFC 9287) */
 } YAWT_H3_StreamType_t;
 
 /**

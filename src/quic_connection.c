@@ -588,7 +588,8 @@ static int _frame_allowed_in_packet(YAWT_Q_Frame_Type_t frame, YAWT_Q_Packet_Typ
              frame != YAWT_Q_FRAME_CONNECTION_CLOSE_APP && frame != YAWT_Q_FRAME_HANDSHAKE_DONE &&
              frame != YAWT_Q_FRAME_NEW_TOKEN;
     case YAWT_Q_PKT_TYPE_1RTT:
-      return frame != YAWT_Q_FRAME_CRYPTO;
+      return 1; 
+      break;
     default:
       return 1;
   }
@@ -606,7 +607,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
     YAWT_q_parse_frame(&frc, pkt->type, &frame);
     if (frc.err != YAWT_Q_OK) break;
     YAWT_LOG(YAWT_LOG_DEBUG, "Parsed Frame: type=0x%02x, cursor=%zu, len=%zu",
-             frame.type, frc.cursor - frc.len, frc.len);
+             frame.type, frc.cursor, frc.len);
     frame_count++;
 
     // RFC 9000 §12.4: reject frames not allowed in this packet type
