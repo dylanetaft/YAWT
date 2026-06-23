@@ -137,6 +137,7 @@ static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
   }
 }
 
+
 // RFC 9000 §4.1: Connection-level flow control threshold check.
 // This applies only to stream data and should NOT be added to DATAGRAM
 // or other unreliable frame handlers, as they do not count towards
@@ -437,23 +438,31 @@ static YAWT_Q_StreamMeta_t *_stream_meta_add(YAWT_Q_Connection_t *con, uint64_t 
   memset(m, 0, sizeof(*m));
   m->stream_id = stream_id;
   
-  // Set initial tx_max_data based on stream type and peer's transport parameters
-  // RFC 9000 §18.2: peer advertises limits on what we can send
+  // Set initial flow control limits based on stream type and role
+  // RFC 9000 §18.2: bidi_local = limit on locally-initiated streams, bidi_remote = limit on peer-initiated streams
   uint8_t stype = stream_id & 0x03;
-  switch (stype) {
-    case 0x00: // Client-initiated bidi: use peer's bidi_local
-      m->fc.tx_max_data = con->peer_fc.max_stream_data_bidi_local;
-      m->fc.rx_max_data = con->local_fc.max_stream_data_bidi_local;
-      break;
-    case 0x01: // Server-initiated bidi: use peer's bidi_remote
+  bool is_bidi = (stype == 0x00 || stype == 0x01);
+  bool client_initiated = (stype == 0x00 || stype == 0x02);
+  bool we_initiated = (client_initiated && con->role == YAWT_Q_ROLE_CLIENT) ||
+                      (!client_initiated && con->role == YAWT_Q_ROLE_SERVER);
+  
+  if (is_bidi) {
+    if (we_initiated) {
       m->fc.tx_max_data = con->peer_fc.max_stream_data_bidi_remote;
+      m->fc.rx_max_data = con->local_fc.max_stream_data_bidi_local;
+    } else {
+      m->fc.tx_max_data = con->peer_fc.max_stream_data_bidi_local;
       m->fc.rx_max_data = con->local_fc.max_stream_data_bidi_remote;
-      break;
-    case 0x02: // Client-initiated uni: use peer's uni
-    case 0x03: // Server-initiated uni: use peer's uni
+    }
+  } else {
+    // Unidirectional: only one direction is active
+    if (we_initiated) {
       m->fc.tx_max_data = con->peer_fc.max_stream_data_uni;
+      m->fc.rx_max_data = 0;
+    } else {
+      m->fc.tx_max_data = 0;
       m->fc.rx_max_data = con->local_fc.max_stream_data_uni;
-      break;
+    }
   }
   
   return m;
@@ -1557,10 +1566,24 @@ static void _maint_retransmit(YAWT_Q_Connection_t *con, double now) {
   size_t item_size;
   uint8_t *item;
 
+
   while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
     if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
     YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
-    if (f->last_sent == 0) continue;
+    if (f->last_sent == 0) continue; //only consider frames that have been sent at least once
+
+   
+
+   // RFC 9001 §4.9.2: After handshake completion, endpoints discard Handshake keys.
+   // Any unacknowledged Handshake-level frames can never be ACKed, so purge them
+   // to prevent infinite retransmit loops.
+    if (f->level == YAWT_Q_LEVEL_HANDSHAKE && (con->state & YAWT_Q_STATE_ADDR_VALIDATED) != 0)
+    {
+      ANB_slab_pop_item(con->tx_buffer, &iter);
+      YAWT_LOG(YAWT_LOG_DEBUG, "Dropping handshake frame after address validation: level=%d, type=0x%02x",
+                f->level, f->type);
+      continue;
+    }
 
     if (f->retransmit_count >= _maint_cfg.retransmit_max) {
       // TODO: give up — close connection
