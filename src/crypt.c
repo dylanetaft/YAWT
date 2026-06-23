@@ -121,6 +121,18 @@ static int _derive_pkt_keys(YAWT_Q_Level_Keys_t *keys,
   return 0;
 }
 
+static void _build_nonce(const uint8_t iv[12], uint64_t packet_num, uint8_t nonce[12]) {
+  memcpy(nonce, iv, 12);
+  nonce[11] ^= (uint8_t)(packet_num);
+  nonce[10] ^= (uint8_t)(packet_num >> 8);
+  nonce[9]  ^= (uint8_t)(packet_num >> 16);
+  nonce[8]  ^= (uint8_t)(packet_num >> 24);
+  nonce[7]  ^= (uint8_t)(packet_num >> 32);
+  nonce[6]  ^= (uint8_t)(packet_num >> 40);
+  nonce[5]  ^= (uint8_t)(packet_num >> 48);
+  nonce[4]  ^= (uint8_t)(packet_num >> 56);
+}
+
 static int _on_handshake_read(gnutls_session_t session,
                                gnutls_record_encryption_level_t level,
                                gnutls_handshake_description_t htype,
@@ -780,17 +792,8 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
   // Ciphertext must contain at least the 16-byte auth tag
   if (ciphertext_len < 16) return -1;
 
-  // Construct nonce: iv XOR packet_number (right-aligned in 12 bytes)
   uint8_t nonce[12];
-  memcpy(nonce, keys->iv_read, 12);
-  nonce[11] ^= (uint8_t)(pkt->packet_num);
-  nonce[10] ^= (uint8_t)(pkt->packet_num >> 8);
-  nonce[9]  ^= (uint8_t)(pkt->packet_num >> 16);
-  nonce[8]  ^= (uint8_t)(pkt->packet_num >> 24);
-  nonce[7]  ^= (uint8_t)(pkt->packet_num >> 32);
-  nonce[6]  ^= (uint8_t)(pkt->packet_num >> 40);
-  nonce[5]  ^= (uint8_t)(pkt->packet_num >> 48);
-  nonce[4]  ^= (uint8_t)(pkt->packet_num >> 56);
+  _build_nonce(keys->iv_read, pkt->packet_num, nonce);
 
   gnutls_aead_cipher_hd_t cipher;
   gnutls_datum_t key_d = { .data = (void *)keys->key_read, .size = keys->key_len };
@@ -876,17 +879,8 @@ int YAWT_q_crypto_protect_packet(uint8_t *packet, size_t packet_len,
   if (ciphertext_area < 16) return -1; // need at least tag space
   size_t plaintext_len = ciphertext_area - 16;
 
-  // Construct nonce: iv XOR packet_number (right-aligned in 12 bytes)
   uint8_t nonce[12];
-  memcpy(nonce, keys->iv_write, 12);
-  nonce[11] ^= (uint8_t)(packet_num);
-  nonce[10] ^= (uint8_t)(packet_num >> 8);
-  nonce[9]  ^= (uint8_t)(packet_num >> 16);
-  nonce[8]  ^= (uint8_t)(packet_num >> 24);
-  nonce[7]  ^= (uint8_t)(packet_num >> 32);
-  nonce[6]  ^= (uint8_t)(packet_num >> 40);
-  nonce[5]  ^= (uint8_t)(packet_num >> 48);
-  nonce[4]  ^= (uint8_t)(packet_num >> 56);
+  _build_nonce(keys->iv_write, packet_num, nonce);
 
   // AEAD encrypt
   gnutls_aead_cipher_hd_t cipher;
