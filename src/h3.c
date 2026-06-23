@@ -55,52 +55,30 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
   size_t off = 0;
   uint64_t n;
 
-  if (settings->qpack_max_table_capacity > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
+  uint64_t ids[] = {
+    YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY,
+    YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS,
+    YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE,
+    YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL,
+    YAWT_H3_SETTING_H3_DATAGRAM,
+    YAWT_H3_SETTING_WT_ENABLED,
+  };
+  uint64_t vals[] = {
+    settings->qpack_max_table_capacity,
+    settings->qpack_blocked_streams,
+    settings->max_field_section_size,
+    settings->enable_connect_protocol,
+    settings->h3_datagram,
+    settings->wt_enabled,
+  };
+
+  for (size_t i = 0; i < sizeof(ids)/sizeof(ids[0]); i++) {
+    if (vals[i] == 0) continue;
+    if (YAWT_q_varint_encode(ids[i], buf + off, len - off, &n) != YAWT_Q_OK)
+      return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
-    if (YAWT_q_varint_encode(settings->qpack_max_table_capacity,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-  }
-  if (settings->max_field_section_size > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-    if (YAWT_q_varint_encode(settings->max_field_section_size,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-  }
-  if (settings->qpack_blocked_streams > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-    if (YAWT_q_varint_encode(settings->qpack_blocked_streams,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-  }
-  if (settings->enable_connect_protocol > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-    if (YAWT_q_varint_encode(settings->enable_connect_protocol,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-  }
-  if (settings->h3_datagram > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_H3_DATAGRAM,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-    if (YAWT_q_varint_encode(settings->h3_datagram,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-  }
-  if (settings->wt_enabled > 0) {
-    if (YAWT_q_varint_encode(YAWT_H3_SETTING_WT_ENABLED,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
-    off += n;
-    if (YAWT_q_varint_encode(settings->wt_enabled,
-        buf + off, len - off, &n) != YAWT_Q_OK) return YAWT_H3_ERR_SHORT_BUFFER;
+    if (YAWT_q_varint_encode(vals[i], buf + off, len - off, &n) != YAWT_Q_OK)
+      return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
   }
 
