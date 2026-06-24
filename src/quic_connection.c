@@ -138,6 +138,27 @@ static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
 }
 
 
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Check if stream should transmit data.
+ * If the stream is just blocked, we'll buffer
+ * @note Returns true if TX is active (no FIN sent, no RESET sent, not stopped by peer).
+ */
+
+static inline bool _stream_state_allows_tx(const YAWT_Q_StreamMeta_t *m) {
+  return !(m->state & (YAWT_Q_STREAM_FIN_SENT | YAWT_Q_STREAM_RESET_SENT | YAWT_Q_STREAM_STOPPED_RECEIVED));
+}
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Check if stream should receive data.
+ * @note Returns true if RX is active (no FIN received, no RESET received, not stopped by us).
+ */
+static inline bool _stream_should_rx(const YAWT_Q_StreamMeta_t *m) {
+  return !(m->state & (YAWT_Q_STREAM_FIN_RECEIVED | YAWT_Q_STREAM_RESET_RECEIVED | YAWT_Q_STREAM_STOPPED_SENT));
+}
 // RFC 9000 §4.1: Connection-level flow control threshold check.
 // This applies only to stream data and should NOT be added to DATAGRAM
 // or other unreliable frame handlers, as they do not count towards
@@ -368,12 +389,12 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
   YAWT_LOG(YAWT_LOG_INFO, "Peer CID updated: %s", YAWT_q_cid_to_hex(&con->peer_cid));
 }
 
-void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p) {
-  if (con) con->user_data = p;
+void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot, void *p) {
+  if (con) con->user_data[slot] = p;
 }
 
-void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con) {
-  return con ? con->user_data : NULL;
+void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot) {
+  return con ? con->user_data[slot] : NULL;
 }
 
 void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler) {

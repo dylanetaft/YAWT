@@ -5,6 +5,10 @@
  *       Most users should use the public API in h3.h and h3_types.h.
  */
 
+// NOTE: The IMPL headers are to discourage direct access to certain structures that should be opaque to the app layer,
+// not for separating internal vs public API
+// the library does not really have "private" API, as you can also use it to implement QUIC at a lower level than the connection API
+
 #pragma once
 #include <allocnbuffer/slab.h>
 #include "../h3_types.h"
@@ -39,7 +43,7 @@ struct YAWT_H3_Stream_t {
 /**
  * @ingroup H3_Connection
  * @brief H3 connection object.
- * @note Hung off the QUIC connection's user_data. Allocated on EVT_CONNECTED,
+ * @note Hung off the QUIC connection's YAWT_UD_H3 slot. Allocated on EVT_CONNECTED,
  *       freed on EVT_CLOSE (which con_free guarantees fires once).
  */
 struct YAWT_H3_Connection_t {

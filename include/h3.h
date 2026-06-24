@@ -71,7 +71,7 @@ size_t YAWT_h3_frame_header_size(size_t payload_len);
  * @note Register via YAWT_q_con_set_event_handler, or forward to it from the app's own handler.
  *       Manages the H3 connection object (allocated on CONNECTED, freed on CLOSE) and consumes
  *       stream events. Ignores TX (the app's concern). Connection state is stored in the
- *       QUIC connection's user_data.
+ *       QUIC connection's YAWT_UD_H3 user_data slot.
  */
 YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
                                    YAWT_Q_EventParam_t param);

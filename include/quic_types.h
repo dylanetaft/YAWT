@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "logger.h"
+#include <stdbool.h>
 
 /**
  * @ingroup QUIC_Connection
@@ -38,6 +39,48 @@ typedef struct YAWT_Q_Cid_t {
   uint8_t id[20];
   uint8_t len;
 } YAWT_Q_Cid_t;
+
+
+/**
+ * @ingroup QUIC
+ * @brief QUIC error codes.
+ */
+typedef enum {
+  YAWT_Q_OK = 0,
+  YAWT_Q_ERR_SHORT_BUFFER,
+  YAWT_Q_ERR_INVALID_PACKET,
+  YAWT_Q_ERR_VARINT_OVERFLOW,
+  YAWT_Q_ERR_CID_TOO_LONG,
+  YAWT_Q_ERR_INVALID_PARAM,
+  YAWT_Q_ERR_ALLOC,
+  YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED,
+  YAWT_Q_ERR_FRAME_TOO_LARGE,
+  YAWT_Q_ERR_TLS_ALERT
+} YAWT_Q_Error_t;
+
+/**
+ * @ingroup QUIC
+ * @brief QUIC transport error codes (RFC 9000 §20.1).
+ */
+typedef enum {
+  YAWT_Q_ERROR_NO_ERROR                 = 0x00,
+  YAWT_Q_ERROR_INTERNAL_ERROR           = 0x01,
+  YAWT_Q_ERROR_CONNECTION_REFUSED       = 0x02,
+  YAWT_Q_ERROR_FLOW_CONTROL_ERROR       = 0x03,
+  YAWT_Q_ERROR_STREAM_LIMIT_ERROR       = 0x04,
+  YAWT_Q_ERROR_STREAM_STATE_ERROR       = 0x05,
+  YAWT_Q_ERROR_FINAL_SIZE_ERROR         = 0x06,
+  YAWT_Q_ERROR_FRAME_ENCODING_ERROR     = 0x07,
+  YAWT_Q_ERROR_TRANSPORT_PARAMETER_ERROR = 0x08,
+  YAWT_Q_ERROR_CONNECTION_ID_LIMIT_ERROR = 0x09,
+  YAWT_Q_ERROR_PROTOCOL_VIOLATION       = 0x0a,
+  YAWT_Q_ERROR_INVALID_TOKEN            = 0x0b,
+  YAWT_Q_ERROR_APPLICATION_ERROR        = 0x0c,
+  YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED   = 0x0d,
+  YAWT_Q_ERROR_KEY_UPDATE_ERROR         = 0x0e,
+  YAWT_Q_ERROR_AEAD_LIMIT_REACHED       = 0x0f,
+  YAWT_Q_ERROR_NO_VIABLE_PATH           = 0x10,
+} YAWT_Q_ErrorCode_t;
 
 /**
  * @internal
@@ -168,30 +211,6 @@ typedef enum {
   YAWT_Q_FRAME_DATAGRAM      = 0x30,  // no length field, extends to end of packet
   YAWT_Q_FRAME_DATAGRAM_LEN  = 0x31   // has length field
 } YAWT_Q_Frame_Type_t;
-
-/**
- * @ingroup QUIC
- * @brief QUIC transport error codes (RFC 9000 §20.1).
- */
-typedef enum {
-  YAWT_Q_ERROR_NO_ERROR                 = 0x00,
-  YAWT_Q_ERROR_INTERNAL_ERROR           = 0x01,
-  YAWT_Q_ERROR_CONNECTION_REFUSED       = 0x02,
-  YAWT_Q_ERROR_FLOW_CONTROL_ERROR       = 0x03,
-  YAWT_Q_ERROR_STREAM_LIMIT_ERROR       = 0x04,
-  YAWT_Q_ERROR_STREAM_STATE_ERROR       = 0x05,
-  YAWT_Q_ERROR_FINAL_SIZE_ERROR         = 0x06,
-  YAWT_Q_ERROR_FRAME_ENCODING_ERROR     = 0x07,
-  YAWT_Q_ERROR_TRANSPORT_PARAMETER_ERROR = 0x08,
-  YAWT_Q_ERROR_CONNECTION_ID_LIMIT_ERROR = 0x09,
-  YAWT_Q_ERROR_PROTOCOL_VIOLATION       = 0x0a,
-  YAWT_Q_ERROR_INVALID_TOKEN            = 0x0b,
-  YAWT_Q_ERROR_APPLICATION_ERROR        = 0x0c,
-  YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED   = 0x0d,
-  YAWT_Q_ERROR_KEY_UPDATE_ERROR         = 0x0e,
-  YAWT_Q_ERROR_AEAD_LIMIT_REACHED       = 0x0f,
-  YAWT_Q_ERROR_NO_VIABLE_PATH           = 0x10,
-} YAWT_Q_ErrorCode_t;
 
 /**
  * @internal
@@ -328,6 +347,59 @@ typedef struct {
   uint8_t *token;
 } YAWT_Q_Frame_New_Token_t;
 
+
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Per-stream byte counters for flow control (RFC 9000 §4.1).
+ * @note Parallel to YAWT_Q_ConnectionStats_t but per-stream.
+ *       Tracks cumulative stream body bytes including out-of-order data.
+ */
+typedef struct {
+  uint64_t tx_count_bytes;  // Cumulative TX stream body bytes for flow control
+  uint64_t rx_count_bytes;  // Cumulative RX stream body bytes for flow control
+} YAWT_Q_StreamStats_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Per-stream flow control limits.
+ */
+typedef struct {
+  uint64_t tx_max_data;
+  uint64_t rx_max_data;
+} YAWT_Q_StreamFC_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Stream state flags (bitwise enum).
+ * @note RFC 9000 §3.1/3.2: TX and RX are independent state machines.
+ *       If the metadata exists, both directions are active by default.
+ *       These flags track *why* a direction terminated.
+ */
+typedef enum {
+  YAWT_Q_STREAM_FIN_SENT         = 0x01,  // We sent FIN → TX Data Sent state
+  YAWT_Q_STREAM_RESET_SENT       = 0x02,  // We sent RESET_STREAM → TX Reset Sent state
+  YAWT_Q_STREAM_STOPPED_RECEIVED = 0x04,  // We received STOP_SENDING → TX terminated by peer
+  YAWT_Q_STREAM_FIN_RECEIVED     = 0x08,  // We received FIN → RX Size Known state
+  YAWT_Q_STREAM_RESET_RECEIVED   = 0x10,  // We received RESET_STREAM → RX Reset Recvd state
+  YAWT_Q_STREAM_STOPPED_SENT     = 0x20,  // We sent STOP_SENDING → RX terminated by us
+  YAWT_Q_STREAM_TX_BLOCKED_SENT  = 0x40,  // edge-trigger: sent STREAM_DATA_BLOCKED for this stream
+} YAWT_Q_StreamState_t;
+
+
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Result from processing frames in a packet.
+ */
+typedef struct {
+  YAWT_Q_Error_t err;
+  int requires_ack;
+} YAWT_Q_FrameHandler_Res_t;
 /**
  * @ingroup QUIC_FRAME_TYPES
  * @brief STREAM frame (0x08-0x0f).
@@ -514,6 +586,19 @@ typedef struct {
     YAWT_Q_Frame_Stream_Data_Blocked_t stream_data_blocked;
   };
 } YAWT_Q_Frame_t;
+
+/**
+ * @ingroup QUIC
+ * @brief User data slot identifiers for YAWT_q_con_{set,get}_user_data.
+ * @note Each protocol layer uses its own slot to avoid collisions. The QUIC
+ *       layer never dereferences any slot — storage is opaque void*.
+ */
+typedef enum {
+  YAWT_UD_APP = 0,  /**< Application-specific data */
+  YAWT_UD_H3  = 1,  /**< HTTP/3 connection (YAWT_H3_Connection_t*) */
+  YAWT_UD_WT  = 2,  /**< WebTransport session (YAWT_WT_Session_t*) */
+  YAWT_UD_COUNT     /**< Number of user data slots (array size sentinel) */
+} YAWT_Q_UserDataSlot_t;
 
 /**
  * @ingroup QUIC

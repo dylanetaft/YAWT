@@ -106,7 +106,7 @@ static void on_event(YAWT_Q_Connection_t *con,
     case YAWT_Q_EVT_CONNECTED: {
       YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
       if (rc != YAWT_H3_OK) break;
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
+      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
       if (!h3) break;
       YAWT_h3_set_event_handler(h3, h3_app_handler);
 

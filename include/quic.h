@@ -81,23 +81,6 @@ typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
 
 /**
  * @ingroup QUIC
- * @brief QUIC error codes.
- */
-typedef enum {
-  YAWT_Q_OK = 0,
-  YAWT_Q_ERR_SHORT_BUFFER,
-  YAWT_Q_ERR_INVALID_PACKET,
-  YAWT_Q_ERR_VARINT_OVERFLOW,
-  YAWT_Q_ERR_CID_TOO_LONG,
-  YAWT_Q_ERR_INVALID_PARAM,
-  YAWT_Q_ERR_ALLOC,
-  YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED,
-  YAWT_Q_ERR_FRAME_TOO_LARGE,
-  YAWT_Q_ERR_TLS_ALERT
-} YAWT_Q_Error_t;
-
-/**
- * @ingroup QUIC
  * @brief Get a string representation of a QUIC error code.
  * @param err The error code.
  * @return A static string describing the error.

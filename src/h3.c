@@ -2,7 +2,7 @@
 #include "h3_header.h"
 #include "qpack.h"
 #include "quic.h"   // YAWT_q_varint_* + YAWT_Q_ReadCursor_t — H3 reuses the QUIC varint codec
-#include "quic_connection.h"  // YAWT_Q_Connection_t, user_data, event types
+#include "quic_connection.h"  // YAWT_Q_Connection_t, user_data slots, event types
 #include "impl/quic_types.h"  // YAWT_Q_Connection_t definition
 #include "impl/h3_types.h"    // YAWT_H3_Connection_t and YAWT_H3_Stream_t definitions
 #include "security.h"
@@ -431,7 +431,7 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
     YAWT_Q_EventParam_t *param) {
 
   const YAWT_Q_Frame_Stream_t *qf = param->P_EVT_STREAM.frame;
-  YAWT_H3_Connection_t *h3con = YAWT_q_con_get_user_data(con);
+  YAWT_H3_Connection_t *h3con = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
   if (!h3con->app_handler) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: stream event but no app handler installed");
     return;
@@ -516,7 +516,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
         h3->local_settings->h3_datagram = 1;
       }
 
-      YAWT_q_con_set_user_data(con, h3);
+      YAWT_q_con_set_user_data(con, YAWT_UD_H3, h3);
       YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)"
                " wt_enabled=%u wt_max_sessions=%lu",
                h3 ? h3->nstreams : 0,
@@ -526,7 +526,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_STREAM: {
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
+      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
       if (!h3 || !h3->app_handler) {
         return YAWT_H3_ERR_NO_APP_HANDLER;
       }
@@ -534,7 +534,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_CLOSE: {
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con);
+      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
       if (h3) {
         if (h3->app_handler) {
           _h3_emit_event(h3, YAWT_H3_EVT_CLOSE, (YAWT_H3_EventParam_t){
@@ -542,7 +542,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
           });
         }
         _h3_conn_destroy(h3);
-        YAWT_q_con_set_user_data(con, NULL);
+        YAWT_q_con_set_user_data(con, YAWT_UD_H3, NULL);
       }
       return YAWT_H3_OK;
     }

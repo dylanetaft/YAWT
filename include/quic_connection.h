@@ -203,20 +203,23 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
 
 /**
  * @ingroup QUIC_Connection
- * @brief Set opaque per-connection app state.
+ * @brief Set per-slot user data on a QUIC connection.
  * @param con The QUIC connection.
- * @param p Opaque pointer (e.g., the H3 connection object).
+ * @param slot The user data slot identifier (e.g., YAWT_UD_H3).
+ * @param p Opaque pointer for the given slot.
  * @note Lifetime is the app's responsibility. QUIC never dereferences it.
+ *       Each protocol layer uses its own slot; slots never collide.
  */
-void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, void *p);
+void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot, void *p);
 
 /**
  * @ingroup QUIC_Connection
- * @brief Get opaque per-connection app state.
+ * @brief Get per-slot user data from a QUIC connection.
  * @param con The QUIC connection.
- * @return The opaque pointer, or NULL if con is NULL.
+ * @param slot The user data slot identifier.
+ * @return The opaque pointer for the given slot, or NULL if con is NULL.
  */
-void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con);
+void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot);
 
 /**
  * @ingroup QUIC_Connection
