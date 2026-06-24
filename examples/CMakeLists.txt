@@ -27,3 +27,18 @@ target_compile_definitions(h3_client PRIVATE
 target_link_libraries(h3_client yawt)
 
 install(TARGETS h3_client RUNTIME DESTINATION bin/examples)
+
+add_executable(wt_server wt_server.c)
+
+target_include_directories(wt_server PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
+target_compile_definitions(wt_server PRIVATE
+    YAWT_ENABLE_LOGGING
+    YAWT_LOG_LEVEL=0
+)
+
+target_link_libraries(wt_server yawt)
+
+install(TARGETS wt_server RUNTIME DESTINATION bin/examples)
