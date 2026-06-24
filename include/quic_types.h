@@ -596,7 +596,7 @@ typedef struct {
 typedef enum {
   YAWT_UD_APP = 0,  /**< Application-specific data */
   YAWT_UD_H3  = 1,  /**< HTTP/3 connection (YAWT_H3_Connection_t*) */
-  YAWT_UD_WT  = 2,  /**< WebTransport session (YAWT_WT_Session_t*) */
+  YAWT_UD_WT  = 2,  /**< WebTransport context (YAWT_WT_Context_t*) */
   YAWT_UD_COUNT     /**< Number of user data slots (array size sentinel) */
 } YAWT_Q_UserDataSlot_t;
 

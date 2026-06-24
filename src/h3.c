@@ -482,8 +482,17 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
       _handle_rx_stream_frame(h3con, &rc, stream, qf->fin);
       break;
     case YAWT_H3_STREAM_QPACK:
-    case YAWT_H3_STREAM_WEBTRANSPORT:
     case YAWT_H3_STREAM_UNKNOWN:
+      rc.cursor = rc.len;
+      break;
+    case YAWT_H3_STREAM_WEBTRANSPORT:
+      _h3_emit_event(h3con, YAWT_H3_EVT_WT_UNI_STREAM, (YAWT_H3_EventParam_t){
+        .P_EVT_WT_UNI_STREAM = {
+          .stream_id = qf->stream_id,
+          .data = rc.data + rc.cursor,
+          .len = rc.len - rc.cursor,
+        }
+      });
       rc.cursor = rc.len;
       break;
     default:
@@ -546,7 +555,19 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       }
       return YAWT_H3_OK;
     }
-    case YAWT_Q_EVT_DATAGRAM:
+    case YAWT_Q_EVT_DATAGRAM: {
+      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+      if (h3 && h3->app_handler) {
+        _h3_emit_event(h3, YAWT_H3_EVT_DATAGRAM, (YAWT_H3_EventParam_t){
+          .P_EVT_DATAGRAM = {
+            .data = param.P_EVT_DATAGRAM.data,
+            .len = param.P_EVT_DATAGRAM.len,
+          }
+        });
+        return YAWT_H3_OK;
+      }
+      return YAWT_H3_IGNORED;
+    }
     default:
       return YAWT_H3_IGNORED;
   }

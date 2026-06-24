@@ -230,10 +230,12 @@ typedef struct {
  *       (set with YAWT_h3_set_event_handler).
  */
 typedef enum {
-  YAWT_H3_EVT_HEADERS,    /**< HEADERS frame fully decoded; param has stream_id + headers */
-  YAWT_H3_EVT_DATA,       /**< DATA frame payload chunk; stream_id + data/len + fin */
-  YAWT_H3_EVT_SETTINGS,   /**< SETTINGS frame decoded; param has stream_id + settings ptr */
-  YAWT_H3_EVT_CLOSE,      /**< H3-level error/close; param has error_code + reason */
+  YAWT_H3_EVT_HEADERS,        /**< HEADERS frame fully decoded; param has stream_id + headers */
+  YAWT_H3_EVT_DATA,           /**< DATA frame payload chunk; stream_id + data/len + fin */
+  YAWT_H3_EVT_SETTINGS,       /**< SETTINGS frame decoded; param has stream_id + settings ptr */
+  YAWT_H3_EVT_CLOSE,          /**< H3-level error/close; param has error_code + reason */
+  YAWT_H3_EVT_WT_UNI_STREAM,  /**< Data on a 0x54 uni stream; param has stream_id + data/len (draft-15 §4.2) */
+  YAWT_H3_EVT_DATAGRAM,       /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
 } YAWT_H3_EventType_t;
 
 /**
@@ -263,6 +265,17 @@ typedef union YAWT_H3_EventParam {
     uint64_t error_code;
     const char *reason;
   } P_EVT_CLOSE;
+  /** @brief Parameters for YAWT_H3_EVT_WT_UNI_STREAM. */
+  struct {
+    uint64_t stream_id;       /**< H3 uni stream ID (0x54 type already consumed) */
+    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
+    size_t len;               /**< Length of remaining data after stream-type varint */
+  } P_EVT_WT_UNI_STREAM;
+  /** @brief Parameters for YAWT_H3_EVT_DATAGRAM. */
+  struct {
+    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
+    size_t len;               /**< Length of datagram payload */
+  } P_EVT_DATAGRAM;
 } YAWT_H3_EventParam_t;
 
 /**

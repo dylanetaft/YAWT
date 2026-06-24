@@ -92,6 +92,9 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       ev_break(main_loop, EVBREAK_ALL);
       break;
+    case YAWT_H3_EVT_WT_UNI_STREAM:
+    case YAWT_H3_EVT_DATAGRAM:
+      break;
   }
 }
 
