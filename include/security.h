@@ -95,3 +95,40 @@ const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void);
  * @note Replaces the global policy. Passing NULL is a no-op.
  */
 void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy);
+
+/**
+ * @ingroup Security
+ * @brief WebTransport layer security policy — tunable limits for session and stream
+ *        resources.
+ * @note These are process-wide settings, not per-connection. The getter returns a
+ *       const pointer to a static global; do not free it.
+ * @see draft-ietf-webtrans-http3 §3.1, §9.2
+ */
+typedef struct {
+  uint64_t max_sessions;               /**< SETTINGS_WT_MAX_SESSIONS (0x14e9cd29):
+                                        *    0 = disabled, N = concurrent WT session cap */
+  uint64_t initial_max_streams_uni;    /**< SETTINGS_WT_INITIAL_MAX_STREAMS_UNI (0x2b64):
+                                        *    per-session unidirectional stream limit.
+                                        *    Applied across all sessions sharing this H3
+                                        *    connection. 0 = must use WT_MAX_STREAMS capsules. */
+  uint64_t initial_max_streams_bidi;   /**< SETTINGS_WT_INITIAL_MAX_STREAMS_BIDI (0x2b65):
+                                        *    per-session bidirectional stream limit. */
+  uint64_t initial_max_data;           /**< SETTINGS_WT_INITIAL_MAX_DATA (0x2b61):
+                                        *    per-session data limit (bytes).
+                                        *    0 = must use WT_MAX_DATA capsules. */
+} YAWT_WT_SecurityPolicy_t;
+
+/**
+ * @ingroup Security
+ * @brief Get the current WebTransport security policy.
+ * @return Const pointer to the static global policy (valid for process lifetime).
+ */
+const YAWT_WT_SecurityPolicy_t *YAWT_wt_security_get(void);
+
+/**
+ * @ingroup Security
+ * @brief Set the WebTransport security policy.
+ * @param policy Pointer to the new policy values (copied into the global).
+ * @note Replaces the global policy. Passing NULL is a no-op.
+ */
+void YAWT_wt_security_set(const YAWT_WT_SecurityPolicy_t *policy);

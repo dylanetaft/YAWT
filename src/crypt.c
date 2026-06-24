@@ -286,6 +286,7 @@ static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t 
       case 0x09: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_streams_uni); break;
       case 0x20: YAWT_q_varint_decode(&rc, &crypto->peer_fc->max_datagram_frame_size); break;
       case 0x0c: crypto->peer_fc->disable_active_migration = true; break;
+      case 0x17f7586d2cb571: break; // reset_stream_at — empty TP (draft-ietf-quic-reliable-stream-reset §3)
       default: break;
     }
     rc.cursor = param_end;
@@ -302,7 +303,7 @@ static int _tp_recv(gnutls_session_t session, const unsigned char *data, size_t 
 }
 
 // Append a single transport parameter: varint ID + varint length + raw value
-static int _tp_append(gnutls_buffer_t extdata, uint8_t id,
+static int _tp_append(gnutls_buffer_t extdata, uint64_t id,
                        const uint8_t *val, size_t val_len) {
   int ret;
   uint8_t buf[8];
@@ -371,6 +372,14 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   // RFC 9000 §18.2: disable_active_migration (0x0c) is server-only
   if (crypto->role == YAWT_Q_ROLE_SERVER) {
     ret = _tp_append(extdata, 0x0c, NULL, 0);
+    if (ret < 0) return ret;
+  }
+
+  // draft-ietf-webtrans-http3 §3.1: both sides send empty reset_stream_at (0x17f7586d2cb571)
+  // if WebTransport is enabled. (draft-ietf-quic-reliable-stream-reset §3)
+  const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
+  if (wt_pol->max_sessions > 0) {
+    ret = _tp_append(extdata, 0x17f7586d2cb571, NULL, 0);
     if (ret < 0) return ret;
   }
 

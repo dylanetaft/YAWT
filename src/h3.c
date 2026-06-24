@@ -16,16 +16,6 @@
 static uint8_t _h3_encode_buf[H3_MAX_FRAME_SIZE];
 
 
-static const YAWT_H3_Settings_t _default_h3_settings = {
-  .qpack_max_table_capacity = 0,
-  .qpack_blocked_streams = 0,
-  .max_field_section_size = 0,
-  .enable_connect_protocol = 0,
-  .h3_datagram = 0,
-  .wt_enabled = 0,
-};
-
-
 size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint8_t *buf) {
   if (!buf) return 0;
 
@@ -62,6 +52,10 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
     YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL,
     YAWT_H3_SETTING_H3_DATAGRAM,
     YAWT_H3_SETTING_WT_ENABLED,
+    YAWT_H3_SETTING_WT_MAX_SESSIONS,
+    YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI,
+    YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI,
+    YAWT_H3_SETTING_WT_INITIAL_MAX_DATA,
   };
   uint64_t vals[] = {
     settings->qpack_max_table_capacity,
@@ -70,6 +64,10 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
     settings->enable_connect_protocol,
     settings->h3_datagram,
     settings->wt_enabled,
+    settings->wt_max_sessions,
+    settings->wt_initial_max_streams_uni,
+    settings->wt_initial_max_streams_bidi,
+    settings->wt_initial_max_data,
   };
 
   for (size_t i = 0; i < sizeof(ids)/sizeof(ids[0]); i++) {
@@ -276,12 +274,16 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
             YAWT_LOG(YAWT_LOG_ERROR, "h3: SETTINGS decode failed: %s", YAWT_h3_err_str(err));
             return false;
           }
-          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (qpack_cap=%lu, blocked=%lu, connect=%u, datagram=%u, wt=%u)",
+          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (qpack_cap=%lu, blocked=%lu, connect=%u, datagram=%u, wt_enabled=%u, wt_sessions=%lu, wt_uni=%lu, wt_bidi=%lu, wt_data=%lu)",
                    con->peer_settings->qpack_max_table_capacity,
                    con->peer_settings->qpack_blocked_streams,
                    con->peer_settings->enable_connect_protocol,
                    con->peer_settings->h3_datagram,
-                   con->peer_settings->wt_enabled);
+                   con->peer_settings->wt_enabled,
+                   con->peer_settings->wt_max_sessions,
+                   con->peer_settings->wt_initial_max_streams_uni,
+                   con->peer_settings->wt_initial_max_streams_bidi,
+                   con->peer_settings->wt_initial_max_data);
           _h3_emit_event(con, YAWT_H3_EVT_SETTINGS, (YAWT_H3_EventParam_t){
             .P_EVT_SETTINGS = { .stream_id = stream->id, .settings = con->peer_settings }
           });
@@ -496,15 +498,30 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
   switch (event) {
     case YAWT_Q_EVT_CONNECTED: {
       YAWT_H3_Connection_t *h3 = _h3_conn_create(con);
-      h3->local_settings = malloc(sizeof(YAWT_H3_Settings_t));
+      h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
       if (!h3->local_settings) {
         YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM allocating local_settings");
         abort();
       }
-      *h3->local_settings = _default_h3_settings;
+
+      const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
+      h3->local_settings->wt_enabled = (wt_pol->max_sessions > 0) ? 1 : 0;
+      h3->local_settings->wt_max_sessions = wt_pol->max_sessions;
+      h3->local_settings->wt_initial_max_streams_uni = wt_pol->initial_max_streams_uni;
+      h3->local_settings->wt_initial_max_streams_bidi = wt_pol->initial_max_streams_bidi;
+      h3->local_settings->wt_initial_max_data = wt_pol->initial_max_data;
+      if (wt_pol->max_sessions > 0) {
+        if (con->role == YAWT_Q_ROLE_SERVER)
+          h3->local_settings->enable_connect_protocol = 1;
+        h3->local_settings->h3_datagram = 1;
+      }
+
       YAWT_q_con_set_user_data(con, h3);
-      YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)",
-               h3 ? h3->nstreams : 0);
+      YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)"
+               " wt_enabled=%u wt_max_sessions=%lu",
+               h3 ? h3->nstreams : 0,
+               h3->local_settings->wt_enabled,
+               h3->local_settings->wt_max_sessions);
       YAWT_h3_send_settings(h3);
       return YAWT_H3_OK;
     }
@@ -576,6 +593,18 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
         break;
       case YAWT_H3_SETTING_WT_ENABLED:
         out->wt_enabled = (uint8_t)value;
+        break;
+      case YAWT_H3_SETTING_WT_MAX_SESSIONS:
+        out->wt_max_sessions = value;
+        break;
+      case YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI:
+        out->wt_initial_max_streams_uni = value;
+        break;
+      case YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI:
+        out->wt_initial_max_streams_bidi = value;
+        break;
+      case YAWT_H3_SETTING_WT_INITIAL_MAX_DATA:
+        out->wt_initial_max_data = value;
         break;
       default:
         break;

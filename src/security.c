@@ -16,7 +16,7 @@ static YAWT_Q_FlowControl_t _default_local_fc = {
   .max_stream_data_uni = 1048576,
   .max_streams_bidi = 16,
   .max_streams_uni = 16,
-  .max_datagram_frame_size = YAWT_Q_MAX_PKT_SIZE,
+  .max_datagram_frame_size = 1200,
 };
 
 static YAWT_H3_SecurityPolicy_t _h3_policy = {
@@ -44,4 +44,20 @@ const YAWT_H3_SecurityPolicy_t *YAWT_h3_security_get(void) {
 void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy) {
   if (!policy) return;
   _h3_policy = *policy;
+}
+
+static YAWT_WT_SecurityPolicy_t _wt_policy = {
+  .max_sessions = 8,
+  .initial_max_streams_uni = 100,
+  .initial_max_streams_bidi = 100,
+  .initial_max_data = 0x100000,
+};
+
+const YAWT_WT_SecurityPolicy_t *YAWT_wt_security_get(void) {
+  return &_wt_policy;
+}
+
+void YAWT_wt_security_set(const YAWT_WT_SecurityPolicy_t *policy) {
+  if (!policy) return;
+  _wt_policy = *policy;
 }

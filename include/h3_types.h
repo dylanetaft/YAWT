@@ -111,7 +111,12 @@ typedef enum {
   YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07, /**< QPACK blocked streams limit (RFC 9204) */
   YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08, /**< Extended CONNECT protocol (RFC 9220) */
   YAWT_H3_SETTING_H3_DATAGRAM              = 0x33, /**< HTTP datagrams (RFC 9297) */
-  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000, /**< WebTransport enabled (draft-15) */
+  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000, /**< WebTransport enabled (draft-15 §3.1) */
+  YAWT_H3_SETTING_WT_MAX_SESSIONS          = 0x14e9cd29, /**< WebTransport session limit (draft-14 §3.1) */
+  // TODO: WT_MAX_SESSIONS doesn't exist in draft 15; kept for max compat. Reevaluate later.
+  YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI  = 0x2b64, /**< WT per-session uni stream limit (draft-15 §9.2) */
+  YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI = 0x2b65, /**< WT per-session bidi stream limit (draft-15 §9.2) */
+  YAWT_H3_SETTING_WT_INITIAL_MAX_DATA         = 0x2b61, /**< WT per-session data limit (draft-15 §9.2) */
 } YAWT_H3_SettingId_t;
 
 /**
@@ -198,7 +203,11 @@ typedef struct {
   uint64_t max_field_section_size;     // inbound header cap; 0 = unset (omitted)
   uint8_t  enable_connect_protocol;    // 0/1 — extended CONNECT (RFC 9220)
   uint8_t  h3_datagram;                // 0/1 — HTTP datagrams (RFC 9297)
-  uint8_t  wt_enabled;                 // 0/1 — WebTransport (draft-15)
+  uint8_t  wt_enabled;                 // 0/1 — SETTINGS_WT_ENABLED (draft-15)
+  uint64_t wt_max_sessions;            // SETTINGS_WT_MAX_SESSIONS (draft-14, 0 = disabled)
+  uint64_t wt_initial_max_streams_uni; // per-session uni stream limit
+  uint64_t wt_initial_max_streams_bidi;// per-session bidi stream limit
+  uint64_t wt_initial_max_data;        // per-session data limit (bytes)
 } YAWT_H3_Settings_t;
 
 /**
