@@ -170,7 +170,7 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
 typedef struct {
   uint64_t type;          // decoded frame type (raw varint; unknown types survive)
   uint64_t payload_len;   // decoded Length
-  uint8_t *payload;       // Either malloced or pointing into the current stream chunk; caller must not mutate or retain
+  ANB_Blob_t *payload_blob; // Buffered payload (SETTINGS/HEADERS); NULL for DATA/unknown frames
 
   uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
   uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read

@@ -103,8 +103,8 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
 static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   if (!h3) return;
   for (uint64_t i = 0; i < h3->nstreams; i++) {
-    if (h3->streams[i].frame.payload != NULL) {
-      free(h3->streams[i].frame.payload);
+    if (h3->streams[i].frame.payload_blob != NULL) {
+      ANB_blob_destroy(h3->streams[i].frame.payload_blob);
     }
     if (h3->streams[i].request_headers) {
       YAWT_h3_header_fields_destroy(h3->streams[i].request_headers);
@@ -264,7 +264,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
             abort();
           }
           YAWT_Q_ReadCursor_t dec = {
-            .data = f->payload,
+            .data = ANB_blob_data(f->payload_blob),
             .len = (size_t)f->payload_len,
             .cursor = 0,
             .err = YAWT_Q_OK,
@@ -305,7 +305,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
             stream->request_headers = YAWT_h3_header_fields_create();
           }
           YAWT_QPACK_Error_t qerr = YAWT_qpack_decode_header_block(
-              f->payload, (size_t)f->payload_len, stream->request_headers);
+              ANB_blob_data(f->payload_blob), (size_t)f->payload_len, stream->request_headers);
           if (qerr != YAWT_QPACK_OK) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3: QPACK decode failed on stream %lu: %d",
                      stream->id, qerr);
@@ -363,23 +363,18 @@ void _handle_rx_stream_frame(
                    f->payload_len, sec->max_frame_buffer_bytes, stream->id);
           return;
         }
-        // malloc: owned by f->payload, freed at frame completion below.
-        f->payload = malloc(f->payload_len);
-        if (!f->payload) {
-          YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM buffering %lu-byte frame", f->payload_len);
-          abort();
-        }
+        // blob: owned by f->payload_blob, destroyed at frame completion below.
+        f->payload_blob = ANB_blob_create(f->payload_len);
       }
     }
 
     // Payload phase: three paths depending on frame type.
-    if (f->payload) {
-      // Buffered frame (SETTINGS/HEADERS): copy payload bytes into the
-      // malloc'd buffer. f->accumulated tracks bytes received so far.
+    if (f->payload_blob) {
+      // Buffered frame (SETTINGS/HEADERS): push payload bytes into the blob.
       uint64_t need = f->payload_len - f->accumulated;
       size_t avail = rc->len - rc->cursor;
       size_t n = (need < avail) ? (size_t)need : avail;
-      memcpy(f->payload + f->accumulated, rc->data + rc->cursor, n);
+      ANB_blob_push(f->payload_blob, rc->data + rc->cursor, n);
       f->accumulated += n;
       rc->cursor += n;
     } else if (f->type == YAWT_H3_FRAME_DATA && f->payload_len > 0) {
@@ -410,18 +405,16 @@ void _handle_rx_stream_frame(
       YAWT_LOG(YAWT_LOG_DEBUG, "h3: frame complete type=0x%lx len=%lu stream=%lu",
                f->type, f->payload_len, stream->id);
 
-      if (f->payload) {
-        // Dispatch buffered frame. _dispatch_buffered_frame reads f->payload
-        // but does not take ownership — we free it here regardless of outcome.
+      if (f->payload_blob) {
+        // Dispatch buffered frame.
         if (!_dispatch_buffered_frame(con, stream)) {
           YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
         }
       }
 
-      // free: releases the malloc'd payload (NULL if DATA/unknown — free(NULL) is safe).
+      // Release the blob (NULL if DATA/unknown — ANB_blob_destroy(NULL) is safe).
       // memset: resets the frame struct for the next frame on this stream.
-      // The stream->frame struct is reused, not reallocated.
-      free(f->payload);
+      ANB_blob_destroy(f->payload_blob);
       memset(f, 0, sizeof(YAWT_H3_Frame_t));
     }
   }
