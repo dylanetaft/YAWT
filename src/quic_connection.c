@@ -1163,7 +1163,14 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
     uint64_t full_pn = _reconstruct_pn(largest_pn, pkt.packet_num, pkt.packet_number_length);
     pkt.packet_num = full_pn;
-    
+     
+
+    // TODO reconsider this logic, quic frames are imdepotent by mandate
+    // Not reprocessing old PNs is for extra security
+    // It may be worth keeping a small buffer or bitmap of recent PNs allowing better efficiency for
+    // packets arriving out of order - no need for remote side to resent
+    // WARNING this would impact quic STREAM buffering that occurs as streams are delivered in order to the app layer
+    //
     // RFC 9000 §12.3: "A receiver MUST discard a newly unprotected packet unless it is
     // certain that it has not processed another packet with the same packet number."
     // We only track the high-water mark, so any full_pn < the next expected PN is
