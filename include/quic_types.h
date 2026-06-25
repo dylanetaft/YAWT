@@ -156,6 +156,7 @@ typedef enum {
   YAWT_Q_STATE_SELF_CLOSE_CLOSING  = 0x01,
   YAWT_Q_STATE_PEER_CLOSE_DRAINING = 0x02,
   YAWT_Q_STATE_ADDR_VALIDATED      = 0x04,  // RFC 9000 §8.1: peer address validated
+  YAWT_Q_STATE_STREAM_BUFFER_FULL  = 0x08,  // DoS protection: RX reorder buffer full, blocking ACKs
 } YAWT_Q_ConnState_t;
 
 /**

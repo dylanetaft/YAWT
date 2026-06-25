@@ -396,6 +396,8 @@ void _handle_rx_stream_frame(
       rc->cursor += n;
     } else {
       // Unknown/ignored frame type: skip payload bytes without copying.
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: skipping %lu bytes of unknown frame type 0x%lx on stream %lu",
+               f->payload_len - f->accumulated, f->type, stream->id);
       uint64_t need = f->payload_len - f->accumulated;
       size_t avail = rc->len - rc->cursor;
       size_t n = (need < avail) ? (size_t)need : avail;

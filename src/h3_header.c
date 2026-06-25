@@ -162,7 +162,7 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 // Advances the caller's cur/remaining.
 static YAWT_QPACK_Error_t _h3_decode_string_literal(
     const uint8_t **cur, size_t *remaining,
-    ANB_Blob_t *scratch, size_t offset,
+    ANB_Blob_t *scratch,
     const uint8_t **out, size_t *out_len)
 {
     if (*remaining == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
@@ -179,8 +179,8 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
 
     const uint8_t *str_data = *cur + cons;
 
-    uint8_t *buf = ANB_blob_data(scratch) + offset;
-    size_t cap = ANB_blob_capacity(scratch) - offset;
+    uint8_t *buf = ANB_blob_data(scratch);
+    size_t cap = ANB_blob_capacity(scratch);
 
     if (huff) {
         size_t decoded = 0;
@@ -207,11 +207,16 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 {
     if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
 
-    static ANB_Blob_t *s_scratch = NULL;
-    if (!s_scratch) {
+    static ANB_Blob_t *s_scratch_n = NULL;
+    static ANB_Blob_t *s_scratch_v = NULL;
+    if (!s_scratch_n || !s_scratch_v) {
         const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-        s_scratch = ANB_blob_create(sec->max_header_string_len);
-        if (!s_scratch) return YAWT_QPACK_ERR_SHORT_BUFFER;
+        s_scratch_n = ANB_blob_create(sec->max_header_name_len);
+        s_scratch_v = ANB_blob_create(sec->max_header_value_len);
+        if (!s_scratch_n || !s_scratch_v) {
+            YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM creating scratch blobs");
+            abort();
+        }
     }
 
     size_t pcons = 0;
@@ -263,9 +268,8 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             const YAWT_QPACK_StaticEntry_t *e = YAWT_qpack_static_get(idx);
             if (!e) return YAWT_QPACK_ERR_MALFORMED;
 
-            size_t scratch_offset = 0;
             const uint8_t *val = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &val, &vlen);
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch_v, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;
 
             if (YAWT_h3_header_add(out,
@@ -276,18 +280,16 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
         }
 
         case YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME: {
-            size_t scratch_offset = 0;
-            const uint8_t *np = NULL; size_t nlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &np, &nlen);
-            if (err != YAWT_QPACK_OK) return err;
-            scratch_offset += nlen;
-
-            const uint8_t *vp = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch, scratch_offset, &vp, &vlen);
+            const uint8_t *name = NULL; size_t nlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch_n, &name, &nlen);
             if (err != YAWT_QPACK_OK) return err;
 
-            if (YAWT_h3_header_add(out, (const char *)np, nlen,
-                                   (const char *)vp, vlen) != YAWT_H3_OK)
+            const uint8_t *val = NULL; size_t vlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch_v, &val, &vlen);
+            if (err != YAWT_QPACK_OK) return err;
+
+            if (YAWT_h3_header_add(out, (const char *)name, nlen,
+                                   (const char *)val, vlen) != YAWT_H3_OK)
                 return YAWT_QPACK_ERR_MALFORMED;
             break;
         }

@@ -552,6 +552,16 @@ static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_Stre
       ANB_slab_pop_item(con->stream_rx, &iter);
     }
   }
+
+  // DoS protection: clear blocked state if buffer has drained below limit
+  if (con->state & YAWT_Q_STATE_STREAM_BUFFER_FULL) {
+    uint64_t cap = YAWT_q_security_get()->max_stream_rx_buffer_bytes;
+    if (cap == 0 || ANB_slab_size(con->stream_rx) < cap) {
+      con->state &= ~YAWT_Q_STATE_STREAM_BUFFER_FULL;
+      YAWT_LOG(YAWT_LOG_INFO, "Stream RX reorder buffer unblocked");
+    }
+  }
+
   return YAWT_Q_ERROR_NO_ERROR;
 }
 
@@ -818,6 +828,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           }
 
         } else {
+          // DoS protection: limit out-of-order stream buffering.
+          // This should only trigger with malicious peers - legitimate QUIC
+          // implementations deliver in-order (we block PNs > last received).
+          uint64_t cap = YAWT_q_security_get()->max_stream_rx_buffer_bytes;
+          if (cap > 0 && ANB_slab_size(con->stream_rx) + frame.stream.data_len > cap) {
+            YAWT_LOG(YAWT_LOG_ERROR, "Stream %lu: RX reorder buffer full (%zu + %lu > %lu), blocking ACKs",
+                     meta->stream_id, ANB_slab_size(con->stream_rx), frame.stream.data_len, cap);
+            con->state |= YAWT_Q_STATE_STREAM_BUFFER_FULL;
+            break;
+          }
+
           // Out of order — alloc in slab, copy struct + data, single copy
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: buffering %lu bytes at offset %lu (expected %lu)",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
@@ -1171,7 +1192,8 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     }
 
     // RFC 9000 §13.2: only ACK packets containing ack-eliciting frames
-    if (res.requires_ack) {
+    // DoS protection: suppress ACKs when reorder buffer is full
+    if (res.requires_ack && !(con->state & YAWT_Q_STATE_STREAM_BUFFER_FULL)) {
       YAWT_q_enqueue_frame_ack(con, level, pkt.packet_num);
     }
 

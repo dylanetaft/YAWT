@@ -39,6 +39,7 @@ typedef struct {
 typedef struct {
   uint64_t min_idle_timeout_ms;    /**< Floor for effective idle timeout (ms), 0 = no floor */
   uint64_t max_crypto_buffer_bytes; /**< Max out-of-order CRYPTO buffering per connection, 0 = unlimited */
+  uint64_t max_stream_rx_buffer_bytes; /**< Max out-of-order STREAM buffering per connection (DoS protection), 0 = unlimited */
   uint64_t fc_threshold_percent;     /**< 0-100: fire EVT_FLOW_CONTROL at this % of RX limit consumed (default 75) */
   uint64_t fc_auto_increase_factor;  /**< Multiplier for auto-increase when callback returns 0 (default 2) */
 } YAWT_Q_SecurityPolicy_t;
@@ -77,7 +78,11 @@ typedef struct {
   uint64_t max_frame_buffer_bytes; /**< Max bytes the H3 layer accumulates for one
                                     *   must-buffer frame (SETTINGS/HEADERS); a frame
                                     *   whose Length exceeds this is rejected, not buffered */
-  uint64_t max_header_string_len;  /**< Max decoded length of a single header string (name or value) */
+  uint64_t max_header_name_len;  /**< Max decoded length of a single header name string  */
+  uint64_t max_header_value_len; /**< Max decoded length of a single header value string */
+  uint64_t max_capsule_buffer_bytes; /**< Max bytes the capsule layer accumulates
+                                      *   for one buffered capsule payload; a capsule
+                                      *   whose Length exceeds this is rejected */
 } YAWT_H3_SecurityPolicy_t;
 
 /**

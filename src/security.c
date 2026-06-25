@@ -1,9 +1,9 @@
 #include "security.h"
-#include "quic_types.h"
 
 static YAWT_Q_SecurityPolicy_t _policy = {
   .min_idle_timeout_ms = 5000,
   .max_crypto_buffer_bytes = 65536,
+  .max_stream_rx_buffer_bytes = 65536,
   .fc_threshold_percent = 75,
   .fc_auto_increase_factor = 2,
 };
@@ -21,7 +21,9 @@ static YAWT_Q_FlowControl_t _default_local_fc = {
 
 static YAWT_H3_SecurityPolicy_t _h3_policy = {
   .max_frame_buffer_bytes = 32768,
-  .max_header_string_len = 4 * 1024 * 1024,
+  .max_header_name_len = 1024 * 1024,
+  .max_header_value_len = 4 * 1024 * 1024,
+  .max_capsule_buffer_bytes = 2048,
 };
 
 
