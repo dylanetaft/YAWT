@@ -519,7 +519,11 @@ static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t 
   return YAWT_Q_ERROR_NO_ERROR;
 }
 
-// Drain contiguous stream frames from rx buffer for a given stream
+// Drain contiguous stream frames from rx buffer for a given stream.
+// RFC 9000 §2.2: endpoints MUST deliver stream data as an ordered byte stream,
+// requiring buffering of out-of-order data up to the flow control limit.
+// This function is the reassembly mechanism — it delivers buffered frames
+// once the gap is filled and rx_next_offset is reached.
 // Returns YAWT_Q_ERROR_NO_ERROR on success, or YAWT_Q_ERROR_FINAL_SIZE_ERROR on violation
 static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta) {
   ANB_SlabIter_t iter = {0};
@@ -796,7 +800,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         }
 
         if (frame.stream.offset == meta->rx_next_offset) {
-          // In order — deliver directly from frame.stream.data (still points into UDP buffer).
+          // RFC 9000 §2.2: in-order fast path — deliver directly from frame data (zero-copy into UDP buffer).
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset);
           meta->rx_next_offset = end;
@@ -819,6 +823,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           }
 
         } else {
+          // RFC 9000 §21.7: stream fragmentation attack mitigation.
+          // We already ACKed these packets, so we cannot simply drop frames — the peer
+          // will not retransmit. Terminate the connection when the reorder buffer exceeds
+          // the configured cap. Legitimate QUIC implementations deliver in-order, so
+          // hitting this limit indicates a misbehaving or malicious peer.
           uint64_t cap = YAWT_q_security_get()->max_stream_rx_buffer_bytes;
           if (cap > 0 && ANB_slab_size(con->stream_rx) + frame.stream.data_len > cap) {
             YAWT_LOG(YAWT_LOG_ERROR, "Stream %lu: RX reorder buffer exceeded (%zu + %lu > %lu), closing connection",
@@ -831,7 +840,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
             return res;
           }
 
-          // Out of order — alloc in slab, copy struct + data, single copy
+          // RFC 9000 §2.2: out-of-order data must be buffered to fulfill the ordered
+          // byte stream contract. Copy into slab for later reassembly by _drain_stream_rx().
           YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: buffering %lu bytes at offset %lu (expected %lu)",
                     meta->stream_id, frame.stream.data_len, frame.stream.offset, meta->rx_next_offset);
 
