@@ -130,7 +130,7 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
                     const YAWT_Q_Cid_t *our_cid,
                     YAWT_Q_FlowControl_t *local_fc,
                     YAWT_Q_FlowControl_t *peer_fc,
-                    YAWT_Q_Error_t *err);
+                    YAWT_Err_t *err);
 
 /**
  * @internal
@@ -163,7 +163,7 @@ const uint8_t *YAWT_q_crypto_pop_tx(YAWT_Q_Crypto_t *crypto, int level, size_t *
  * @note Handles offset-based reassembly internally. After calling, check
  *       crypto->out_buf[level] for handshake data to send back.
  */
-YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
+YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                                     const YAWT_Q_Frame_t *frame);
 
 /**

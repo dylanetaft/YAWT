@@ -80,28 +80,6 @@ typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
 //UNIMPLEMENTED: Packet coalescing
 
 /**
- * @ingroup QUIC
- * @brief Get a string representation of a QUIC error code.
- * @param err The error code.
- * @return A static string describing the error.
- */
-static inline const char *YAWT_q_err_str(YAWT_Q_Error_t err) {
-  switch (err) {
-    case YAWT_Q_OK:                 return "OK";
-    case YAWT_Q_ERR_SHORT_BUFFER:   return "SHORT_BUFFER";
-    case YAWT_Q_ERR_INVALID_PACKET: return "INVALID_PACKET";
-    case YAWT_Q_ERR_VARINT_OVERFLOW: return "VARINT_OVERFLOW";
-    case YAWT_Q_ERR_CID_TOO_LONG:  return "CID_TOO_LONG";
-    case YAWT_Q_ERR_INVALID_PARAM: return "INVALID_PARAM";
-    case YAWT_Q_ERR_ALLOC:         return "ALLOC";
-    case YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED: return "CRYPTO_BUFFER_EXCEEDED";
-    case YAWT_Q_ERR_FRAME_TOO_LARGE: return "FRAME_TOO_LARGE";
-    case YAWT_Q_ERR_TLS_ALERT:     return "TLS_ALERT";
-    default:                         return "UNKNOWN";
-  }
-}
-
-/**
  * @ingroup QUIC_Wire
  * @brief Read cursor for zero-copy datagram parsing.
  * @note `cursor` advances as bytes are consumed; `data`/`len` are the input buffer.
@@ -112,7 +90,7 @@ typedef struct {
   uint8_t *data;
   size_t len;
   size_t cursor;
-  YAWT_Q_Error_t err;
+  YAWT_Err_t err;
 } YAWT_Q_ReadCursor_t;
 
 /**
@@ -177,10 +155,10 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
  * @param con The QUIC connection.
  * @param level Encryption level.
  * @param frame The CRYPTO frame to encode.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Ownership: COPIES the encoded frame into con->tx_buffer.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
                                              const YAWT_Q_Frame_Crypto_t *frame);
 
 /**
@@ -190,9 +168,9 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t lev
  * @param con The QUIC connection.
  * @param level Encryption level.
  * @param largest_ack Largest acknowledged packet number.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
+YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
 
 /**
  * @internal
@@ -200,10 +178,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level,
  * @brief Encode a STREAM frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param frame The STREAM frame to encode.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. Ownership: copies frame->data into the queued WireFrame.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame);
 
 /**
@@ -211,10 +189,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
  * @ingroup QUIC_Internal
  * @brief Encode a PING frame and push to tx_buffer.
  * @param con The QUIC connection.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
+YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
 
 /**
  * @internal
@@ -224,9 +202,9 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
  * @param level Encryption level.
  * @param error_code The error code.
  * @param frame_type The frame type that triggered the error.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
                                                       uint64_t error_code, uint64_t frame_type);
 
 /**
@@ -235,9 +213,9 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, u
  * @brief Encode a PATH_RESPONSE frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param data The 8-byte data to echo back.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
+YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
 
 /**
  * @internal
@@ -246,10 +224,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, cons
  * @param con The QUIC connection.
  * @param data The datagram payload.
  * @param data_len The datagram payload length.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. Ownership: copies `data`.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
                                                const uint8_t *data, size_t data_len);
 
 /**
@@ -257,10 +235,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
  * @ingroup QUIC_Internal
  * @brief Encode a HANDSHAKE_DONE frame and push to tx_buffer.
  * @param con The QUIC connection.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
+YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
 
 /**
  * @internal
@@ -270,10 +248,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
  * @param stream_id The stream to reset.
  * @param app_error_code Application error code.
  * @param final_size Final byte offset sent on this stream.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.4.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code,
                                                    uint64_t final_size);
@@ -285,10 +263,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
  * @param con The QUIC connection.
  * @param stream_id The stream to stop receiving.
  * @param app_error_code Application error code.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.5.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code);
 
@@ -298,10 +276,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
  * @brief Encode a DATA_BLOCKED frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param max_data The connection-level flow control limit we are blocked at.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.12.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t max_data);
+YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t max_data);
 
 /**
  * @internal
@@ -309,10 +287,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint6
  * @brief Encode a MAX_DATA frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param max_data The new connection-level flow control limit.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.9.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_data);
+YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_data);
 
 /**
  * @internal
@@ -321,10 +299,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t 
  * @param con The QUIC connection.
  * @param stream_id The stream that is blocked.
  * @param max_stream_data The stream-level flow control limit we are blocked at.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.13.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
                                                            uint64_t stream_id,
                                                            uint64_t max_stream_data);
 
@@ -335,10 +313,10 @@ YAWT_Q_Error_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con
  * @param con The QUIC connection.
  * @param stream_id The stream whose limit is being raised.
  * @param max_stream_data The new stream-level flow control limit.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.10.
  */
-YAWT_Q_Error_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
                                                        uint64_t stream_id,
                                                        uint64_t max_stream_data);
 
@@ -376,9 +354,9 @@ void YAWT_q_varint_decode(YAWT_Q_ReadCursor_t *rc, uint64_t *out);
  * @param buf Output buffer.
  * @param len Output buffer length.
  * @param written Pointer to receive the number of bytes written.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Q_Error_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
+YAWT_Err_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
                                      uint64_t *written);
 
 /**

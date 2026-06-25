@@ -211,8 +211,9 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     static ANB_Blob_t *s_scratch_v = NULL;
     if (!s_scratch_n || !s_scratch_v) {
         const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-        s_scratch_n = ANB_blob_create(sec->max_header_name_len);
-        s_scratch_v = ANB_blob_create(sec->max_header_value_len);
+        size_t scratch_size = sec->max_field_section_size * 2;
+        s_scratch_n = ANB_blob_create(scratch_size);
+        s_scratch_v = ANB_blob_create(scratch_size);
         if (!s_scratch_n || !s_scratch_v) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3_header: OOM creating scratch blobs");
             abort();
@@ -420,6 +421,26 @@ size_t YAWT_qpack_header_block_max_size(const YAWT_H3_HeaderFields_t *headers) {
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
     YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
     size += YAWT_H3_QPACK_encode_field_line_max_size(&v);
+  }
+
+  return size;
+}
+
+size_t YAWT_h3_header_section_size(const YAWT_H3_HeaderFields_t *headers) {
+  if (!headers || !headers->slab) return 0;
+
+  size_t size = 0;
+  ANB_SlabIter_t iter = {0};
+  size_t item_size = 0;
+
+  while (1) {
+    uint8_t *item = ANB_slab_peek_item_iter(headers->slab, &iter, &item_size);
+    if (!item) break;
+
+    _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)item;
+    YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
+
+    size += v.name_len + v.value_len + 32;
   }
 
   return size;

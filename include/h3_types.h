@@ -200,7 +200,7 @@ typedef struct YAWT_H3_Stream_t YAWT_H3_Stream_t;
 typedef struct {
   uint64_t qpack_max_table_capacity;   // we send 0 (static-table-only QPACK)
   uint64_t qpack_blocked_streams;      // we send 0
-  uint64_t max_field_section_size;     // inbound header cap; 0 = unset (omitted)
+  uint64_t max_field_section_size;     // inbound header cap (bytes)
   uint8_t  enable_connect_protocol;    // 0/1 — extended CONNECT (RFC 9220)
   uint8_t  h3_datagram;                // 0/1 — HTTP datagrams (RFC 9297)
   uint8_t  wt_enabled;                 // 0/1 — SETTINGS_WT_ENABLED (draft-15)

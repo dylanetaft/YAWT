@@ -493,9 +493,9 @@ static uint64_t _stream_count_by_type(ANB_Slab_t *meta_slab, uint8_t stream_type
 }
 
 // RFC 9000 §4.5: Validate stream data against known final size.
-// Returns YAWT_Q_ERROR_NO_ERROR if data is within bounds, YAWT_Q_ERROR_FINAL_SIZE_ERROR if violation.
+// Returns YAWT_Q_OK if data is within bounds, YAWT_Q_ERR_FINAL_SIZE_ERROR if violation.
 // Updates rx_final_size if FIN is set and final size not yet known.
-static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t offset, uint64_t data_len, int fin) {
+static YAWT_Err_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t offset, uint64_t data_len, int fin) {
   uint64_t end = offset + data_len;
   bool fin_received = (meta->state & YAWT_Q_STREAM_FIN_RECEIVED) != 0;
   
@@ -503,7 +503,7 @@ static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t 
     if (end > meta->rx_final_size) {
       YAWT_LOG(YAWT_LOG_ERROR, "FINAL_SIZE_ERROR: stream %lu data at offset %lu len %lu exceeds final size %lu",
                meta->stream_id, offset, data_len, meta->rx_final_size);
-      return YAWT_Q_ERROR_FINAL_SIZE_ERROR;
+      return YAWT_Q_ERR_FINAL_SIZE_ERROR;
     }
   }
   
@@ -511,12 +511,12 @@ static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t 
     if (fin_received && end != meta->rx_final_size) {
       YAWT_LOG(YAWT_LOG_ERROR, "FINAL_SIZE_ERROR: stream %lu conflicting final size %lu (expected %lu)",
                meta->stream_id, end, meta->rx_final_size);
-      return YAWT_Q_ERROR_FINAL_SIZE_ERROR;
+      return YAWT_Q_ERR_FINAL_SIZE_ERROR;
     }
     meta->rx_final_size = end;
   }
   
-  return YAWT_Q_ERROR_NO_ERROR;
+  return YAWT_Q_OK;
 }
 
 // Drain contiguous stream frames from rx buffer for a given stream.
@@ -524,8 +524,8 @@ static YAWT_Q_ErrorCode_t _check_final_size(YAWT_Q_StreamMeta_t *meta, uint64_t 
 // requiring buffering of out-of-order data up to the flow control limit.
 // This function is the reassembly mechanism — it delivers buffered frames
 // once the gap is filled and rx_next_offset is reached.
-// Returns YAWT_Q_ERROR_NO_ERROR on success, or YAWT_Q_ERROR_FINAL_SIZE_ERROR on violation
-static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta) {
+// Returns YAWT_Q_OK on success, or YAWT_Q_ERR_FINAL_SIZE_ERROR on violation
+static YAWT_Err_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamMeta_t *meta) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -535,8 +535,8 @@ static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_Stre
     if (f->stream_id != meta->stream_id) continue;
     if (f->offset == meta->rx_next_offset) {
       // RFC 9000 §4.5: Validate buffered data against known final size
-      YAWT_Q_ErrorCode_t fs_err = _check_final_size(meta, f->offset, f->data_len, f->fin);
-      if (fs_err != YAWT_Q_ERROR_NO_ERROR) return fs_err;
+      YAWT_Err_t fs_err = _check_final_size(meta, f->offset, f->data_len, f->fin);
+      if (fs_err != YAWT_Q_OK) return fs_err;
 
       YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
                 meta->stream_id, f->data_len, f->offset);
@@ -557,7 +557,7 @@ static YAWT_Q_ErrorCode_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_Stre
     }
   }
 
-  return YAWT_Q_ERROR_NO_ERROR;
+  return YAWT_Q_OK;
 }
 
 // Push outbound CRYPTO frames into tx_buffer.
@@ -583,10 +583,10 @@ static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
       if (chunk > YAWT_Q_CRYPTO_CHUNK_MAX) chunk = YAWT_Q_CRYPTO_CHUNK_MAX;
 
       YAWT_Q_Frame_Crypto_t cf = { .offset = off, .len = chunk, .data = (uint8_t *)data + off };
-      YAWT_Q_Error_t err = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
+      YAWT_Err_t err = YAWT_q_enqueue_frame_crypto(con, lvl, &cf);
       if (err != YAWT_Q_OK) {
         YAWT_LOG(YAWT_LOG_ERROR, "encode CRYPTO frame failed for level %d at offset %lu: %s",
-                 lvl, off, YAWT_q_err_str(err));
+                 lvl, off, YAWT_err_str(err));
         break;
       }
 
@@ -664,11 +664,11 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         YAWT_LOG(YAWT_LOG_INFO, "Received CRYPTO frame (pkt=%d): offset=%lu, len=%lu",
                   pkt->type, frame.crypto.offset, frame.crypto.len);
 
-        YAWT_Q_Error_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
+        YAWT_Err_t feed_err = YAWT_q_crypto_feed(con->crypto, &frame);
         if (feed_err == YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED) {
           YAWT_LOG(YAWT_LOG_ERROR, "CRYPTO_BUFFER_EXCEEDED at level %d", YAWT_q_pkt_type_to_level(pkt->type));
-          _send_connection_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
-          _record_close(con, YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+          _send_connection_close(con, YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED, YAWT_Q_FRAME_CRYPTO);
+          _record_close(con, YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED, "crypto buffer exceeded", sizeof("crypto buffer exceeded") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           res.err = feed_err;
           return res;
         }
@@ -682,7 +682,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           return res;
         }
         if (feed_err != YAWT_Q_OK) {
-          YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %s", YAWT_q_err_str(feed_err));
+          YAWT_LOG(YAWT_LOG_ERROR, "crypto_feed failed: %s", YAWT_err_str(feed_err));
           res.err = feed_err;
           return res;
         }
@@ -752,10 +752,10 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         uint64_t end = frame.stream.offset + frame.stream.data_len;
 
         // RFC 9000 §4.5: Validate data against known final size
-        YAWT_Q_ErrorCode_t fs_err = _check_final_size(meta, frame.stream.offset, frame.stream.data_len, frame.stream.fin);
-        if (fs_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
-          _send_connection_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
-          _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error",
+        YAWT_Err_t fs_err = _check_final_size(meta, frame.stream.offset, frame.stream.data_len, frame.stream.fin);
+        if (fs_err == YAWT_Q_ERR_FINAL_SIZE_ERROR) {
+          _send_connection_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, "final size error",
                         sizeof("final size error") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
@@ -782,8 +782,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (meta->stats.rx_count_bytes > meta->fc.rx_max_data) {
           YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: stream %lu exceeded limit (%lu > %lu)",
                    meta->stream_id, meta->stats.rx_count_bytes, meta->fc.rx_max_data);
-          _send_connection_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
-          _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "stream flow control violation",
+          _send_connection_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, "stream flow control violation",
                         sizeof("stream flow control violation") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
@@ -792,8 +792,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (con->stats.rx_count_bytes > con->local_fc.max_data) {
           YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: connection exceeded limit (%lu > %lu)",
                    con->stats.rx_count_bytes, con->local_fc.max_data);
-          _send_connection_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
-          _record_close(con, YAWT_Q_ERROR_FLOW_CONTROL_ERROR, "connection flow control violation",
+          _send_connection_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
+          _record_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, "connection flow control violation",
                         sizeof("connection flow control violation") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
@@ -814,10 +814,10 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           param.P_EVT_STREAM.frame = &frame.stream;
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
-          YAWT_Q_ErrorCode_t drain_err = _drain_stream_rx(con, meta);
-          if (drain_err == YAWT_Q_ERROR_FINAL_SIZE_ERROR) {
-            _send_connection_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
-            _record_close(con, YAWT_Q_ERROR_FINAL_SIZE_ERROR, "final size error in buffered data",
+          YAWT_Err_t drain_err = _drain_stream_rx(con, meta);
+          if (drain_err == YAWT_Q_ERR_FINAL_SIZE_ERROR) {
+            _send_connection_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+            _record_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, "final size error in buffered data",
                           sizeof("final size error in buffered data") - 1,
                           YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           }
@@ -832,8 +832,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
           if (cap > 0 && ANB_slab_size(con->stream_rx) + frame.stream.data_len > cap) {
             YAWT_LOG(YAWT_LOG_ERROR, "Stream %lu: RX reorder buffer exceeded (%zu + %lu > %lu), closing connection",
                      meta->stream_id, ANB_slab_size(con->stream_rx), frame.stream.data_len, cap);
-            _send_connection_close(con, YAWT_Q_ERROR_PROTOCOL_VIOLATION, YAWT_Q_FRAME_STREAM);
-            _record_close(con, YAWT_Q_ERROR_PROTOCOL_VIOLATION, "stream rx reorder buffer exceeded",
+            _send_connection_close(con, YAWT_Q_ERR_PROTOCOL_VIOLATION, YAWT_Q_FRAME_STREAM);
+            _record_close(con, YAWT_Q_ERR_PROTOCOL_VIOLATION, "stream rx reorder buffer exceeded",
                           sizeof("stream rx reorder buffer exceeded") - 1,
                           YAWT_Q_STATE_SELF_CLOSE_CLOSING);
             res.err = YAWT_Q_ERR_INVALID_PACKET;
@@ -980,8 +980,8 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
         if (is_uni && !peer_initiated) {
           YAWT_LOG(YAWT_LOG_ERROR, "STREAM_DATA_BLOCKED on send-only stream %lu",
                    frame.stream_data_blocked.stream_id);
-          _send_connection_close(con, YAWT_Q_ERROR_STREAM_STATE_ERROR, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
-          _record_close(con, YAWT_Q_ERROR_STREAM_STATE_ERROR, "stream data blocked on send-only stream",
+          _send_connection_close(con, YAWT_Q_ERR_STREAM_STATE_ERROR, YAWT_Q_FRAME_STREAM_DATA_BLOCKED);
+          _record_close(con, YAWT_Q_ERR_STREAM_STATE_ERROR, "stream data blocked on send-only stream",
                         sizeof("stream data blocked on send-only stream") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
@@ -1014,7 +1014,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
   }
 
   if (frc.err != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_ERROR, "Frame parse error: %s (%d)", YAWT_q_err_str(frc.err), frc.err);
+    YAWT_LOG(YAWT_LOG_ERROR, "Frame parse error: %s (%d)", YAWT_err_str(frc.err), frc.err);
     res.err = frc.err;
   }
   // RFC 9000 §12.4: packets with no frames are a protocol violation
@@ -1152,7 +1152,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
 
     if (!pkt.reserved_zero) {
       YAWT_LOG(YAWT_LOG_WARN, "PROTOCOL_VIOLATION: non-zero reserved bits after unprotection");
-      YAWT_q_con_close(con, 0x0a);
+      YAWT_q_con_close(con, YAWT_Q_ERR_PROTOCOL_VIOLATION);
       continue;
     }
 
@@ -1196,7 +1196,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
 
     // RFC 9000 §12.4: PROTOCOL_VIOLATION for invalid frames or empty packets
     if (res.err != YAWT_Q_OK) {
-      YAWT_q_con_close(con, 0x0a);
+      YAWT_q_con_close(con, YAWT_Q_ERR_PROTOCOL_VIOLATION);
       continue;
     }
 
@@ -1210,7 +1210,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
   }
   if (rc.err != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "Packet parse error: %s (%d) at cursor %zu",
-             YAWT_q_err_str(rc.err), rc.err, rc.cursor);
+             YAWT_err_str(rc.err), rc.err, rc.cursor);
   }
 }
 
@@ -1307,7 +1307,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
     // connection without CONNECTION_CLOSE or further packets.
     if (con->stats.next_pkt_num_tx[lvl] >= (1ULL << 62)) {
       YAWT_LOG(YAWT_LOG_ERROR, "packet number overflow: level %d reached 2^62-1, closing connection", lvl);
-      _record_close(con, YAWT_Q_ERROR_AEAD_LIMIT_REACHED, "packet number space exhausted",
+      _record_close(con, YAWT_Q_ERR_AEAD_LIMIT_REACHED, "packet number space exhausted",
                     sizeof("packet number space exhausted") - 1,
                     YAWT_Q_STATE_SELF_CLOSE_CLOSING);
       return;
@@ -1374,7 +1374,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
 #define YAWT_Q_STREAM_FRAME_OVERHEAD 25
 #define YAWT_Q_STREAM_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_SHORT - YAWT_Q_STREAM_FRAME_OVERHEAD) // 1284
 
-YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
   if (iov_count < 0) return YAWT_Q_ERR_INVALID_PARAM;
@@ -1412,7 +1412,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
     sf.frame.len_present = 1;
     sf.frame.data_len = 0;
     sf.frame.fin = 1;
-    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
+    YAWT_Err_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
     meta->state |= YAWT_Q_STREAM_FIN_SENT;
     return YAWT_Q_OK;
@@ -1450,7 +1450,7 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
       iov_off += copy;
     }
 
-    YAWT_Q_Error_t err = YAWT_q_enqueue_frame_stream(con, &sf);
+    YAWT_Err_t err = YAWT_q_enqueue_frame_stream(con, &sf);
     if (err != YAWT_Q_OK) return err;
 
     meta->tx_next_offset += chunk_len;
@@ -1479,7 +1479,7 @@ static void _reset_stream_unbuffer(YAWT_Q_Connection_t *con, uint64_t stream_id)
   }
 }
 
-YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                          uint64_t app_error_code) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
@@ -1488,14 +1488,14 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
   if (!_stream_state_allows_tx(meta)) return YAWT_Q_ERR_INVALID_PARAM;
 
   meta->state |= YAWT_Q_STREAM_RESET_SENT;
-  YAWT_Q_Error_t err = YAWT_q_enqueue_frame_reset_stream(con, stream_id, app_error_code, meta->tx_next_offset);
+  YAWT_Err_t err = YAWT_q_enqueue_frame_reset_stream(con, stream_id, app_error_code, meta->tx_next_offset);
   if (err != YAWT_Q_OK) return err;
 
   _reset_stream_unbuffer(con, stream_id);
   return YAWT_Q_OK;
 }
 
-YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                           uint64_t app_error_code) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
@@ -1583,7 +1583,7 @@ static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
   if (now - (*con)->stats.last_rx > idle_sec) {
     YAWT_LOG(YAWT_LOG_INFO, "Idle timeout: CID=%s, %.1fs since last rx",
               YAWT_q_cid_to_hex(&(*con)->cid), now - (*con)->stats.last_rx);
-    _record_close(*con, 0, "idle timeout", sizeof("idle timeout") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+    _record_close(*con, YAWT_Q_OK, "idle timeout", sizeof("idle timeout") - 1, YAWT_Q_STATE_SELF_CLOSE_CLOSING);
     YAWT_q_con_free(con);
     return 1;
   }

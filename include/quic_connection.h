@@ -138,10 +138,10 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
  * @param iov Scatter/gather buffer array.
  * @param iov_count Number of elements in iov.
  * @param fin If true, marks the stream finished after the last chunk.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note Ownership: copies all iov[] data (caller keeps its buffers).
  */
-YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
 /**
@@ -150,12 +150,12 @@ YAWT_Q_Error_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_
  * @param con The QUIC connection.
  * @param stream_id The stream to reset.
  * @param app_error_code Application error code.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note RFC 9000 §3.1: Transitions TX to "Reset Sent" state. Sets RESET_SENT flag, enqueues
  *       RESET_STREAM with final_size=tx_next_offset, and removes pending STREAM frames
  *       from tx_buffer. Returns error if stream doesn't exist or TX already terminated.
  */
-YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                          uint64_t app_error_code);
 
 /**
@@ -164,11 +164,11 @@ YAWT_Q_Error_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream
  * @param con The QUIC connection.
  * @param stream_id The stream to stop receiving.
  * @param app_error_code Application error code.
- * @return YAWT_Q_OK on success, or an error code.
+ * @return YAWT_ERR_OK on success, or an error code.
  * @note RFC 9000 §3.2: Sets STOPPED_SENT flag and enqueues STOP_SENDING. Per §3.3, peer SHOULD
  *       respond with RESET_STREAM. Returns error if stream doesn't exist or RX already terminated.
  */
-YAWT_Q_Error_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
                                           uint64_t app_error_code);
 
 /**

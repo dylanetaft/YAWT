@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "logger.h"
+#include "err.h"
 #include <stdbool.h>
 
 /**
@@ -40,47 +41,6 @@ typedef struct YAWT_Q_Cid_t {
   uint8_t len;
 } YAWT_Q_Cid_t;
 
-
-/**
- * @ingroup QUIC
- * @brief QUIC error codes.
- */
-typedef enum {
-  YAWT_Q_OK = 0,
-  YAWT_Q_ERR_SHORT_BUFFER,
-  YAWT_Q_ERR_INVALID_PACKET,
-  YAWT_Q_ERR_VARINT_OVERFLOW,
-  YAWT_Q_ERR_CID_TOO_LONG,
-  YAWT_Q_ERR_INVALID_PARAM,
-  YAWT_Q_ERR_ALLOC,
-  YAWT_Q_ERR_CRYPTO_BUFFER_EXCEEDED,
-  YAWT_Q_ERR_FRAME_TOO_LARGE,
-  YAWT_Q_ERR_TLS_ALERT
-} YAWT_Q_Error_t;
-
-/**
- * @ingroup QUIC
- * @brief QUIC transport error codes (RFC 9000 §20.1).
- */
-typedef enum {
-  YAWT_Q_ERROR_NO_ERROR                 = 0x00,
-  YAWT_Q_ERROR_INTERNAL_ERROR           = 0x01,
-  YAWT_Q_ERROR_CONNECTION_REFUSED       = 0x02,
-  YAWT_Q_ERROR_FLOW_CONTROL_ERROR       = 0x03,
-  YAWT_Q_ERROR_STREAM_LIMIT_ERROR       = 0x04,
-  YAWT_Q_ERROR_STREAM_STATE_ERROR       = 0x05,
-  YAWT_Q_ERROR_FINAL_SIZE_ERROR         = 0x06,
-  YAWT_Q_ERROR_FRAME_ENCODING_ERROR     = 0x07,
-  YAWT_Q_ERROR_TRANSPORT_PARAMETER_ERROR = 0x08,
-  YAWT_Q_ERROR_CONNECTION_ID_LIMIT_ERROR = 0x09,
-  YAWT_Q_ERROR_PROTOCOL_VIOLATION       = 0x0a,
-  YAWT_Q_ERROR_INVALID_TOKEN            = 0x0b,
-  YAWT_Q_ERROR_APPLICATION_ERROR        = 0x0c,
-  YAWT_Q_ERROR_CRYPTO_BUFFER_EXCEEDED   = 0x0d,
-  YAWT_Q_ERROR_KEY_UPDATE_ERROR         = 0x0e,
-  YAWT_Q_ERROR_AEAD_LIMIT_REACHED       = 0x0f,
-  YAWT_Q_ERROR_NO_VIABLE_PATH           = 0x10,
-} YAWT_Q_ErrorCode_t;
 
 /**
  * @internal
@@ -397,7 +357,7 @@ typedef enum {
  * @brief Result from processing frames in a packet.
  */
 typedef struct {
-  YAWT_Q_Error_t err;
+  YAWT_Err_t err;
   int requires_ack;
 } YAWT_Q_FrameHandler_Res_t;
 /**

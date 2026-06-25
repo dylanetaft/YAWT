@@ -78,11 +78,10 @@ typedef struct {
   uint64_t max_frame_buffer_bytes; /**< Max bytes the H3 layer accumulates for one
                                     *   must-buffer frame (SETTINGS/HEADERS); a frame
                                     *   whose Length exceeds this is rejected, not buffered */
-  uint64_t max_header_name_len;  /**< Max decoded length of a single header name string  */
-  uint64_t max_header_value_len; /**< Max decoded length of a single header value string */
   uint64_t max_capsule_buffer_bytes; /**< Max bytes the capsule layer accumulates
-                                      *   for one buffered capsule payload; a capsule
-                                      *   whose Length exceeds this is rejected */
+                                       *   for one buffered capsule payload; a capsule
+                                       *   whose Length exceeds this is rejected */
+  uint64_t max_field_section_size; /**< SETTINGS_MAX_FIELD_SECTION_SIZE advertised to peer (bytes) */
 } YAWT_H3_SecurityPolicy_t;
 
 /**

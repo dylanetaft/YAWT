@@ -310,7 +310,7 @@ static int _tp_append(gnutls_buffer_t extdata, uint64_t id,
   uint64_t vlen;
   
   // Encode ID as varint
-  YAWT_Q_Error_t err = YAWT_q_varint_encode(id, buf, sizeof(buf), &vlen);
+  YAWT_Err_t err = YAWT_q_varint_encode(id, buf, sizeof(buf), &vlen);
   if (err != YAWT_Q_OK) return -1;
   ret = gnutls_buffer_append_data(extdata, buf, vlen);
   if (ret < 0) return ret;
@@ -363,7 +363,7 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];
     uint64_t vlen;
-    YAWT_Q_Error_t err = YAWT_q_varint_encode(fc_params[i].val, vbuf, sizeof(vbuf), &vlen);
+    YAWT_Err_t err = YAWT_q_varint_encode(fc_params[i].val, vbuf, sizeof(vbuf), &vlen);
     if (err != YAWT_Q_OK) return -1;
     ret = _tp_append(extdata, fc_params[i].id, vbuf, vlen);
     if (ret < 0) return ret;
@@ -391,7 +391,7 @@ YAWT_Q_Crypto_t *YAWT_q_crypto_init(YAWT_Q_Con_Role_t role, YAWT_Q_Crypto_Cred_t
                     const YAWT_Q_Cid_t *our_cid,
                     YAWT_Q_FlowControl_t *local_fc,
                     YAWT_Q_FlowControl_t *peer_fc,
-                    YAWT_Q_Error_t *err) {
+                    YAWT_Err_t *err) {
 
   if (!cred || !original_dcid || !our_cid || !local_fc || !peer_fc) {
     YAWT_LOG(YAWT_LOG_ERROR, "Invalid arguments to YAWT_q_crypto_init");
@@ -563,7 +563,7 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   return 0;
 }
 
-YAWT_Q_Error_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
+YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                                     const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(frame->pkt_type);
 

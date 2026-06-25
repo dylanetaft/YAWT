@@ -139,3 +139,13 @@ size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers);
  * @note Useful for right-sizing a buffer before calling YAWT_qpack_encode_header_block.
  */
 size_t YAWT_qpack_header_block_max_size(const YAWT_H3_HeaderFields_t *headers);
+
+/**
+ * @ingroup H3_Headers
+ * @brief Calculate the field section size per RFC 9114 §10.5.1.
+ * @param headers The header fields to measure.
+ * @return The sum of (name_len + value_len + 32) for each field.
+ * @note This is the logical size used for SETTINGS_MAX_FIELD_SECTION_SIZE enforcement,
+ *       not the QPACK-encoded wire size. Use YAWT_qpack_header_block_size() for wire size.
+ */
+size_t YAWT_h3_header_section_size(const YAWT_H3_HeaderFields_t *headers);

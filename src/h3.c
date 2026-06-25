@@ -71,7 +71,6 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
   };
 
   for (size_t i = 0; i < sizeof(ids)/sizeof(ids[0]); i++) {
-    if (vals[i] == 0) continue;
     if (YAWT_q_varint_encode(ids[i], buf + off, len - off, &n) != YAWT_Q_OK)
       return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
@@ -356,6 +355,15 @@ void _handle_rx_stream_frame(
                           f->type == YAWT_H3_FRAME_HEADERS);
       if (must_buffer && f->payload_len > 0) {
         const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
+        if (f->type == YAWT_H3_FRAME_HEADERS &&
+            sec->max_field_section_size &&
+            f->payload_len > sec->max_field_section_size) {
+          YAWT_LOG(YAWT_LOG_ERROR,
+                   "h3: HEADERS frame %lu exceeds max_field_section_size %lu, stream_id=%lu",
+                   f->payload_len, sec->max_field_section_size, stream->id);
+          YAWT_q_con_close(con->qcon, YAWT_ERR_H3_EXCESSIVE_LOAD);
+          return;
+        }
         if (sec->max_frame_buffer_bytes &&
             f->payload_len > sec->max_frame_buffer_bytes) {
           YAWT_LOG(YAWT_LOG_ERROR,
@@ -507,6 +515,9 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
         YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM allocating local_settings");
         abort();
       }
+
+      const YAWT_H3_SecurityPolicy_t *h3_pol = YAWT_h3_security_get();
+      h3->local_settings->max_field_section_size = h3_pol->max_field_section_size;
 
       const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
       h3->local_settings->wt_enabled = (wt_pol->max_sessions > 0) ? 1 : 0;
@@ -660,7 +671,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
     { frame_hdr, frame_hdr_len },
     { settings_payload, payload_len }
   };
-  YAWT_Q_Error_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 3, 0);
+  YAWT_Err_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 3, 0);
   if (qerr != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send SETTINGS on stream %lu: %d",
              stream_id, qerr);
@@ -678,6 +689,16 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
                                        const YAWT_H3_HeaderFields_t *headers,
                                        int fin) {
   if (!h3 || !h3->qcon || !headers) return YAWT_H3_ERR_INVALID_PARAM;
+
+  if (h3->peer_settings && h3->peer_settings->max_field_section_size) {
+    size_t section_size = YAWT_h3_header_section_size(headers);
+    if (section_size > h3->peer_settings->max_field_section_size) {
+      YAWT_LOG(YAWT_LOG_ERROR,
+               "h3: header section size %zu exceeds peer max_field_section_size %lu",
+               section_size, h3->peer_settings->max_field_section_size);
+      return YAWT_H3_ERR_TOO_LARGE;
+    }
+  }
 
   size_t block_len = 0;
   YAWT_QPACK_Error_t qerr = YAWT_qpack_encode_header_block(
@@ -699,7 +720,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
     { hdr, hdr_len },
     { _h3_encode_buf + H3_FRAME_MAX_HEADER_BYTES, block_len }
   };
-  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 2, fin);
+  YAWT_Err_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 2, fin);
   if (qe != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send HEADERS on stream %lu: %d",
              stream_id, qe);
@@ -728,7 +749,7 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
   };
   int iov_count = (data_len > 0) ? 2 : 1;
 
-  YAWT_Q_Error_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, iov_count, fin);
+  YAWT_Err_t qe = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, iov_count, fin);
   if (qe != YAWT_Q_OK) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send DATA on stream %lu: %d",
              stream_id, qe);
