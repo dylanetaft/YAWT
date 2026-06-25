@@ -39,7 +39,7 @@ typedef struct {
 typedef struct {
   uint64_t min_idle_timeout_ms;    /**< Floor for effective idle timeout (ms), 0 = no floor */
   uint64_t max_crypto_buffer_bytes; /**< Max out-of-order CRYPTO buffering per connection, 0 = unlimited */
-  uint64_t max_stream_rx_buffer_bytes; /**< Max out-of-order STREAM buffering per connection (DoS protection), 0 = unlimited */
+  uint64_t max_stream_rx_buffer_bytes; /**< Max out-of-order STREAM buffering per connection; exceeding terminates the connection (PROTOCOL_VIOLATION), 0 = unlimited */
   uint64_t fc_threshold_percent;     /**< 0-100: fire EVT_FLOW_CONTROL at this % of RX limit consumed (default 75) */
   uint64_t fc_auto_increase_factor;  /**< Multiplier for auto-increase when callback returns 0 (default 2) */
 } YAWT_Q_SecurityPolicy_t;

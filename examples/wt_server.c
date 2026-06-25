@@ -11,6 +11,7 @@
 #include <h3.h>
 #include <h3_types.h>
 #include <h3_header.h>
+#include <security.h>
 
 #define DEFAULT_PORT 4433
 #define BUF_SIZE 65535
@@ -191,6 +192,14 @@ int main(int argc, char *argv[]) {
   }
 
   gnutls_global_init();
+
+  YAWT_WT_SecurityPolicy_t wt_policy = {
+    .max_sessions = 8,
+    .initial_max_streams_uni = 100,
+    .initial_max_streams_bidi = 100,
+    .initial_max_data = 0x100000,
+  };
+  YAWT_wt_security_set(&wt_policy);
 
   server_cred = YAWT_q_crypto_cred_new(cert_file, key_file, NULL);
   if (!server_cred) {

@@ -3,7 +3,7 @@
 static YAWT_Q_SecurityPolicy_t _policy = {
   .min_idle_timeout_ms = 5000,
   .max_crypto_buffer_bytes = 65536,
-  .max_stream_rx_buffer_bytes = 65536,
+  .max_stream_rx_buffer_bytes = 4 * 1024 * 1024,
   .fc_threshold_percent = 75,
   .fc_auto_increase_factor = 2,
 };
@@ -48,11 +48,13 @@ void YAWT_h3_security_set(const YAWT_H3_SecurityPolicy_t *policy) {
   _h3_policy = *policy;
 }
 
+// WT disabled by default — enabling these may break connections to standard HTTP/3 servers
+// that don't recognize WebTransport transport parameters or SETTINGS.
 static YAWT_WT_SecurityPolicy_t _wt_policy = {
-  .max_sessions = 8,
-  .initial_max_streams_uni = 100,
-  .initial_max_streams_bidi = 100,
-  .initial_max_data = 0x100000,
+  .max_sessions = 0,
+  .initial_max_streams_uni = 0,
+  .initial_max_streams_bidi = 0,
+  .initial_max_data = 0,
 };
 
 const YAWT_WT_SecurityPolicy_t *YAWT_wt_security_get(void) {
