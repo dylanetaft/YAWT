@@ -26,6 +26,7 @@ static char req_path[2048];
 static char req_port[16];
 
 static YAWT_Q_PeerAddr_t server_addr;
+static ANB_Blob_t *recv_blob;
 
 static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
   YAWT_Q_PeerAddr_t pa;
@@ -81,10 +82,12 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       break;
     }
     case YAWT_H3_EVT_DATA:
-      fwrite(param.P_EVT_DATA.data, 1, param.P_EVT_DATA.len, stdout);
-      if (param.P_EVT_DATA.fin) {
-        fflush(stdout);
-        ev_break(main_loop, EVBREAK_ALL);
+      ANB_blob_push(recv_blob, param.P_EVT_DATA.data, param.P_EVT_DATA.len);
+      YAWT_LOG(YAWT_LOG_INFO, "received DATA len %lu, fin=%d",
+               param.P_EVT_DATA.len, param.P_EVT_DATA.fin);  
+      if (param.P_EVT_DATA.fin) 
+      {
+        YAWT_LOG(YAWT_LOG_INFO, "%.*s", (int)ANB_blob_data_len(recv_blob), ANB_blob_data(recv_blob));
       }
       break;
     case YAWT_H3_EVT_CLOSE:
@@ -221,7 +224,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "failed to parse URL: %s\n", url);
     return 1;
   }
-
+  recv_blob = ANB_blob_create(4096);
   printf("connecting to %s:%s%s\n", req_host, req_port, req_path);
 
   gnutls_global_init();

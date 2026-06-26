@@ -329,7 +329,7 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     _YAWT_H3_Header_BufferedField_t *bf = (_YAWT_H3_Header_BufferedField_t *)ANB_slab_peek_item_iter(headers->slab, &iter, &item_size);
     if (!bf) break;
     YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
-    YAWT_LOG(YAWT_LOG_DEBUG, "h3: qpack encoding header field: %s: %s", v.name, v.value);
+    YAWT_LOG(YAWT_LOG_INFO, "h3: qpack encoding header field: %s: %s", v.name, v.value);
     size_t flen = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_field_line(
         &v, buf + off, len - off, &flen, NULL);

@@ -396,7 +396,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
         return YAWT_H3_ERR_MALFORMED;
       }
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer control stream %lu", chunk->stream_id);
+      YAWT_LOG(YAWT_LOG_INFO, "h3: peer control stream %lu", chunk->stream_id);
     } else if (stream->type == YAWT_H3_STREAM_QPACK_ENCODER) {
       YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_ENCODER, chunk->stream_id);
       if (err != YAWT_H3_OK) {
@@ -404,7 +404,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
         return YAWT_H3_ERR_MALFORMED;
       }
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer QPACK encoder stream %lu", chunk->stream_id);
+      YAWT_LOG(YAWT_LOG_INFO, "h3: peer QPACK encoder stream %lu", chunk->stream_id);
     } else if (stream->type == YAWT_H3_STREAM_QPACK_DECODER) {
       YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_DECODER, chunk->stream_id);
       if (err != YAWT_H3_OK) {
@@ -412,7 +412,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
         return YAWT_H3_ERR_MALFORMED;
       }
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer QPACK decoder stream %lu", chunk->stream_id);
+      YAWT_LOG(YAWT_LOG_INFO, "h3: peer QPACK decoder stream %lu", chunk->stream_id);
     }
   }
 
@@ -521,7 +521,7 @@ void _handle_rx_stream_frame(
     *cursor += n;
   } else {
     // Unknown/ignored frame type: skip payload bytes without copying.
-    YAWT_LOG(YAWT_LOG_DEBUG, "h3: skipping %lu bytes of unknown frame type 0x%lx on stream %lu",
+    YAWT_LOG(YAWT_LOG_INFO, "h3: skipping %lu bytes of unknown frame type 0x%lx on stream %lu",
              f->payload_len - f->accumulated, f->type, stream->id);
     uint64_t need = f->payload_len - f->accumulated;
     size_t n = (need < avail) ? (size_t)need : avail;
@@ -834,7 +834,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
-  YAWT_LOG(YAWT_LOG_DEBUG, "h3: sent HEADERS on stream %lu (%zu bytes, fin=%d)",
+  YAWT_LOG(YAWT_LOG_INFO, "h3: sent HEADERS on stream %lu (%zu bytes, fin=%d)",
            stream_id, hdr_len + block_len, fin);
   return YAWT_H3_OK;
 }

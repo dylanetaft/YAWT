@@ -724,8 +724,8 @@ YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uin
   // ACK Range Count (varint) = 0
   f.wire_data[cursor++] = 0x00;
 
-  // First ACK Range = largest_ack (acknowledges packets [0..largest_ack])
-  err = YAWT_q_varint_encode(largest_ack, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
+  // First ACK Range = 0 (acknowledges 1 packet: just largest_ack)
+  err = YAWT_q_varint_encode(0, f.wire_data + cursor, YAWT_Q_MAX_PKT_SIZE - cursor, &n);
   if (err != YAWT_Q_OK) return err;
   cursor += n;
 
@@ -1104,7 +1104,8 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
     default: return -1;
   }
 
-   YAWT_LOG(YAWT_LOG_DEBUG, "tx pkt payload: %s",
+   YAWT_LOG(YAWT_LOG_DEBUG, "encoding tx pkt type: %u payload: %s",
+    pkt->type,
     YAWT_q_blob_to_hex(pkt->payload, pkt->payload_len));
   if (rc < 0) return rc;
 
