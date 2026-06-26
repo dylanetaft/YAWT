@@ -104,11 +104,43 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
  * @param len Output buffer length.
  * @param written Pointer to receive the number of bytes written.
  * @return YAWT_H3_OK on success, or an error code.
- * @note Skips settings with value 0.
+ * @note Only encodes settings that have been explicitly set (tracked by val_set bitmask).
  */
 YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
                                           uint8_t *buf, size_t len,
                                           size_t *written);
+
+/**
+ * @ingroup H3_Types
+ * @brief Set a setting value by internal index.
+ * @param s The settings struct.
+ * @param idx Internal setting index (0-9).
+ * @param val The value to set.
+ * @return YAWT_H3_OK on success, or YAWT_H3_ERR_INVALID_PARAM if idx is out of range.
+ * @note O(1) operation. Sets the bit in val_set and stores the value in vals[].
+ */
+YAWT_H3_Error_t YAWT_h3_setting_set(YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx, uint64_t val);
+
+/**
+ * @ingroup H3_Types
+ * @brief Get a setting value by internal index.
+ * @param s The settings struct.
+ * @param idx Internal setting index (0-9).
+ * @param out Pointer to receive the value.
+ * @return YAWT_H3_OK on success, YAWT_H3_ERR_INVALID_PARAM if idx out of range or not set.
+ * @note O(1) operation. Returns error if the setting has not been explicitly set.
+ */
+YAWT_H3_Error_t YAWT_h3_setting_get(const YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx, uint64_t *out);
+
+/**
+ * @ingroup H3_Types
+ * @brief Check if a setting has been explicitly set.
+ * @param s The settings struct.
+ * @param idx Internal setting index (0-9).
+ * @return true if the setting has been set, false otherwise.
+ * @note O(1) operation. Checks the val_set bitmask.
+ */
+bool YAWT_h3_setting_isset(const YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx);
 
 /**
  * @ingroup H3_Connection

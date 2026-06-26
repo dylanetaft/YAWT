@@ -37,6 +37,48 @@ size_t YAWT_h3_frame_header_size(size_t payload_len) {
   return YAWT_q_varint_size(YAWT_H3_FRAME_HEADERS) + YAWT_q_varint_size(payload_len);
 }
 
+static const uint64_t _h3_setting_wire_ids[YAWT_H3_NUM_SETTINGS] = {
+  [YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]  = 0x01,  /**< QPACK dynamic table capacity (RFC 9204) */
+  [YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]    = 0x06,  /**< Maximum header field section size */
+  [YAWT_H3_IDX_QPACK_BLOCKED_STREAMS]     = 0x07, /**< QPACK blocked streams limit (RFC 9204) */
+  [YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL]   = 0x08, /**< Extended CONNECT protocol (RFC 9220) */
+  [YAWT_H3_IDX_H3_DATAGRAM]              = 0x33, /**< HTTP datagrams (RFC 9297) */
+  [YAWT_H3_IDX_WT_ENABLED]               = 0x2c7cf000, /**< WebTransport enabled (draft-15 §3.1) */
+  [YAWT_H3_IDX_WT_MAX_SESSIONS]          = 0x14e9cd29,  /**< WebTransport session limit (draft-14 §3.1) */
+  [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI]  = 0x2b64, /**< WT per-session uni stream limit (draft-15 §9.2) */
+  [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI] = 0x2b65, /**< WT per-session bidi stream limit (draft-15 §9.2) */
+  [YAWT_H3_IDX_WT_INITIAL_MAX_DATA]         = 0x2b61, /**< WT per-session data limit (draft-15 §9.2) */
+};
+
+static int _h3_setting_wire_to_idx(uint64_t wire_id, YAWT_H3_SettingIdx_t *out) {
+  for (int i = 0; i < YAWT_H3_NUM_SETTINGS; i++) {
+    if (_h3_setting_wire_ids[i] == wire_id) {
+      *out = (YAWT_H3_SettingIdx_t)i;
+      return 0;
+    }
+  }
+  return -1;
+}
+
+YAWT_H3_Error_t YAWT_h3_setting_set(YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx, uint64_t val) {
+  if (!s || idx < 0 || idx >= YAWT_H3_NUM_SETTINGS) return YAWT_H3_ERR_INVALID_PARAM;
+  s->vals[idx] = val;
+  s->val_set |= (1ULL << idx);
+  return YAWT_H3_OK;
+}
+
+YAWT_H3_Error_t YAWT_h3_setting_get(const YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx, uint64_t *out) {
+  if (!s || !out || idx < 0 || idx >= YAWT_H3_NUM_SETTINGS) return YAWT_H3_ERR_INVALID_PARAM;
+  if (!(s->val_set & (1ULL << idx))) return YAWT_H3_ERR_INVALID_PARAM;
+  *out = s->vals[idx];
+  return YAWT_H3_OK;
+}
+
+bool YAWT_h3_setting_isset(const YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx) {
+  if (!s || idx < 0 || idx >= YAWT_H3_NUM_SETTINGS) return false;
+  return (s->val_set & (1ULL << idx)) != 0;
+}
+
 YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
                                           uint8_t *buf, size_t len,
                                           size_t *written) {
@@ -45,36 +87,12 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
   size_t off = 0;
   uint64_t n;
 
-  uint64_t ids[] = {
-    YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY,
-    YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS,
-    YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE,
-    YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL,
-    YAWT_H3_SETTING_H3_DATAGRAM,
-    YAWT_H3_SETTING_WT_ENABLED,
-    YAWT_H3_SETTING_WT_MAX_SESSIONS,
-    YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI,
-    YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI,
-    YAWT_H3_SETTING_WT_INITIAL_MAX_DATA,
-  };
-  uint64_t vals[] = {
-    settings->qpack_max_table_capacity,
-    settings->qpack_blocked_streams,
-    settings->max_field_section_size,
-    settings->enable_connect_protocol,
-    settings->h3_datagram,
-    settings->wt_enabled,
-    settings->wt_max_sessions,
-    settings->wt_initial_max_streams_uni,
-    settings->wt_initial_max_streams_bidi,
-    settings->wt_initial_max_data,
-  };
-
-  for (size_t i = 0; i < sizeof(ids)/sizeof(ids[0]); i++) {
-    if (YAWT_q_varint_encode(ids[i], buf + off, len - off, &n) != YAWT_Q_OK)
+  for (int i = 0; i < YAWT_H3_NUM_SETTINGS; i++) {
+    if (!YAWT_h3_setting_isset(settings, (YAWT_H3_SettingIdx_t)i)) continue;
+    if (YAWT_q_varint_encode(_h3_setting_wire_ids[i], buf + off, len - off, &n) != YAWT_Q_OK)
       return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
-    if (YAWT_q_varint_encode(vals[i], buf + off, len - off, &n) != YAWT_Q_OK)
+    if (YAWT_q_varint_encode(settings->vals[i], buf + off, len - off, &n) != YAWT_Q_OK)
       return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
   }
@@ -273,16 +291,8 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
             YAWT_LOG(YAWT_LOG_ERROR, "h3: SETTINGS decode failed: %s", YAWT_h3_err_str(err));
             return false;
           }
-          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (qpack_cap=%lu, blocked=%lu, connect=%u, datagram=%u, wt_enabled=%u, wt_sessions=%lu, wt_uni=%lu, wt_bidi=%lu, wt_data=%lu)",
-                   con->peer_settings->qpack_max_table_capacity,
-                   con->peer_settings->qpack_blocked_streams,
-                   con->peer_settings->enable_connect_protocol,
-                   con->peer_settings->h3_datagram,
-                   con->peer_settings->wt_enabled,
-                   con->peer_settings->wt_max_sessions,
-                   con->peer_settings->wt_initial_max_streams_uni,
-                   con->peer_settings->wt_initial_max_streams_bidi,
-                   con->peer_settings->wt_initial_max_data);
+          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (val_set=0x%lx)",
+                   con->peer_settings->val_set);
           _h3_emit_event(con, YAWT_H3_EVT_SETTINGS, (YAWT_H3_EventParam_t){
             .P_EVT_SETTINGS = { .stream_id = stream->id, .settings = con->peer_settings }
           });
@@ -505,26 +515,32 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       }
 
       const YAWT_H3_SecurityPolicy_t *h3_pol = YAWT_h3_security_get();
-      h3->local_settings->max_field_section_size = h3_pol->max_field_section_size;
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, h3_pol->max_field_section_size);
 
       const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
-      h3->local_settings->wt_enabled = (wt_pol->max_sessions > 0) ? 1 : 0;
-      h3->local_settings->wt_max_sessions = wt_pol->max_sessions;
-      h3->local_settings->wt_initial_max_streams_uni = wt_pol->initial_max_streams_uni;
-      h3->local_settings->wt_initial_max_streams_bidi = wt_pol->initial_max_streams_bidi;
-      h3->local_settings->wt_initial_max_data = wt_pol->initial_max_data;
       if (wt_pol->max_sessions > 0) {
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, 1);
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, wt_pol->max_sessions);
+        if (wt_pol->initial_max_streams_uni > 0)
+          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI, wt_pol->initial_max_streams_uni);
+        if (wt_pol->initial_max_streams_bidi > 0)
+          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI, wt_pol->initial_max_streams_bidi);
+        if (wt_pol->initial_max_data > 0)
+          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_DATA, wt_pol->initial_max_data);
         if (con->role == YAWT_Q_ROLE_SERVER)
-          h3->local_settings->enable_connect_protocol = 1;
-        h3->local_settings->h3_datagram = 1;
+          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL, 1);
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
       }
 
       YAWT_q_con_set_user_data(con, YAWT_UD_H3, h3);
+      uint64_t wt_en = 0, wt_ms = 0;
+      YAWT_h3_setting_get(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, &wt_en);
+      YAWT_h3_setting_get(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, &wt_ms);
       YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)"
-               " wt_enabled=%u wt_max_sessions=%lu",
+               " wt_enabled=%lu wt_max_sessions=%lu",
                h3 ? h3->nstreams : 0,
-               h3->local_settings->wt_enabled,
-               h3->local_settings->wt_max_sessions);
+               wt_en,
+               wt_ms);
       YAWT_h3_send_settings(h3);
       return YAWT_H3_OK;
     }
@@ -613,39 +629,9 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
     YAWT_q_varint_decode(rc, &value);
     if (rc->err != YAWT_Q_OK) return YAWT_H3_ERR_MALFORMED;
 
-    switch (id) {
-      case YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY:
-        out->qpack_max_table_capacity = value;
-        break;
-      case YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS:
-        out->qpack_blocked_streams = value;
-        break;
-      case YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE:
-        out->max_field_section_size = value;
-        break;
-      case YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL:
-        out->enable_connect_protocol = (uint8_t)value;
-        break;
-      case YAWT_H3_SETTING_H3_DATAGRAM:
-        out->h3_datagram = (uint8_t)value;
-        break;
-      case YAWT_H3_SETTING_WT_ENABLED:
-        out->wt_enabled = (uint8_t)value;
-        break;
-      case YAWT_H3_SETTING_WT_MAX_SESSIONS:
-        out->wt_max_sessions = value;
-        break;
-      case YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI:
-        out->wt_initial_max_streams_uni = value;
-        break;
-      case YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI:
-        out->wt_initial_max_streams_bidi = value;
-        break;
-      case YAWT_H3_SETTING_WT_INITIAL_MAX_DATA:
-        out->wt_initial_max_data = value;
-        break;
-      default:
-        break;
+    YAWT_H3_SettingIdx_t idx;
+    if (_h3_setting_wire_to_idx(id, &idx) == 0) {
+      YAWT_h3_setting_set(out, idx, value);
     }
   }
 
@@ -701,12 +687,14 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
                                        int fin) {
   if (!h3 || !h3->qcon || !headers) return YAWT_H3_ERR_INVALID_PARAM;
 
-  if (h3->peer_settings && h3->peer_settings->max_field_section_size) {
+  if (h3->peer_settings && YAWT_h3_setting_isset(h3->peer_settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE)) {
+    uint64_t max_fss = 0;
+    YAWT_h3_setting_get(h3->peer_settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, &max_fss);
     size_t section_size = YAWT_h3_header_section_size(headers);
-    if (section_size > h3->peer_settings->max_field_section_size) {
+    if (section_size > max_fss) {
       YAWT_LOG(YAWT_LOG_ERROR,
                "h3: header section size %zu exceeds peer max_field_section_size %lu",
-               section_size, h3->peer_settings->max_field_section_size);
+               section_size, max_fss);
       return YAWT_H3_ERR_TOO_LARGE;
     }
   }

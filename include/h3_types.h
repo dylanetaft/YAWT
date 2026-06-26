@@ -101,23 +101,23 @@ typedef enum {
 
 /**
  * @ingroup H3_Types
- * @brief SETTINGS identifiers.
- * @note RFC 9114 §7.2.4.1, RFC 9204, RFC 9220, RFC 9297, draft-ietf-webtrans-http3-15.
- *       Values are the on-the-wire identifiers.
+ * @brief Internal setting indices (0-9).
+ * @note Used for O(1) get/set operations. Maps directly to bit position in val_set
+ *       and array index in vals[]. Must match order in wire mapping table.
  */
 typedef enum {
-  YAWT_H3_SETTING_QPACK_MAX_TABLE_CAPACITY = 0x01, /**< QPACK dynamic table capacity (RFC 9204) */
-  YAWT_H3_SETTING_MAX_FIELD_SECTION_SIZE   = 0x06, /**< Maximum header field section size */
-  YAWT_H3_SETTING_QPACK_BLOCKED_STREAMS    = 0x07, /**< QPACK blocked streams limit (RFC 9204) */
-  YAWT_H3_SETTING_ENABLE_CONNECT_PROTOCOL  = 0x08, /**< Extended CONNECT protocol (RFC 9220) */
-  YAWT_H3_SETTING_H3_DATAGRAM              = 0x33, /**< HTTP datagrams (RFC 9297) */
-  YAWT_H3_SETTING_WT_ENABLED               = 0x2c7cf000, /**< WebTransport enabled (draft-15 §3.1) */
-  YAWT_H3_SETTING_WT_MAX_SESSIONS          = 0x14e9cd29, /**< WebTransport session limit (draft-14 §3.1) */
-  // TODO: WT_MAX_SESSIONS doesn't exist in draft 15; kept for max compat. Reevaluate later.
-  YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_UNI  = 0x2b64, /**< WT per-session uni stream limit (draft-15 §9.2) */
-  YAWT_H3_SETTING_WT_INITIAL_MAX_STREAMS_BIDI = 0x2b65, /**< WT per-session bidi stream limit (draft-15 §9.2) */
-  YAWT_H3_SETTING_WT_INITIAL_MAX_DATA         = 0x2b61, /**< WT per-session data limit (draft-15 §9.2) */
-} YAWT_H3_SettingId_t;
+  YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY = 0,
+  YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE   = 1,
+  YAWT_H3_IDX_QPACK_BLOCKED_STREAMS    = 2,
+  YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL  = 3,
+  YAWT_H3_IDX_H3_DATAGRAM              = 4,
+  YAWT_H3_IDX_WT_ENABLED               = 5,
+  YAWT_H3_IDX_WT_MAX_SESSIONS          = 6,
+  YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI  = 7,
+  YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI = 8,
+  YAWT_H3_IDX_WT_INITIAL_MAX_DATA         = 9,
+  YAWT_H3_NUM_SETTINGS = 10
+} YAWT_H3_SettingIdx_t;
 
 /**
  * @ingroup H3_Types
@@ -196,18 +196,12 @@ typedef struct YAWT_H3_Stream_t YAWT_H3_Stream_t;
  * @ingroup H3_Types
  * @brief Negotiated HTTP/3 settings.
  * @note One instance holds the values we advertise; another holds what the peer sent.
+ *       val_set bitmask tracks which settings have been explicitly set.
+ *       vals[] stores values by internal index (O(1) access).
  */
 typedef struct {
-  uint64_t qpack_max_table_capacity;   // we send 0 (static-table-only QPACK)
-  uint64_t qpack_blocked_streams;      // we send 0
-  uint64_t max_field_section_size;     // inbound header cap (bytes)
-  uint8_t  enable_connect_protocol;    // 0/1 — extended CONNECT (RFC 9220)
-  uint8_t  h3_datagram;                // 0/1 — HTTP datagrams (RFC 9297)
-  uint8_t  wt_enabled;                 // 0/1 — SETTINGS_WT_ENABLED (draft-15)
-  uint64_t wt_max_sessions;            // SETTINGS_WT_MAX_SESSIONS (draft-14, 0 = disabled)
-  uint64_t wt_initial_max_streams_uni; // per-session uni stream limit
-  uint64_t wt_initial_max_streams_bidi;// per-session bidi stream limit
-  uint64_t wt_initial_max_data;        // per-session data limit (bytes)
+  uint64_t val_set;                        // bitmask: bit N = setting N explicitly set
+  uint64_t vals[YAWT_H3_NUM_SETTINGS];     // values by internal index
 } YAWT_H3_Settings_t;
 
 /**
@@ -306,4 +300,3 @@ typedef enum {
     DUPLICATE,               /**< Duplicate entry (RFC 9204 §4.3.4) */
     UNKNOWN                  /**< Unknown instruction */
 } YAWT_H3_QPACK_EncoderInstructionType_t;
-
