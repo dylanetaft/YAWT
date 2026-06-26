@@ -663,6 +663,71 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len) {
   return (int)pad_len;
 }
 
+YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
+                                             size_t iov_offset, size_t max_chunk_size,
+                                             uint64_t stream_id, uint64_t initial_stream_offset,
+                                             int set_fin,
+                                             YAWT_Q_Frame_BufferedStream_t *out,
+                                             size_t *out_iov_offset) {
+  if (!iov && iov_count > 0) return YAWT_Q_ERR_INVALID_PARAM;
+  if (iov_count < 0) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!out) return YAWT_Q_ERR_INVALID_PARAM;
+  if (!out_iov_offset) return YAWT_Q_ERR_INVALID_PARAM;
+  if (max_chunk_size > YAWT_Q_MAX_PKT_SIZE) return YAWT_Q_ERR_INVALID_PARAM;
+
+  size_t total_len = 0;
+  for (int i = 0; i < iov_count; i++) {
+    if (iov[i].len > 0 && !iov[i].buf) return YAWT_Q_ERR_INVALID_PARAM;
+    total_len += iov[i].len;
+  }
+
+  if (iov_offset > total_len) return YAWT_Q_ERR_INVALID_PARAM;
+
+  size_t remaining = total_len - iov_offset;
+  size_t chunk_len = (remaining < max_chunk_size) ? remaining : max_chunk_size;
+
+  memset(out, 0, sizeof(*out));
+
+  out->frame.stream_id = stream_id;
+  uint64_t stream_offset = initial_stream_offset + iov_offset;
+  out->frame.offset = stream_offset;
+  out->frame.off = (stream_offset > 0) ? 1 : 0;
+  out->frame.len_present = 1;
+  out->frame.data_len = chunk_len;
+  out->frame.fin = (set_fin && (iov_offset + chunk_len >= total_len)) ? 1 : 0;
+
+  size_t dst_off = 0;
+  size_t cur_iov_idx = 0;
+  size_t cur_iov_off = 0;
+
+  while (cur_iov_idx < iov_count && cur_iov_off + iov[cur_iov_idx].len <= iov_offset) {
+    cur_iov_off += iov[cur_iov_idx].len;
+    cur_iov_idx++;
+  }
+
+  if (cur_iov_idx < iov_count && cur_iov_off < iov_offset) {
+    size_t skip = iov_offset - cur_iov_off;
+    cur_iov_off += skip;
+  }
+
+  while (dst_off < chunk_len && cur_iov_idx < iov_count) {
+    size_t avail = iov[cur_iov_idx].len - cur_iov_off;
+    size_t need = chunk_len - dst_off;
+    size_t copy = (avail < need) ? avail : need;
+    memcpy(out->data + dst_off, iov[cur_iov_idx].buf + cur_iov_off, copy);
+    dst_off += copy;
+    cur_iov_off += copy;
+    if (cur_iov_off >= iov[cur_iov_idx].len) {
+      cur_iov_idx++;
+      cur_iov_off = 0;
+    }
+  }
+
+  *out_iov_offset = iov_offset + chunk_len;
+
+  return YAWT_Q_OK;
+}
+
 YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
                                              const YAWT_Q_Frame_Crypto_t *frame) {
   ANB_Slab_t *queue = con->tx_buffer;

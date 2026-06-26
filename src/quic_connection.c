@@ -1409,62 +1409,28 @@ YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
     total_len += iov[i].len;
   }
 
-  // Handle empty FIN (close stream with no data)
-  if (total_len == 0 && fin) {
+  size_t iov_pos = 0;
+  while (iov_pos < total_len || (total_len == 0 && fin)) {
     YAWT_Q_Frame_BufferedStream_t sf = {0};
-    sf.frame.stream_id = stream_id;
-    sf.frame.off = (meta->tx_next_offset > 0) ? 1 : 0;
-    sf.frame.offset = meta->tx_next_offset;
-    sf.frame.len_present = 1;
-    sf.frame.data_len = 0;
-    sf.frame.fin = 1;
-    YAWT_Err_t err = YAWT_q_enqueue_frame_stream(con, &sf);
-    if (err != YAWT_Q_OK) return err;
-    meta->state |= YAWT_Q_STREAM_FIN_SENT;
-    return YAWT_Q_OK;
-  }
-
-  size_t remaining = total_len;
-  int iov_idx = 0;
-  size_t iov_off = 0;
-
-  while (remaining > 0) {
-    size_t chunk_len = remaining;
-    if (chunk_len > YAWT_Q_STREAM_CHUNK_MAX) chunk_len = YAWT_Q_STREAM_CHUNK_MAX;
-
-    YAWT_Q_Frame_BufferedStream_t sf = {0};
-    sf.frame.stream_id = stream_id;
-    sf.frame.off = (meta->tx_next_offset > 0) ? 1 : 0;
-    sf.frame.offset = meta->tx_next_offset;
-    sf.frame.len_present = 1;
-    sf.frame.data_len = chunk_len;
-    sf.frame.fin = (fin && remaining == chunk_len) ? 1 : 0;
-
-    size_t dst_off = 0;
-    while (dst_off < chunk_len) {
-      size_t avail = (iov_idx < iov_count) ? (iov[iov_idx].len - iov_off) : 0;
-      if (avail == 0) {
-        iov_idx++;
-        iov_off = 0;
-        if (iov_idx >= iov_count) break;
-        continue;
-      }
-      size_t need = chunk_len - dst_off;
-      size_t copy = (avail < need) ? avail : need;
-      memcpy(sf.data + dst_off, iov[iov_idx].buf + iov_off, copy);
-      dst_off += copy;
-      iov_off += copy;
-    }
-
-    YAWT_Err_t err = YAWT_q_enqueue_frame_stream(con, &sf);
+    size_t new_iov_pos = 0;
+    YAWT_Err_t err = YAWT_q_encode_frame_stream(iov, iov_count, iov_pos,
+                                                       YAWT_Q_STREAM_CHUNK_MAX,
+                                                       stream_id, meta->tx_next_offset,
+                                                       fin, &sf, &new_iov_pos);
     if (err != YAWT_Q_OK) return err;
 
-    meta->tx_next_offset += chunk_len;
-    con->stats.tx_count_bytes += chunk_len;
-    meta->stats.tx_count_bytes += chunk_len;
+    err = YAWT_q_enqueue_frame_stream(con, &sf);
+    if (err != YAWT_Q_OK) return err;
+
+    size_t chunk = new_iov_pos - iov_pos;
+    meta->tx_next_offset += chunk;
+    con->stats.tx_count_bytes += chunk;
+    meta->stats.tx_count_bytes += chunk;
     _preemptive_fc_stream_tx_limit_check(con, meta);
     _preemptive_fc_conn_tx_limit_check(con);
-    remaining -= chunk_len;
+    iov_pos = new_iov_pos;
+
+    if (total_len == 0 && fin) break;
   }
 
   if (fin) meta->state |= YAWT_Q_STREAM_FIN_SENT;

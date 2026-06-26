@@ -369,19 +369,23 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         stream->type = YAWT_H3_STREAM_FRAME;
         break;
       case YAWT_Q_C_UNI:
-      case YAWT_Q_S_UNI: {
-        size_t consumed = 0;
-        YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
-        if (e == YAWT_H3_ERR_INCOMPLETE) {
-          *cursor += consumed;
-          return YAWT_H3_ERR_INCOMPLETE;
-        }
-        if (e != YAWT_H3_OK) {
-          return e;
-        }
-        *cursor += consumed;
-        break;
-      }
+       case YAWT_Q_S_UNI: {
+         size_t consumed = 0;
+         YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
+         if (e == YAWT_H3_ERR_INCOMPLETE) {
+           *cursor += consumed;
+           return YAWT_H3_ERR_INCOMPLETE;
+         }
+         if (e != YAWT_H3_OK) {
+           return e;
+         }
+         *cursor += consumed;
+         /* If all chunk data was consumed by stream-type prefix, return OK now */
+         if (*cursor >= chunk->data_len) {
+           return YAWT_H3_OK;
+         }
+         break;
+       }
       default:
         YAWT_LOG(YAWT_LOG_ERROR, "h3: unknown stream type %d for stream_id=%lu",
                  chunk->stream_type, chunk->stream_id);

@@ -14,17 +14,27 @@ add_executable(yawt_tests
     test_main.c
     test_qpack_prefix_int.c
     test_huffman.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/qpack.c
+    test_h3.c
 )
 
-target_link_libraries(yawt_tests unity)
+target_link_libraries(yawt_tests unity yawt)
 
 target_include_directories(yawt_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_INSTALL_PREFIX}/include
     ${unity_SOURCE_DIR}/src
     ${unity_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src
 )
+
+if(YAWT_ENABLE_LOGGING)
+  target_compile_definitions(yawt_tests PRIVATE
+    YAWT_ENABLE_LOGGING
+    YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
+  )
+endif()
+
+add_dependencies(yawt_tests yawt)
 
 if(YAWT_ENABLE_LOGGING)
   target_compile_definitions(yawt_tests PRIVATE

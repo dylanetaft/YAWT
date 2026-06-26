@@ -151,6 +151,29 @@ int YAWT_q_encode_frame_padding(uint8_t *buf, size_t buf_len, size_t pad_len);
 /**
  * @internal
  * @ingroup QUIC_Internal
+ * @brief Encode a STREAM frame from scatter/gather buffers into a BufferedStream.
+ * @param iov Scatter/gather buffer array.
+ * @param iov_count Number of elements in iov.
+ * @param iov_offset Current byte index into the iov array.
+ * @param max_chunk_size Maximum bytes to copy into this frame.
+ * @param stream_id The target stream ID.
+ * @param initial_stream_offset The stream offset corresponding to iov[0] byte 0.
+ * @param set_fin If nonzero, set FIN on the last chunk (when iov_offset + chunk_len reaches end of iov).
+ * @param out Output buffered stream frame. All frame fields and data are populated.
+ * @param out_iov_offset Receives the updated iov byte index after copying.
+ * @return YAWT_Q_OK on success, or an error code.
+ * @note Does NOT touch tx_buffer. Caller is responsible for enqueueing the result.
+ */
+YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
+                                             size_t iov_offset, size_t max_chunk_size,
+                                             uint64_t stream_id, uint64_t initial_stream_offset,
+                                             int set_fin,
+                                             YAWT_Q_Frame_BufferedStream_t *out,
+                                             size_t *out_iov_offset);
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
  * @brief Encode a CRYPTO frame and push to tx_buffer.
  * @param con The QUIC connection.
  * @param level Encryption level.
