@@ -53,5 +53,5 @@ struct YAWT_H3_Connection_t {
   YAWT_H3_Settings_t *peer_settings;    // NULL until decoded from peer
   uint64_t nstreams;                    // slot pool size (concurrent stream cap)
   YAWT_H3_Stream_t *streams;            // preallocated slot pool, linear-scan by id
-  uint64_t control_stream_id;           // server's control stream (UINT64_MAX = not opened)
+  YAWT_H3_Unique_Stream_Status_t core_stream_status[YAWT_H3_UNIQUE_STREAM_COUNT];
 };

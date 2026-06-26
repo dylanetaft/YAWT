@@ -108,7 +108,6 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
   h3->qcon = con;
   h3->nstreams = con->local_fc.max_streams_bidi + con->local_fc.max_streams_uni;
   h3->streams = calloc(h3->nstreams, sizeof(YAWT_H3_Stream_t));
-  h3->control_stream_id = UINT64_MAX;
 
   if (!h3->streams) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to allocate connection state");
@@ -195,8 +194,10 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
       stream->type = YAWT_H3_STREAM_CONTROL;
       return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_QPACK_ENCODER:
+      stream->type = YAWT_H3_STREAM_QPACK_ENCODER;
+      return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_QPACK_DECODER:
-      stream->type = YAWT_H3_STREAM_QPACK;
+      stream->type = YAWT_H3_STREAM_QPACK_DECODER;
       return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_WEBTRANSPORT:
       stream->type = YAWT_H3_STREAM_WEBTRANSPORT;
@@ -386,6 +387,33 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
                  chunk->stream_type, chunk->stream_id);
         return YAWT_H3_ERR_MALFORMED;
     }
+
+    // Duplicate detection and peer stream ID tracking for critical streams
+    if (stream->type == YAWT_H3_STREAM_CONTROL) {
+      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_CONTROL, chunk->stream_id);
+      if (err != YAWT_H3_OK) {
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate control stream, stream_id=%lu", chunk->stream_id);
+        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
+        return YAWT_H3_ERR_MALFORMED;
+      }
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer control stream %lu", chunk->stream_id);
+    } else if (stream->type == YAWT_H3_STREAM_QPACK_ENCODER) {
+      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_ENCODER, chunk->stream_id);
+      if (err != YAWT_H3_OK) {
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate QPACK encoder stream, stream_id=%lu", chunk->stream_id);
+        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
+        return YAWT_H3_ERR_MALFORMED;
+      }
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer QPACK encoder stream %lu", chunk->stream_id);
+    } else if (stream->type == YAWT_H3_STREAM_QPACK_DECODER) {
+      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_DECODER, chunk->stream_id);
+      if (err != YAWT_H3_OK) {
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate QPACK decoder stream, stream_id=%lu", chunk->stream_id);
+        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
+        return YAWT_H3_ERR_MALFORMED;
+      }
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: peer QPACK decoder stream %lu", chunk->stream_id);
+    }
   }
 
   // Dispatch by resolved stream type
@@ -435,7 +463,8 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
       return YAWT_H3_OK;
     }
 
-    case YAWT_H3_STREAM_QPACK:
+    case YAWT_H3_STREAM_QPACK_ENCODER:
+    case YAWT_H3_STREAM_QPACK_DECODER:
     case YAWT_H3_STREAM_UNKNOWN:
       // Drain: advance cursor to end, no H3 frames on these streams
       *cursor = chunk->data_len;
@@ -532,16 +561,11 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
         YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
       }
 
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 0);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_BLOCKED_STREAMS, 0);
       YAWT_q_con_set_user_data(con, YAWT_UD_H3, h3);
-      uint64_t wt_en = 0, wt_ms = 0;
-      YAWT_h3_setting_get(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, &wt_en);
-      YAWT_h3_setting_get(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, &wt_ms);
-      YAWT_LOG(YAWT_LOG_INFO, "h3: connection up, state allocated (%zu stream slots)"
-               " wt_enabled=%lu wt_max_sessions=%lu",
-               h3 ? h3->nstreams : 0,
-               wt_en,
-               wt_ms);
       YAWT_h3_send_settings(h3);
+      YAWT_h3_open_qpack_streams(h3);
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_STREAM: {
@@ -554,6 +578,25 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       while (cursor < chunk->data_len) {
         YAWT_H3_Stream_t *stream = NULL;
         YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, &stream, &cursor);
+
+        // Critical stream closure detection (RFC 9114 §6.2.1, RFC 9204 §4.2)
+        // Must check FIN regardless of parse result for critical streams
+        if (chunk->fin && stream) {
+          bool is_core = false;
+          for (int i = 0; i < YAWT_H3_UNIQUE_STREAM_COUNT; i++) {
+            if (h3->core_stream_status[i].available && h3->core_stream_status[i].stream_id == chunk->stream_id) {
+              is_core = true;
+              break;
+            }
+          }
+          if (is_core) {
+            YAWT_LOG(YAWT_LOG_ERROR, "h3: critical stream %lu closed (type=%d)",
+                     chunk->stream_id, stream->type);
+            YAWT_q_con_close(h3->qcon, YAWT_ERR_H3_CLOSED_CRITICAL_STREAM);
+            return YAWT_H3_ERR_MALFORMED;
+          }
+        }
+
         if (err == YAWT_H3_IGNORED) continue;
         if (err == YAWT_H3_ERR_INCOMPLETE) return YAWT_H3_OK;
         if (err != YAWT_H3_OK) {
@@ -573,6 +616,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
           memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
         }
       }
+
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_CLOSE: {
@@ -615,6 +659,23 @@ void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
 
 YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con) {
   return con ? con->qcon : NULL;
+}
+
+YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Connection_t *h3,
+                                         YAWT_H3_Unique_Stream_Type_t type,
+                                         uint64_t stream_id) {
+  if (!h3 || type < 0 || type >= YAWT_H3_UNIQUE_STREAM_COUNT) {
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  YAWT_H3_Unique_Stream_Status_t *status = &h3->core_stream_status[type];
+  if (status->available) {
+    return YAWT_H3_ERR_INVALID_PARAM;  // duplicate
+  }
+
+  status->available = true;
+  status->stream_id = stream_id;
+  return YAWT_H3_OK;
 }
 
 YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
@@ -675,9 +736,56 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
-  h3->control_stream_id = stream_id;
+  YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_CONTROL, stream_id);
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent SETTINGS on control stream %lu (%zu bytes)",
            stream_id, stream_type_len + frame_hdr_len + payload_len);
+  return YAWT_H3_OK;
+}
+
+YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3) {
+  if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
+
+  // QPACK streams are unidirectional. Client uses even IDs (2, 4, 6, ...),
+  // server uses odd IDs (3, 5, 7, ...). Control stream is first (2 or 3),
+  // so QPACK encoder is second (4 or 5), decoder is third (6 or 7).
+  uint64_t encoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 4 : 5;
+  uint64_t decoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 6 : 7;
+
+  // Open QPACK encoder stream (type 0x02)
+  uint8_t encoder_type_buf[8];
+  uint64_t n;
+  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_QPACK_ENCODER, encoder_type_buf, sizeof(encoder_type_buf), &n) != YAWT_Q_OK)
+    return YAWT_H3_ERR_SHORT_BUFFER;
+
+  YAWT_Q_IoVec_t encoder_iov[1] = {
+    { encoder_type_buf, n }
+  };
+  YAWT_Err_t qerr = YAWT_q_con_send_stream(h3->qcon, encoder_stream_id, encoder_iov, 1, 0);
+  if (qerr != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to open QPACK encoder stream %lu: %d",
+             encoder_stream_id, qerr);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+  YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_ENCODER, encoder_stream_id);
+  YAWT_LOG(YAWT_LOG_INFO, "h3: opened QPACK encoder stream %lu", encoder_stream_id);
+
+  // Open QPACK decoder stream (type 0x03)
+  uint8_t decoder_type_buf[8];
+  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_QPACK_DECODER, decoder_type_buf, sizeof(decoder_type_buf), &n) != YAWT_Q_OK)
+    return YAWT_H3_ERR_SHORT_BUFFER;
+
+  YAWT_Q_IoVec_t decoder_iov[1] = {
+    { decoder_type_buf, n }
+  };
+  qerr = YAWT_q_con_send_stream(h3->qcon, decoder_stream_id, decoder_iov, 1, 0);
+  if (qerr != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to open QPACK decoder stream %lu: %d",
+             decoder_stream_id, qerr);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+  YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_DECODER, decoder_stream_id);
+  YAWT_LOG(YAWT_LOG_INFO, "h3: opened QPACK decoder stream %lu", decoder_stream_id);
+
   return YAWT_H3_OK;
 }
 

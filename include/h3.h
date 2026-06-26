@@ -173,6 +173,30 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3);
 
 /**
  * @ingroup H3_Connection
+ * @brief Open QPACK encoder and decoder unidirectional streams.
+ * @param h3 The H3 connection.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Opens two unidirectional streams: encoder (type 0x02) and decoder (type 0x03).
+ *       Must be called after YAWT_h3_send_settings(). These are critical streams;
+ *       closing them is a connection error (RFC 9204 §4.2).
+ */
+YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Register a core stream (control/QPACK) with the connection.
+ * @param h3 The H3 connection.
+ * @param type The core stream type (local/peer control, local/peer QPACK encoder/decoder).
+ * @param stream_id The stream ID to register.
+ * @return YAWT_H3_OK on success, YAWT_H3_ERR_INVALID_PARAM if already registered (duplicate).
+ * @note Detects duplicate critical streams per RFC 9114 §6.2.1 and RFC 9204 §4.2.
+ */
+YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Connection_t *h3,
+                                         YAWT_H3_Unique_Stream_Type_t type,
+                                         uint64_t stream_id);
+
+/**
+ * @ingroup H3_Connection
  * @brief Encode headers as a QPACK header block, wrap in an H3 HEADERS frame, and send.
  * @param h3 The H3 connection.
  * @param stream_id The target bidi stream ID.

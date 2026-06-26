@@ -94,10 +94,38 @@ typedef enum {
   YAWT_H3_STREAM_FRAME,      /**< Bidirectional stream carrying HTTP/3 frames (requests, responses, and DATA) */
   YAWT_H3_STREAM_PUSH,       /**< Push stream (RFC 9114 §6.2.2) */
   YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
-  YAWT_H3_STREAM_QPACK,      /**< QPACK encoder/decoder stream */
+  YAWT_H3_STREAM_QPACK_ENCODER, /**< QPACK encoder stream (RFC 9204 §4.2) */
+  YAWT_H3_STREAM_QPACK_DECODER, /**< QPACK decoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_WEBTRANSPORT, /**< WebTransport stream (draft-15) */
   YAWT_H3_STREAM_UNKNOWN     /**< Unknown/GREASE stream type (RFC 9114 §6.2.3, RFC 9287) */
 } YAWT_H3_StreamType_t;
+
+/**
+ * @ingroup H3_Types
+ * @brief Core stream type identifiers for tracking critical unidirectional streams.
+ * @note RFC 9114 §6.2.1 (control), RFC 9204 §4.2 (QPACK encoder/decoder).
+ *       Each endpoint opens one control stream and up to one QPACK encoder/decoder stream.
+ *       These are tracked separately from the wire stream types to distinguish local vs peer.
+ */
+typedef enum {
+  YAWT_H3_UNIQUE_STREAM_LOCAL_CONTROL = 0,
+  YAWT_H3_UNIQUE_STREAM_PEER_CONTROL,
+  YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_ENCODER,
+  YAWT_H3_UNIQUE_STREAM_PEER_QPACK_ENCODER,
+  YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_DECODER,
+  YAWT_H3_UNIQUE_STREAM_PEER_QPACK_DECODER,
+  YAWT_H3_UNIQUE_STREAM_COUNT  // sentinel
+} YAWT_H3_Unique_Stream_Type_t;
+
+/**
+ * @ingroup H3_Types
+ * @brief Status of a core unidirectional stream.
+ * @note Tracks whether a critical stream has been opened/received and its stream ID.
+ */
+typedef struct {
+  bool available;
+  uint64_t stream_id;
+} YAWT_H3_Unique_Stream_Status_t;
 
 /**
  * @ingroup H3_Types
