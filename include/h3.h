@@ -28,16 +28,22 @@
 /**
  * @internal
  * @ingroup H3_Internal
- * @brief Assembles a frame from located metadata.
- * @param stream The QUIC stream frame.
- * @param meta The H3 stream metadata.
- * @param out Output H3 frame struct.
- * @return YAWT_H3_OK on success, or an error code.
- * @note Will deliver partial frames but we can pull the header fields (Type, Length) out of metadata.
+ * @brief Parse the next H3 frame header from a QUIC stream chunk.
+ * @param h3con The H3 connection.
+ * @param chunk The QUIC stream frame carrying the bytes.
+ * @param out_stream Output: resolved stream metadata (set on YAWT_H3_OK).
+ * @param cursor In/out: position in chunk->data. Advanced as bytes are consumed.
+ * @return YAWT_H3_OK if frame header parsed (type+length decoded, blob allocated if needed).
+ *         YAWT_H3_ERR_INCOMPLETE if more data needed.
+ *         YAWT_H3_IGNORED if stream type doesn't carry H3 frames (QPACK/WT/unknown).
+ *         Error codes for malformed data or policy violations.
+ * @note This is the single gatekeeper: handles stream type resolution, frame header parsing,
+ *       buffering decisions (SETTINGS/HEADERS get blobs), and security policy checks.
  */
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_Q_Frame_Stream_t *stream, 
-                                    YAWT_H3_Stream_t *meta,
-                                    YAWT_H3_Frame_t *out);
+YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
+                                    const YAWT_Q_Frame_Stream_t *chunk,
+                                    YAWT_H3_Stream_t **out_stream,
+                                    size_t *cursor);
 
 /**
  * @internal

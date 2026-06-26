@@ -332,131 +332,27 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
   }
 }
 
-void _handle_rx_stream_frame(
-    YAWT_H3_Connection_t *con,
-    YAWT_Q_ReadCursor_t *rc,
-    YAWT_H3_Stream_t *stream,
-    int chunk_fin) {
-
-  YAWT_H3_Frame_t *f = &stream->frame;
-
-  while (rc->cursor < rc->len && rc->err == YAWT_Q_OK) {
-    // Header phase: read Type + Length once per frame.
-    // hdr_size == 0 means we haven't yet decoded both varints for this frame.
-    if (f->hdr_size == 0) {
-      if (!_gather_h3_frame_head(con, stream, rc)) {
-        return; // header spans into the next chunk — resume when it arrives
-      }
-
-      // Allocation decision: only SETTINGS and HEADERS must be held whole
-      // (decoded after full receipt). DATA frames stream through without
-      // allocation. Unknown/ignored frame types also skip allocation.
-      bool must_buffer = (f->type == YAWT_H3_FRAME_SETTINGS ||
-                          f->type == YAWT_H3_FRAME_HEADERS);
-      if (must_buffer && f->payload_len > 0) {
-        const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-        if (f->type == YAWT_H3_FRAME_HEADERS &&
-            sec->max_field_section_size &&
-            f->payload_len > sec->max_field_section_size) {
-          YAWT_LOG(YAWT_LOG_ERROR,
-                   "h3: HEADERS frame %lu exceeds max_field_section_size %lu, stream_id=%lu",
-                   f->payload_len, sec->max_field_section_size, stream->id);
-          YAWT_q_con_close(con->qcon, YAWT_ERR_H3_EXCESSIVE_LOAD);
-          return;
-        }
-        if (sec->max_frame_buffer_bytes &&
-            f->payload_len > sec->max_frame_buffer_bytes) {
-          YAWT_LOG(YAWT_LOG_ERROR,
-                   "h3: frame Length %lu exceeds buffer cap %lu, stream_id=%lu",
-                   f->payload_len, sec->max_frame_buffer_bytes, stream->id);
-          return;
-        }
-        // blob: owned by f->payload_blob, destroyed at frame completion below.
-        f->payload_blob = ANB_blob_create(f->payload_len);
-      }
-    }
-
-    // Payload phase: three paths depending on frame type.
-    if (f->payload_blob) {
-      // Buffered frame (SETTINGS/HEADERS): push payload bytes into the blob.
-      uint64_t need = f->payload_len - f->accumulated;
-      size_t avail = rc->len - rc->cursor;
-      size_t n = (need < avail) ? (size_t)need : avail;
-      ANB_blob_push(f->payload_blob, rc->data + rc->cursor, n);
-      f->accumulated += n;
-      rc->cursor += n;
-    } else if (f->type == YAWT_H3_FRAME_DATA && f->payload_len > 0) {
-      // DATA frame: stream through to app without buffering. The app receives
-      // a borrowed pointer into rc->data — it must copy if it wants to retain.
-      uint64_t need = f->payload_len - f->accumulated;
-      size_t avail = rc->len - rc->cursor;
-      size_t n = (need < avail) ? (size_t)need : avail;
-      int is_last = (f->accumulated + n >= f->payload_len) && chunk_fin;
-      _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
-        .P_EVT_DATA = { .stream_id = stream->id, .data = rc->data + rc->cursor, .len = n, .fin = is_last }
-      });
-      f->accumulated += n;
-      rc->cursor += n;
-    } else {
-      // Unknown/ignored frame type: skip payload bytes without copying.
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: skipping %lu bytes of unknown frame type 0x%lx on stream %lu",
-               f->payload_len - f->accumulated, f->type, stream->id);
-      uint64_t need = f->payload_len - f->accumulated;
-      size_t avail = rc->len - rc->cursor;
-      size_t n = (need < avail) ? (size_t)need : avail;
-      f->accumulated += n;
-      rc->cursor += n;
-    }
-
-    // Frame complete: all payload bytes received (or payload_len was 0).
-    if (f->hdr_size && f->accumulated >= f->payload_len) {
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: frame complete type=0x%lx len=%lu stream=%lu",
-               f->type, f->payload_len, stream->id);
-
-      if (f->payload_blob) {
-        // Dispatch buffered frame.
-        if (!_dispatch_buffered_frame(con, stream)) {
-          YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
-        }
-      }
-
-      // Release the blob (NULL if DATA/unknown — ANB_blob_destroy(NULL) is safe).
-      // memset: resets the frame struct for the next frame on this stream.
-      ANB_blob_destroy(f->payload_blob);
-      memset(f, 0, sizeof(YAWT_H3_Frame_t));
-    }
+YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
+                                    const YAWT_Q_Frame_Stream_t *chunk,
+                                    YAWT_H3_Stream_t **out_stream,
+                                    size_t *cursor) {
+  if (!h3con || !chunk || !out_stream || !cursor) {
+    return YAWT_H3_ERR_INVALID_PARAM;
   }
-}
 
-
-
-void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
-    YAWT_Q_EventParam_t *param) {
-
-  const YAWT_Q_Frame_Stream_t *qf = param->P_EVT_STREAM.frame;
-  YAWT_H3_Connection_t *h3con = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-  if (!h3con->app_handler) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: stream event but no app handler installed");
-    return;
-  }
-  YAWT_H3_Stream_t *stream = _h3_stream_meta_find(h3con, qf->stream_id);
+  YAWT_H3_Stream_t *stream = _h3_stream_meta_find(h3con, chunk->stream_id);
   if (!stream) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", qf->stream_id);
-    return;
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", chunk->stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
   }
+  *out_stream = stream;
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
-           qf->stream_id, qf->offset, qf->data_len, qf->fin);
+           chunk->stream_id, chunk->offset, chunk->data_len, chunk->fin);
 
-  YAWT_Q_ReadCursor_t rc = {
-    .data = qf->data,
-    .len = qf->data_len,
-    .cursor = 0,
-    .err = YAWT_Q_OK,
-  };
-
+  // Stream type resolution if not yet assigned
   if (stream->type == YAWT_H3_STREAM_UNASSIGNED) {
-    switch (qf->stream_type) {
+    switch (chunk->stream_type) {
       case YAWT_Q_C_BIDI:
       case YAWT_Q_S_BIDI:
         stream->type = YAWT_H3_STREAM_FRAME;
@@ -464,46 +360,138 @@ void _handle_rx_stream_chunk(YAWT_Q_Connection_t *con,
       case YAWT_Q_C_UNI:
       case YAWT_Q_S_UNI: {
         size_t consumed = 0;
-        YAWT_H3_Error_t e = _gather_h3_stream_type(stream, qf, &consumed);
-        if (e == YAWT_H3_ERR_INCOMPLETE) return;
-        if (e != YAWT_H3_OK) {
-          return;
+        YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
+        if (e == YAWT_H3_ERR_INCOMPLETE) {
+          *cursor += consumed;
+          return YAWT_H3_ERR_INCOMPLETE;
         }
-        rc.cursor += consumed;
+        if (e != YAWT_H3_OK) {
+          return e;
+        }
+        *cursor += consumed;
         break;
       }
       default:
         YAWT_LOG(YAWT_LOG_ERROR, "h3: unknown stream type %d for stream_id=%lu",
-                 qf->stream_type, qf->stream_id);
-        return;
+                 chunk->stream_type, chunk->stream_id);
+        return YAWT_H3_ERR_MALFORMED;
     }
   }
 
+  // Dispatch by resolved stream type
   switch (stream->type) {
     case YAWT_H3_STREAM_FRAME:
-    case YAWT_H3_STREAM_CONTROL:
-      _handle_rx_stream_frame(h3con, &rc, stream, qf->fin);
-      break;
+    case YAWT_H3_STREAM_CONTROL: {
+      // Parse frame header (Type + Length varints)
+      YAWT_H3_Frame_t *f = &stream->frame;
+      if (f->hdr_size == 0) {
+        // Build a temporary ReadCursor for the remaining chunk data
+        YAWT_Q_ReadCursor_t rc = {
+          .data = chunk->data,
+          .len = chunk->data_len,
+          .cursor = *cursor,
+          .err = YAWT_Q_OK,
+        };
+        if (!_gather_h3_frame_head(h3con, stream, &rc)) {
+          *cursor = rc.cursor;
+          return YAWT_H3_ERR_INCOMPLETE;
+        }
+        *cursor = rc.cursor;
+
+        // Buffering decision: only SETTINGS and HEADERS must be held whole
+        bool must_buffer = (f->type == YAWT_H3_FRAME_SETTINGS ||
+                            f->type == YAWT_H3_FRAME_HEADERS);
+        if (must_buffer && f->payload_len > 0) {
+          const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
+          if (f->type == YAWT_H3_FRAME_HEADERS &&
+              sec->max_field_section_size &&
+              f->payload_len > sec->max_field_section_size) {
+            YAWT_LOG(YAWT_LOG_ERROR,
+                     "h3: HEADERS frame %lu exceeds max_field_section_size %lu, stream_id=%lu",
+                     f->payload_len, sec->max_field_section_size, stream->id);
+            YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_EXCESSIVE_LOAD);
+            return YAWT_H3_ERR_TOO_LARGE;
+          }
+          if (sec->max_frame_buffer_bytes &&
+              f->payload_len > sec->max_frame_buffer_bytes) {
+            YAWT_LOG(YAWT_LOG_ERROR,
+                     "h3: frame Length %lu exceeds buffer cap %lu, stream_id=%lu",
+                     f->payload_len, sec->max_frame_buffer_bytes, stream->id);
+            return YAWT_H3_ERR_TOO_LARGE;
+          }
+          f->payload_blob = ANB_blob_create(f->payload_len);
+        }
+      }
+      return YAWT_H3_OK;
+    }
+
     case YAWT_H3_STREAM_QPACK:
     case YAWT_H3_STREAM_UNKNOWN:
-      rc.cursor = rc.len;
-      break;
+      // Drain: advance cursor to end, no H3 frames on these streams
+      *cursor = chunk->data_len;
+      return YAWT_H3_IGNORED;
+
     case YAWT_H3_STREAM_WEBTRANSPORT:
+      // Emit event with remaining data, then drain
       _h3_emit_event(h3con, YAWT_H3_EVT_WT_UNI_STREAM, (YAWT_H3_EventParam_t){
         .P_EVT_WT_UNI_STREAM = {
-          .stream_id = qf->stream_id,
-          .data = rc.data + rc.cursor,
-          .len = rc.len - rc.cursor,
+          .stream_id = chunk->stream_id,
+          .data = chunk->data + *cursor,
+          .len = chunk->data_len - *cursor,
         }
       });
-      rc.cursor = rc.len;
-      break;
+      *cursor = chunk->data_len;
+      return YAWT_H3_IGNORED;
+
     default:
       YAWT_LOG(YAWT_LOG_ERROR, "h3: unhandled stream type %d for stream_id=%lu",
-               stream->type, qf->stream_id);
-      break;
+               stream->type, chunk->stream_id);
+      return YAWT_H3_ERR_MALFORMED;
   }
 }
+
+void _handle_rx_stream_frame(
+    YAWT_H3_Connection_t *con,
+    const YAWT_Q_Frame_Stream_t *chunk,
+    YAWT_H3_Stream_t *stream,
+    size_t *cursor,
+    int chunk_fin) {
+
+  YAWT_H3_Frame_t *f = &stream->frame;
+  size_t avail = chunk->data_len - *cursor;
+
+  if (avail == 0) return;
+
+  // Payload phase: three paths depending on frame type.
+  if (f->payload_blob) {
+    // Buffered frame (SETTINGS/HEADERS): push payload bytes into the blob.
+    uint64_t need = f->payload_len - f->accumulated;
+    size_t n = (need < avail) ? (size_t)need : avail;
+    ANB_blob_push(f->payload_blob, chunk->data + *cursor, n);
+    f->accumulated += n;
+    *cursor += n;
+  } else if (f->type == YAWT_H3_FRAME_DATA && f->payload_len > 0) {
+    // DATA frame: stream through to app without buffering.
+    uint64_t need = f->payload_len - f->accumulated;
+    size_t n = (need < avail) ? (size_t)need : avail;
+    int is_last = (f->accumulated + n >= f->payload_len) && chunk_fin;
+    _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
+      .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
+    });
+    f->accumulated += n;
+    *cursor += n;
+  } else {
+    // Unknown/ignored frame type: skip payload bytes without copying.
+    YAWT_LOG(YAWT_LOG_DEBUG, "h3: skipping %lu bytes of unknown frame type 0x%lx on stream %lu",
+             f->payload_len - f->accumulated, f->type, stream->id);
+    uint64_t need = f->payload_len - f->accumulated;
+    size_t n = (need < avail) ? (size_t)need : avail;
+    f->accumulated += n;
+    *cursor += n;
+  }
+}
+
+
 
 YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
                                    YAWT_Q_EventParam_t param) {
@@ -545,7 +533,30 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       if (!h3 || !h3->app_handler) {
         return YAWT_H3_ERR_NO_APP_HANDLER;
       }
-      _handle_rx_stream_chunk(con, &param);
+      const YAWT_Q_Frame_Stream_t *chunk = param.P_EVT_STREAM.frame;
+      size_t cursor = 0;
+      while (cursor < chunk->data_len) {
+        YAWT_H3_Stream_t *stream = NULL;
+        YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, &stream, &cursor);
+        if (err == YAWT_H3_IGNORED) continue;
+        if (err == YAWT_H3_ERR_INCOMPLETE) return YAWT_H3_OK;
+        if (err != YAWT_H3_OK) {
+          YAWT_LOG(YAWT_LOG_ERROR, "h3: parse error on stream %lu: %s",
+                   chunk->stream_id, YAWT_h3_err_str(err));
+          return err;
+        }
+        _handle_rx_stream_frame(h3, chunk, stream, &cursor, chunk->fin);
+        if (stream->frame.hdr_size &&
+            stream->frame.accumulated >= stream->frame.payload_len) {
+          if (stream->frame.payload_blob) {
+            if (!_dispatch_buffered_frame(h3, stream)) {
+              YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
+            }
+          }
+          ANB_blob_destroy(stream->frame.payload_blob);
+          memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
+        }
+      }
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_CLOSE: {
