@@ -191,6 +191,19 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
  * @note Holds both the decoded result (type, payload_len, payload) and the
  *       byte-level decode scratch (hdr/hdr_size/accumulated). Only one frame
  *       parses at a time per stream, so a single embedded instance serves.
+ *
+ *       Lifecycle: This struct is wiped (memset to 0) between frames when
+ *       `parsed` is set — see YAWT_h3_parse_frame(). The wipe resets only
+ *       the per-frame state (header scratch, payload blob, accumulated count).
+ *       It does NOT touch the stream type (`stream->type`) or the stream-type
+ *       accumulation buffer — those live in YAWT_H3_Stream_t and persist for
+ *       the stream's entire lifetime (RFC 9114 §6.2: the stream-type varint
+ *       is sent once at the start of a uni stream and never repeated).
+ *
+ *       For DATA frames, payload_blob is NULL — the payload streams through
+ *       _handle_rx_stream_frame() directly to the app without buffering.
+ *       Only SETTINGS and HEADERS require whole-frame buffering for decode.
+ *
  * @warning READ-ONLY / NOT retained when handed to the app: `payload` points
  *          into transient stream bytes, and the whole struct is reset and reused
  *          for the next frame, so anything kept beyond the delivering call must be copied.

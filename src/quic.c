@@ -509,7 +509,10 @@ void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
     out->stream.len_present = (bits & 0x02) ? 1 : 0;
     out->stream.fin = (bits & 0x01) ? 1 : 0;
     YAWT_q_varint_decode(rc, &out->stream.stream_id);
+
+    // c_bidi: 0x00, s_bidi: 0x01, c_uni: 0x02, s_uni: 0x03 
     out->stream.stream_type = (YAWT_Q_Stream_Type_t)(out->stream.stream_id & 0x03);
+    
     if (out->stream.off) {
       YAWT_q_varint_decode(rc, &out->stream.offset);
     }
@@ -689,6 +692,8 @@ YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
   memset(out, 0, sizeof(*out));
 
   out->frame.stream_id = stream_id;
+
+  // c_bidi: 0x00, s_bidi: 0x01, c_uni: 0x02, s_uni: 0x03 
   out->frame.stream_type = (YAWT_Q_Stream_Type_t)(stream_id & 0x03);
   uint64_t stream_offset = initial_stream_offset + iov_offset;
   out->frame.offset = stream_offset;

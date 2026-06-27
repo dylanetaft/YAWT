@@ -359,6 +359,13 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   }
   *out_stream = stream;
 
+  // Frame lifecycle: if the previous frame completed (parsed=true), wipe only
+  // the per-frame state to prepare for the next frame header. This does NOT
+  // touch stream->type or the stream-type accumulation buffer (stream->hdr /
+  // stream->accumulated) — those persist for the stream's entire lifetime.
+  // RFC 9114 §6.2: the stream-type varint is sent once at the start of a uni
+  // stream and never repeated. The frame struct is per-frame; the stream type
+  // is per-stream.
   if (stream->frame.parsed) {
     if (stream->frame.payload_blob) {
       ANB_blob_destroy(stream->frame.payload_blob);
@@ -369,7 +376,11 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
            chunk->stream_id, chunk->offset, chunk->data_len, chunk->fin);
 
-  // Stream type resolution if not yet assigned
+  // Stream type resolution: runs exactly once per stream lifetime. For uni
+  // streams, the stream-type varint (RFC 9114 §6.2) is consumed from the
+  // first chunk(s) via _gather_h3_stream_type() and never re-sent. For bidi
+  // streams, type is set to STREAM_FRAME immediately. After this block,
+  // stream->type is stable for all subsequent calls on this stream.
   if (stream->type == YAWT_H3_STREAM_UNASSIGNED) {
     switch (chunk->stream_type) {
       case YAWT_Q_C_BIDI:
@@ -389,10 +400,10 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
            return e;
          }
          *cursor += consumed;
-         /* If all chunk data was consumed by stream-type prefix, return OK now */
-         if (*cursor >= chunk->data_len) {
-           return YAWT_H3_OK;
-         }
+         /* If all chunk data was consumed by stream-type prefix, continue to switch */
+          if (*cursor >= chunk->data_len) {
+            // Fall through to switch statement below
+          }
          break;
        }
       default:
@@ -450,6 +461,10 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         *cursor = rc.cursor;
 
         // Buffering decision: only SETTINGS and HEADERS must be held whole
+        // for decode. DATA and unknown frames stream through without buffering —
+        // the frame header (type + length) is still parsed here, but payload
+        // flows directly to the app via _handle_rx_stream_frame() in the caller.
+        // This avoids copying large request/response bodies.
         bool must_buffer = (f->type == YAWT_H3_FRAME_SETTINGS ||
                             f->type == YAWT_H3_FRAME_HEADERS);
         if (must_buffer && f->payload_len > 0) {
@@ -721,6 +736,43 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
 // TX helpers — open control stream, send SETTINGS/HEADERS/DATA frames.
 // ---------------------------------------------------------------------------
 
+// Helper to open a unidirectional stream with a stream-type prefix.
+// RFC 9114 §6.2: uni streams begin with a stream-type varint. This helper
+// encodes that varint and prepends it to the caller's payload iov array.
+// Used by YAWT_h3_send_settings (control stream) and YAWT_h3_open_qpack_streams
+// (QPACK encoder/decoder streams).
+static YAWT_H3_Error_t _h3_open_uni_stream(
+    YAWT_H3_Connection_t *h3,
+    uint64_t wire_type,
+    uint64_t stream_id,
+    const YAWT_Q_IoVec_t *payload_iov,
+    size_t payload_iov_count,
+    int fin) {
+
+  uint8_t stream_type_buf[8];
+  uint64_t n;
+  if (YAWT_q_varint_encode(wire_type, stream_type_buf, sizeof(stream_type_buf), &n) != YAWT_Q_OK)
+    return YAWT_H3_ERR_SHORT_BUFFER;
+
+  // Prepend stream-type varint to caller's iov
+  YAWT_Q_IoVec_t iov[1 + 4]; // max 4 payload iovs + 1 stream type
+  if (payload_iov_count + 1 > sizeof(iov) / sizeof(iov[0]))
+    return YAWT_H3_ERR_INVALID_PARAM;
+
+  iov[0] = (YAWT_Q_IoVec_t){ stream_type_buf, n };
+  for (size_t i = 0; i < payload_iov_count; i++) {
+    iov[1 + i] = payload_iov[i];
+  }
+
+  YAWT_Err_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 1 + payload_iov_count, fin);
+  if (qerr != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to open uni stream %lu (type 0x%lx): %d",
+             stream_id, wire_type, qerr);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+  return YAWT_H3_OK;
+}
+
 YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   if (!h3 || !h3->qcon || !h3->local_settings) return YAWT_H3_ERR_INVALID_PARAM;
 
@@ -729,31 +781,20 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   YAWT_H3_Error_t err = YAWT_h3_settings_encode(
       h3->local_settings, settings_payload, sizeof(settings_payload), &payload_len);
   if (err != YAWT_H3_OK) return err;
- 
-  uint8_t stream_type_buf[8];
-  size_t stream_type_len = 0;
-  uint64_t n;
-  //RFC 9114 §6.2.1: Control stream type is 0x00
-  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, stream_type_buf, sizeof(stream_type_buf), &n) != YAWT_Q_OK)
-    return YAWT_H3_ERR_SHORT_BUFFER;
-  stream_type_len = n;
 
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
   size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_len, frame_hdr);
   if (frame_hdr_len == 0) return YAWT_H3_ERR_SHORT_BUFFER;
 
   uint64_t stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 2 : 3;
-  YAWT_Q_IoVec_t iov[3] = {
-    { stream_type_buf, stream_type_len }, //this looks malformed, commenting out
+  YAWT_Q_IoVec_t payload_iov[2] = {
     { frame_hdr, frame_hdr_len },
     { settings_payload, payload_len }
   };
-  YAWT_Err_t qerr = YAWT_q_con_send_stream(h3->qcon, stream_id, iov, 3, 0);
-  if (qerr != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to send SETTINGS on stream %lu: %d",
-             stream_id, qerr);
-    return YAWT_H3_ERR_INVALID_PARAM;
-  }
+
+  // RFC 9114 §6.2.1: Control stream type is 0x00
+  err = _h3_open_uni_stream(h3, YAWT_H3_STREAM_WIRE_CONTROL, stream_id, payload_iov, 2, 0);
+  if (err != YAWT_H3_OK) return err;
 
   YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_CONTROL, stream_id);
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent SETTINGS on control stream %lu (%zu bytes)",
@@ -770,38 +811,15 @@ YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3) {
   uint64_t encoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 4 : 5;
   uint64_t decoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 6 : 7;
 
-  // Open QPACK encoder stream (type 0x02)
-  uint8_t encoder_type_buf[8];
-  uint64_t n;
-  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_QPACK_ENCODER, encoder_type_buf, sizeof(encoder_type_buf), &n) != YAWT_Q_OK)
-    return YAWT_H3_ERR_SHORT_BUFFER;
-
-  YAWT_Q_IoVec_t encoder_iov[1] = {
-    { encoder_type_buf, n }
-  };
-  YAWT_Err_t qerr = YAWT_q_con_send_stream(h3->qcon, encoder_stream_id, encoder_iov, 1, 0);
-  if (qerr != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to open QPACK encoder stream %lu: %d",
-             encoder_stream_id, qerr);
-    return YAWT_H3_ERR_INVALID_PARAM;
-  }
+  // RFC 9204 §4.2: QPACK encoder stream type is 0x02
+  YAWT_H3_Error_t err = _h3_open_uni_stream(h3, YAWT_H3_STREAM_WIRE_QPACK_ENCODER, encoder_stream_id, NULL, 0, 0);
+  if (err != YAWT_H3_OK) return err;
   YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_ENCODER, encoder_stream_id);
   YAWT_LOG(YAWT_LOG_INFO, "h3: opened QPACK encoder stream %lu", encoder_stream_id);
 
-  // Open QPACK decoder stream (type 0x03)
-  uint8_t decoder_type_buf[8];
-  if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_QPACK_DECODER, decoder_type_buf, sizeof(decoder_type_buf), &n) != YAWT_Q_OK)
-    return YAWT_H3_ERR_SHORT_BUFFER;
-
-  YAWT_Q_IoVec_t decoder_iov[1] = {
-    { decoder_type_buf, n }
-  };
-  qerr = YAWT_q_con_send_stream(h3->qcon, decoder_stream_id, decoder_iov, 1, 0);
-  if (qerr != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to open QPACK decoder stream %lu: %d",
-             decoder_stream_id, qerr);
-    return YAWT_H3_ERR_INVALID_PARAM;
-  }
+  // RFC 9204 §4.2: QPACK decoder stream type is 0x03
+  err = _h3_open_uni_stream(h3, YAWT_H3_STREAM_WIRE_QPACK_DECODER, decoder_stream_id, NULL, 0, 0);
+  if (err != YAWT_H3_OK) return err;
   YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_QPACK_DECODER, decoder_stream_id);
   YAWT_LOG(YAWT_LOG_INFO, "h3: opened QPACK decoder stream %lu", decoder_stream_id);
 
