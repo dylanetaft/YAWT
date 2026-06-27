@@ -359,6 +359,13 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   }
   *out_stream = stream;
 
+  if (stream->frame.parsed) {
+    if (stream->frame.payload_blob) {
+      ANB_blob_destroy(stream->frame.payload_blob);
+    }
+    memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
+  }
+
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
            chunk->stream_id, chunk->offset, chunk->data_len, chunk->fin);
 
@@ -478,6 +485,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
         if (f->accumulated < f->payload_len) {
           return YAWT_H3_ERR_INCOMPLETE;
         }
+        f->parsed = true;
       }
       return YAWT_H3_OK;
     }
@@ -618,14 +626,12 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
           if (!_dispatch_buffered_frame(h3, stream)) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
           }
-          ANB_blob_destroy(stream->frame.payload_blob);
-          memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
           continue;
         }
         _handle_rx_stream_frame(h3, chunk, stream, &cursor, chunk->fin);
         if (stream->frame.hdr_size &&
             stream->frame.accumulated >= stream->frame.payload_len) {
-          memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
+          stream->frame.parsed = true;
         }
       }
 

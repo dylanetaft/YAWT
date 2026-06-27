@@ -211,7 +211,7 @@ static void test_single_chunk_multiple_frames(void) {
   size_t frame_hdr_b_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_b_len, frame_hdr_b);
 
   uint64_t stream_id = 2;
-  YAWT_Q_IoVec_t iov_a[5] = {
+  YAWT_Q_IoVec_t iov_a[] = {
     { stream_type_buf, stream_type_len },
     { frame_hdr_a, frame_hdr_a_len },
     { payload_a, payload_a_len },
@@ -224,7 +224,7 @@ static void test_single_chunk_multiple_frames(void) {
   YAWT_Err_t err;
   YAWT_Q_Frame_BufferedStream_t bf;
   size_t out_iov_offset = 0;
-  err = YAWT_q_encode_frame_stream(iov_a,5,0,1000,stream_id,0,0,&bf, &out_iov_offset);
+  err = YAWT_q_encode_frame_stream(iov_a,sizeof(iov_a)/sizeof(iov_a[0]),0,1000,stream_id,0,0,&bf, &out_iov_offset);
   TEST_ASSERT_EQUAL(YAWT_Q_OK, err);
   YAWT_H3_Error_t h3_err;
   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
@@ -248,8 +248,6 @@ static void test_single_chunk_multiple_frames(void) {
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(100, out_settings_a.vals[YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]); 
   TEST_ASSERT_EQUAL(200, out_settings_a.vals[YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]);
-  ANB_blob_destroy(stream->frame.payload_blob);
-  memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
   YAWT_H3_Settings_t out_settings_b = {0};
   //advances to the next frame with cursor
   h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor); 

@@ -203,6 +203,7 @@ typedef struct {
   uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
   uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
   uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
+  bool     parsed;        // set after frame complete; triggers reset on next parse
 } YAWT_H3_Frame_t;
 
 /**
