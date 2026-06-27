@@ -715,10 +715,11 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   YAWT_H3_Error_t err = YAWT_h3_settings_encode(
       h3->local_settings, settings_payload, sizeof(settings_payload), &payload_len);
   if (err != YAWT_H3_OK) return err;
-
+ 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
   uint64_t n;
+  //RFC 9114 §6.2.1: Control stream type is 0x00
   if (YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, stream_type_buf, sizeof(stream_type_buf), &n) != YAWT_Q_OK)
     return YAWT_H3_ERR_SHORT_BUFFER;
   stream_type_len = n;
@@ -729,7 +730,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
 
   uint64_t stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 2 : 3;
   YAWT_Q_IoVec_t iov[3] = {
-    { stream_type_buf, stream_type_len },
+    { stream_type_buf, stream_type_len }, //this looks malformed, commenting out
     { frame_hdr, frame_hdr_len },
     { settings_payload, payload_len }
   };
@@ -742,7 +743,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
 
   YAWT_h3_core_stream_set(h3, YAWT_H3_UNIQUE_STREAM_LOCAL_CONTROL, stream_id);
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent SETTINGS on control stream %lu (%zu bytes)",
-           stream_id, stream_type_len + frame_hdr_len + payload_len);
+           stream_id, frame_hdr_len + payload_len);
   return YAWT_H3_OK;
 }
 

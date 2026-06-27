@@ -88,6 +88,8 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       if (param.P_EVT_DATA.fin) 
       {
         YAWT_LOG(YAWT_LOG_INFO, "%.*s", (int)ANB_blob_data_len(recv_blob), ANB_blob_data(recv_blob));
+        ev_break(main_loop, EVBREAK_ALL);
+        //theres no way to close e3 or quic c here TODO
       }
       break;
     case YAWT_H3_EVT_CLOSE:

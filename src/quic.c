@@ -723,6 +723,8 @@ YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
     }
   }
 
+  out->frame.data = out->data;
+
   *out_iov_offset = iov_offset + chunk_len;
 
   return YAWT_Q_OK;
