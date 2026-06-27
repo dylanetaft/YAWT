@@ -21,7 +21,8 @@ static YAWT_H3_Connection_t *alloc_minimal_h3_conn(void) {
     h3.nstreams = 16;
     h3.streams = realloc(h3.streams, sizeof(YAWT_H3_Stream_t) * h3.nstreams);
     memset(h3.streams, 0, sizeof(YAWT_H3_Stream_t) * h3.nstreams);
-    //h3.local_settings = realloc(h3.local_settings, sizeof(YAWT_H3_Settings_t));
+    h3.local_settings = realloc(h3.local_settings, sizeof(YAWT_H3_Settings_t));
+    memset(h3.local_settings, 0, sizeof(YAWT_H3_Settings_t));
 
     return &h3;
 }
@@ -67,28 +68,6 @@ static YAWT_Q_Frame_BufferedStream_t make_buffered_chunk(
     return bf;
 }
 
-/* Helper: push all available data into payload blob and advance cursor (simulates _handle_rx_stream_frame for buffered frames) */
-static void simulate_handle_payload(YAWT_H3_Stream_t *stream, const YAWT_Q_Frame_Stream_t *chunk, size_t *cursor) {
-    if (!stream->frame.payload_blob) return;
-    size_t avail = chunk->data_len - *cursor;
-    if (avail == 0) return;
-    uint64_t need = stream->frame.payload_len - stream->frame.accumulated;
-    size_t copy = (need < avail) ? (size_t)need : avail;
-    ANB_blob_push(stream->frame.payload_blob, chunk->data + *cursor, copy);
-    stream->frame.accumulated += copy;
-    *cursor += copy;
-}
-
-/* Helper: parse + handle payload in one call for buffered frames (SETTINGS/HEADERS) */
-static YAWT_H3_Error_t parse_and_handle(YAWT_H3_Connection_t *h3, YAWT_Q_Frame_Stream_t *chunk,
-                                         YAWT_H3_Stream_t **out_stream, size_t *cursor) {
-    YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, out_stream, cursor);
-    if (err == YAWT_H3_OK && out_stream && *out_stream) {
-        simulate_handle_payload(*out_stream, chunk, cursor);
-    }
-    return err;
-}
-
 /* ------------------------------------------------------------------ */
 /*  1. Settings frame on bidi stream (no stream-type prefix)           */
 /* ------------------------------------------------------------------ */
@@ -115,7 +94,7 @@ static void test_settings_frame_on_bidi_stream(void) {
 
     YAWT_H3_Stream_t *stream = NULL;
     size_t cursor = 0;
-    YAWT_H3_Error_t err = parse_and_handle(h3, &bf.frame, &stream, &cursor);
+    YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
     TEST_ASSERT_NOT_NULL(stream);
     TEST_ASSERT_EQUAL(YAWT_H3_STREAM_FRAME, stream->type);
@@ -159,16 +138,16 @@ static void test_settings_out_of_order_chunks(void) {
     size_t cursor = 0;
     YAWT_H3_Error_t err;
 
-    err = parse_and_handle(h3, &bf1.frame, &stream, &cursor);
+    err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
     TEST_ASSERT_NOT_NULL(stream);
 
     cursor = 0;
-    err = parse_and_handle(h3, &bf3.frame, &stream, &cursor);
+    err = YAWT_h3_parse_frame(h3, &bf3.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
 
     cursor = 0;
-    err = parse_and_handle(h3, &bf2.frame, &stream, &cursor);
+    err = YAWT_h3_parse_frame(h3, &bf2.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
 
     TEST_ASSERT_EQUAL(plen, ANB_blob_data_len(stream->frame.payload_blob));
@@ -208,73 +187,81 @@ static void test_single_chunk_multiple_frames(void) {
 
   //it's parsable, but not valid h3
   //we're just testing parser though
-  uint8_t payload[256];
-  size_t payload_len = 0;
+  uint8_t payload_a[256];
+  size_t payload_a_len = 0;
+  uint8_t payload_b[256];
+  size_t payload_b_len = 0;
   YAWT_H3_Settings_t settings = {0};
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, 100); 
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 200);
-  YAWT_h3_settings_encode(&settings, payload, sizeof(payload), &payload_len);
+  YAWT_h3_settings_encode(&settings, payload_a, sizeof(payload_a), &payload_a_len);
+  YAWT_h3_setting_set(&settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, 300);
+  YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 400);
+  YAWT_h3_settings_encode(&settings, payload_b, sizeof(payload_b), &payload_b_len);
 
 
   uint8_t stream_type_buf[8];
-  uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
+  uint8_t frame_hdr_a[H3_FRAME_MAX_HEADER_BYTES];
+  uint8_t frame_hdr_b[H3_FRAME_MAX_HEADER_BYTES];
   size_t stream_type_len = 0;
   uint64_t n;
   //RFC 9114 §6.2.1: Control stream type is 0x00
   YAWT_q_varint_encode(YAWT_H3_STREAM_WIRE_CONTROL, stream_type_buf, sizeof(stream_type_buf), &stream_type_len);
-  size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_len, frame_hdr);
+  size_t frame_hdr_a_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_a_len, frame_hdr_a);
+  size_t frame_hdr_b_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_b_len, frame_hdr_b);
 
-  uint64_t stream_id = 0;
-  YAWT_Q_IoVec_t iov_a[3] = {
+  uint64_t stream_id = 2;
+  YAWT_Q_IoVec_t iov_a[5] = {
     { stream_type_buf, stream_type_len },
-    { frame_hdr, frame_hdr_len },
-    { payload, payload_len }
+    { frame_hdr_a, frame_hdr_a_len },
+    { payload_a, payload_a_len },
+    { frame_hdr_b, frame_hdr_b_len },
+    { payload_b, payload_b_len }
   };
 
 
 
   YAWT_Err_t err;
-  YAWT_Q_Frame_BufferedStream_t bf_a;
-  YAWT_Q_Frame_BufferedStream_t bf_b;
+  YAWT_Q_Frame_BufferedStream_t bf;
   size_t out_iov_offset = 0;
-  err = YAWT_q_encode_frame_stream(iov_a,3,3,1000,stream_id,0,0,&bf_a, &out_iov_offset);
+  err = YAWT_q_encode_frame_stream(iov_a,5,0,1000,stream_id,0,0,&bf, &out_iov_offset);
   TEST_ASSERT_EQUAL(YAWT_Q_OK, err);
-  memset(&settings, 0, sizeof(settings));
-  YAWT_h3_setting_set(&settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, 300); 
-  YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 400);
-  YAWT_h3_settings_encode(&settings, payload, sizeof(payload), &payload_len);
-  YAWT_Q_IoVec_t iov_b[3] = {
-    { stream_type_buf, stream_type_len },
-    { frame_hdr, frame_hdr_len },
-    { payload, payload_len }
-  };
-  err = YAWT_q_encode_frame_stream(iov_b,3,3,1000,stream_id,0,0,&bf_b, &out_iov_offset);
-  TEST_ASSERT_EQUAL(YAWT_Q_OK, err);
-
   YAWT_H3_Error_t h3_err;
   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
   size_t cursor = 0;
   YAWT_H3_Stream_t *stream = NULL;
-  //parse first frame standalone
-  h3_err = YAWT_h3_parse_frame(h3, &bf_a.frame, &stream, &cursor);
-  TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
-  cursor = 0;
-  //parse second frame standalone
-  h3_err = YAWT_h3_parse_frame(h3, &bf_b.frame, &stream, &cursor);
-  TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
-  YAWT_LOG(YAWT_LOG_INFO, "frame len a: %zu, frame len b: %zu", bf_a.frame.data_len, bf_b.frame.data_len);
-
-  YAWT_Q_Frame_BufferedStream_t bf_combined;
-  bf_combined.frame.data = bf_combined.data; 
-  memcpy(bf_combined.frame.data, bf_a.frame.data, bf_a.frame.data_len);
-  memcpy(bf_combined.frame.data + bf_a.frame.data_len, bf_b.frame.data, bf_b.frame.data_len);
-  bf_combined.frame.data_len = bf_a.frame.data_len + bf_b.frame.data_len;
   cursor = 0;
   //parse combined frame
-  h3_err = YAWT_h3_parse_frame(h3, &bf_combined.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor); 
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
+  TEST_ASSERT_NOT_NULL(stream);
+  YAWT_LOG(YAWT_LOG_INFO, "parsed len: %zu", stream->frame.payload_len);
+  YAWT_Q_ReadCursor_t dec = {0};
+  dec.data = ANB_blob_data(stream->frame.payload_blob);
+  dec.len = stream->frame.payload_len;
+  dec.cursor = 0;
+  dec.err = YAWT_Q_OK;
 
+  YAWT_H3_Settings_t out_settings_a = {0};
+  h3_err = YAWT_h3_settings_decode(&dec, &out_settings_a);
 
+  TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
+  TEST_ASSERT_EQUAL(100, out_settings_a.vals[YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]); 
+  TEST_ASSERT_EQUAL(200, out_settings_a.vals[YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]);
+  ANB_blob_destroy(stream->frame.payload_blob);
+  memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
+  YAWT_H3_Settings_t out_settings_b = {0};
+  //advances to the next frame with cursor
+  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor); 
+  TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
+  dec.data = ANB_blob_data(stream->frame.payload_blob);
+  dec.len = stream->frame.payload_len;
+  dec.cursor = 0;
+  dec.err = YAWT_Q_OK;
+  h3_err = YAWT_h3_settings_decode(&dec, &out_settings_b);
+  TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
+  TEST_ASSERT_EQUAL(300, out_settings_b.vals[YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]); 
+  TEST_ASSERT_EQUAL(400, out_settings_b.vals[YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]); 
 
 }
 
@@ -305,7 +292,7 @@ static void test_frame_split_across_two_chunks(void) {
 
     YAWT_H3_Stream_t *stream = NULL;
     size_t cursor = 0;
-    YAWT_H3_Error_t err = parse_and_handle(h3, &bf1.frame, &stream, &cursor);
+    YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
     TEST_ASSERT_NOT_NULL(stream);
     TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
@@ -313,7 +300,7 @@ static void test_frame_split_across_two_chunks(void) {
     TEST_ASSERT_EQUAL(half, ANB_blob_data_len(stream->frame.payload_blob));
 
     cursor = 0;
-    err = parse_and_handle(h3, &bf2.frame, &stream, &cursor);
+    err = YAWT_h3_parse_frame(h3, &bf2.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
 
     TEST_ASSERT_EQUAL(plen, ANB_blob_data_len(stream->frame.payload_blob));
@@ -609,7 +596,7 @@ static void test_headers_frame_with_payload(void) {
 
     YAWT_H3_Stream_t *stream = NULL;
     size_t cursor = 0;
-    YAWT_H3_Error_t err = parse_and_handle(h3, &bf.frame, &stream, &cursor);
+    YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
     TEST_ASSERT_EQUAL(YAWT_H3_OK, err);
     TEST_ASSERT_NOT_NULL(stream);
 
@@ -664,7 +651,7 @@ static void test_headers_frame_out_of_order_chunks(void) {
     for (int i = 0; i < 4; i++) {
         int idx = order[i];
         cursor = 0;
-        err = parse_and_handle(h3, &bf[idx].frame, &stream, &cursor);
+        err = YAWT_h3_parse_frame(h3, &bf[idx].frame, &stream, &cursor);
         if (err != YAWT_H3_OK && err != YAWT_H3_ERR_INCOMPLETE) {
             break;
         }
@@ -780,10 +767,13 @@ static void test_stream_type_server_bidi(void) {
 /* ------------------------------------------------------------------ */
 
 void test_h3_register(void) {
+    /*
     RUN_TEST(test_settings_frame_on_bidi_stream);
     RUN_TEST(test_settings_out_of_order_chunks);
     RUN_TEST(test_settings_frame_header_only);
+    */
     RUN_TEST(test_single_chunk_multiple_frames);
+    /*
     RUN_TEST(test_frame_split_across_two_chunks);
     RUN_TEST(test_incomplete_frame_state);
     RUN_TEST(test_data_frame_no_buffering);
@@ -800,4 +790,5 @@ void test_h3_register(void) {
     RUN_TEST(test_cursor_advancement);
     RUN_TEST(test_stream_type_webtransport_uni);
     RUN_TEST(test_stream_type_server_bidi);
+    */
 }

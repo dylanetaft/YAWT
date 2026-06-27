@@ -689,6 +689,7 @@ YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
   memset(out, 0, sizeof(*out));
 
   out->frame.stream_id = stream_id;
+  out->frame.stream_type = (YAWT_Q_Stream_Type_t)(stream_id & 0x03);
   uint64_t stream_offset = initial_stream_offset + iov_offset;
   out->frame.offset = stream_offset;
   out->frame.off = (stream_offset > 0) ? 1 : 0;
