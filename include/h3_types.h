@@ -97,8 +97,7 @@ typedef enum {
   YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
   YAWT_H3_STREAM_QPACK_ENCODER, /**< QPACK encoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_QPACK_DECODER, /**< QPACK decoder stream (RFC 9204 §4.2) */
-  YAWT_H3_STREAM_WT_UNI,     /**< WebTransport uni stream (0x54, draft-15 §4.2) */
-  YAWT_H3_STREAM_WT_BIDI,    /**< WebTransport bidi stream (0x41, draft-15 §4.3) */
+  YAWT_H3_STREAM_WT,         /**< WebTransport stream (0x41 bidi or 0x54 uni, draft-15 §4.2/4.3) */
   YAWT_H3_STREAM_WT_CONNECT, /**< Upgraded CONNECT stream (capsules in DATA, draft-15 §3.2) */
   YAWT_H3_STREAM_WT_CONNECT_PENDING, /**< CONNECT awaiting 2xx response (draft-15 §3.2) */
   YAWT_H3_STREAM_UNKNOWN     /**< Unknown/GREASE stream type (RFC 9114 §6.2.3, RFC 9287) */

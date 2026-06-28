@@ -10,6 +10,8 @@
 #include "../quic_connection.h"
 #include "../h3_types.h"
 
+typedef struct YAWT_WT_Stream_t YAWT_WT_Stream_t;
+
 /**
  * @ingroup WebTransport
  * @brief Per-session WT state.
@@ -38,6 +40,28 @@ struct YAWT_WT_Session_t {
 
   bool     draining;           /**< WT_DRAIN_SESSION sent/received */
   bool     closed;             /**< Session terminated */
+};
+
+/**
+ * @ingroup WebTransport
+ * @brief Per-stream WT state.
+ * @note Hung off the QUIC stream's YAWT_Q_StreamUserData_t[YAWT_UD_WT] slot.
+ *       Allocated by WT layer when it first sees a WT signal (0x41/0x54).
+ *       Buffers the session_id varint which may span multiple QUIC chunks.
+ */
+struct YAWT_WT_Stream_t {
+  bool     in_use;
+  uint64_t stream_id;              /**< QUIC stream ID */
+  
+  // Session ID buffering (draft-15 §4.3)
+  uint8_t  hdr[8];                 /**< Buffer for session_id varint */
+  uint8_t  hdr_accumulated;        /**< Bytes of session_id buffered */
+  uint64_t session_id;             /**< Decoded session_id (0 until complete) */
+  bool     session_id_complete;    /**< True once varint decoded */
+  
+  uint64_t stream_offset;          /**< Total bytes seen on this stream */
+  
+  YAWT_WT_Session_t *session;      /**< NULL until session exists */
 };
 
 /**

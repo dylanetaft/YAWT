@@ -143,15 +143,34 @@ static YAWT_H3_Stream_t *_h3_stream_get_or_create(YAWT_Q_StreamUserData_t *sud) 
   return stream;
 }
 
-// Resolve a uni stream's role from its leading stream-type varint (RFC 9114
-// §6.2, RFC 9204 §4.2), accumulating across chunks into stream->hdr. On success
-// sets stream->type and reports via *consumed how many bytes of THIS chunk were
-// the prefix — the rest is stream body the caller forwards on.
+// Resolve a stream's role from its leading stream-type varint (RFC 9114
+// §6.2, RFC 9204 §4.2) or WT signal (draft-15 §4.2/4.3), accumulating across
+// chunks into stream->hdr. On success sets stream->type and reports via
+// *consumed how many bytes of THIS chunk were the prefix — the rest is
+// stream body the caller forwards on.
 static inline YAWT_H3_Error_t _gather_h3_stream_type(
     YAWT_H3_Stream_t *stream,
     const YAWT_Q_Frame_Stream_t *chunk,
     size_t *consumed) {
 
+  // Bidi streams: check first byte for WT signal (0x41)
+  if (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI) {
+    if (chunk->data_len > 0 && chunk->data[0] == YAWT_H3_STREAM_WIRE_WT_BIDI) {
+      // 0x41 detected — WT bidi stream
+      stream->type = YAWT_H3_STREAM_WT;
+      *consumed = 1;  // Consumed the signal byte
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT bidi (0x41)", chunk->stream_id);
+      return YAWT_H3_OK;
+    } else {
+      // Not 0x41 — normal H3 frame stream
+      stream->type = YAWT_H3_STREAM_FRAME;
+      *consumed = 0;
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is normal H3 bidi", chunk->stream_id);
+      return YAWT_H3_OK;
+    }
+  }
+
+  // Uni streams: accumulate and decode varint
   size_t accumulated_before = stream->accumulated;
   size_t take = chunk->data_len;
   if (take > H3_STREAM_TYPE_MAX_BYTES - accumulated_before) {
@@ -188,7 +207,7 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
       stream->type = YAWT_H3_STREAM_QPACK_DECODER;
       return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_WT_UNI:
-      stream->type = YAWT_H3_STREAM_WT_UNI;
+      stream->type = YAWT_H3_STREAM_WT;
       return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_PUSH:
       YAWT_LOG(YAWT_LOG_ERROR, "h3: client opened a push stream, stream_id=%lu",
@@ -325,7 +344,6 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
               protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
             // Server side: CONNECT request with webtransport-h3 protocol
             stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
-            stream->wt_session_id = stream->id;  // session_id = CONNECT stream ID
             YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
           } else if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
             // Client side: response on a pending CONNECT stream
@@ -385,80 +403,22 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk: offset=%lu, len=%zu, fin=%d",
            chunk->stream_id, chunk->offset, chunk->data_len, chunk->fin);
 
-  // Stream type resolution: runs exactly once per stream lifetime. For uni
-  // streams, the stream-type varint (RFC 9114 §6.2) is consumed from the
-  // first chunk(s) via _gather_h3_stream_type() and never re-sent. For bidi
-  // streams, we check for the 0x41 WT_STREAM signal (draft-15 §4.3) before
-  // assuming normal H3 frame parsing. After this block, stream->type is
-  // stable for all subsequent calls on this stream.
+  // Stream type resolution: runs exactly once per stream lifetime. The stream-type
+  // varint (RFC 9114 §6.2) or WT signal (draft-15 §4.2/4.3) is consumed from the
+  // first chunk(s) via _gather_h3_stream_type() and never re-sent. After this
+  // block, stream->type is stable for all subsequent calls on this stream.
   if (stream->type == YAWT_H3_STREAM_UNASSIGNED) {
-    switch (chunk->stream_type) {
-      case YAWT_Q_C_BIDI:
-      case YAWT_Q_S_BIDI: {
-        // Bidi streams normally carry H3 frames, but WebTransport bidi
-        // streams begin with a 0x41 signal varint followed by a session_id
-        // varint (draft-15 §4.3). We must detect this before attempting
-        // H3 frame parsing, because 0x41 is not a valid H3 frame type and
-        // the session_id varint would be misinterpreted as a frame Length.
-        //
-        // For simplicity, we only detect 0x41 if it's the first byte of the
-        // first chunk. If the signal spans chunks, we fail. This is acceptable
-        // because 0x41 is a single-byte varint and session_id is unlikely to
-        // span chunks in practice.
-        if (*cursor == 0 && chunk->data_len > 0 && chunk->data[0] == YAWT_H3_STREAM_WIRE_WT_BIDI) {
-          // 0x41 detected — decode session_id
-          YAWT_Q_ReadCursor_t rc = {
-            .data = chunk->data,
-            .len = chunk->data_len,
-            .cursor = 0,
-            .err = YAWT_Q_OK,
-          };
-          uint64_t signal = 0;
-          YAWT_q_varint_decode(&rc, &signal);
-          uint64_t session_id = 0;
-          YAWT_q_varint_decode(&rc, &session_id);
-          if (rc.err != YAWT_Q_OK) {
-            // Session_id varint spans chunks — not supported yet
-            YAWT_LOG(YAWT_LOG_ERROR, "h3: bidi stream %lu 0x41 signal or session_id spans chunks", chunk->stream_id);
-            return YAWT_H3_ERR_MALFORMED;
-          }
-          // Both varints decoded — this is a WT bidi stream
-          stream->type = YAWT_H3_STREAM_WT_BIDI;
-          stream->wt_session_id = session_id;
-          *cursor = (size_t)rc.cursor;
-          YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT bidi (0x41), session_id=%lu",
-                   chunk->stream_id, session_id);
-        } else {
-          // Not 0x41 (or not first byte) — normal H3 bidi stream
-          stream->type = YAWT_H3_STREAM_FRAME;
-          YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is normal H3 bidi", chunk->stream_id);
-        }
-        break;
-      }
-      case YAWT_Q_C_UNI:
-       case YAWT_Q_S_UNI: {
-         YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is uni stream, gathering stream type prefix", chunk->stream_id);
-          size_t consumed = 0;
-          YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
-          if (e == YAWT_H3_ERR_INCOMPLETE) {
-            *cursor += consumed;
-            return YAWT_H3_ERR_INCOMPLETE;
-          }
-          if (e != YAWT_H3_OK) {
-            return e;
-          }
-          *cursor += consumed;
-          /* If all chunk data was consumed by stream-type prefix, continue to switch */
-           if (*cursor >= chunk->data_len) {
-             // Fall through to switch statement below
-           }
-          break;
-        }
-      default:
-        YAWT_LOG(YAWT_LOG_ERROR, "h3: unknown stream type %d for stream_id=%lu",
-                 chunk->stream_type, chunk->stream_id);
-        return YAWT_H3_ERR_MALFORMED;
+    size_t consumed = 0;
+    YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
+    if (e == YAWT_H3_ERR_INCOMPLETE) {
+      *cursor += consumed;
+      return YAWT_H3_ERR_INCOMPLETE;
     }
+    if (e != YAWT_H3_OK) {
+      return e;
+    }
+    *cursor += consumed;
+    
     YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu resolved type %d", chunk->stream_id, stream->type);
     // Duplicate detection and peer stream ID tracking for critical streams
     if (stream->type == YAWT_H3_STREAM_CONTROL) {
@@ -556,32 +516,9 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
     case YAWT_H3_STREAM_QPACK_ENCODER:
     case YAWT_H3_STREAM_QPACK_DECODER:
     case YAWT_H3_STREAM_UNKNOWN:
+    case YAWT_H3_STREAM_WT:
       // Drain: advance cursor to end, no H3 frames on these streams
-      *cursor = chunk->data_len;
-      return YAWT_H3_IGNORED;
-
-    case YAWT_H3_STREAM_WT_UNI:
-      // Emit event with remaining data, then drain
-      _h3_emit_event(h3con, YAWT_H3_EVT_WT_UNI_STREAM, (YAWT_H3_EventParam_t){
-        .P_EVT_WT_UNI_STREAM = {
-          .stream_id = chunk->stream_id,
-          .data = chunk->data + *cursor,
-          .len = chunk->data_len - *cursor,
-        }
-      });
-      *cursor = chunk->data_len;
-      return YAWT_H3_IGNORED;
-
-    case YAWT_H3_STREAM_WT_BIDI:
-      // Emit event with remaining data (session_id already consumed during type resolution)
-      _h3_emit_event(h3con, YAWT_H3_EVT_WT_BIDI_STREAM, (YAWT_H3_EventParam_t){
-        .P_EVT_WT_BIDI_STREAM = {
-          .stream_id = chunk->stream_id,
-          .session_id = stream->wt_session_id,
-          .data = chunk->data + *cursor,
-          .len = chunk->data_len - *cursor,
-        }
-      });
+      // WT streams are handled by the WT layer via YAWT_wt_on_event()
       *cursor = chunk->data_len;
       return YAWT_H3_IGNORED;
 
