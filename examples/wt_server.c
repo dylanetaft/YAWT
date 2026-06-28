@@ -11,6 +11,8 @@
 #include <h3.h>
 #include <h3_types.h>
 #include <h3_header.h>
+#include <wt.h>
+#include <wt_types.h>
 #include <security.h>
 
 #define DEFAULT_PORT 4433
@@ -19,6 +21,7 @@
 static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
+static YAWT_WT_Context_t *wt_ctx;
 
 static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
   YAWT_Q_PeerAddr_t pa;
@@ -117,6 +120,54 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM (%zu bytes)",
                param.P_EVT_DATAGRAM.len);
       break;
+    case YAWT_H3_EVT_WT_BIDI_STREAM:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_BIDI_STREAM on stream %lu, session %lu (%zu bytes)",
+               param.P_EVT_WT_BIDI_STREAM.stream_id, param.P_EVT_WT_BIDI_STREAM.session_id,
+               param.P_EVT_WT_BIDI_STREAM.len);
+      break;
+    case YAWT_H3_EVT_WT_CAPSULE:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_CAPSULE on stream %lu, type 0x%lx (%zu bytes)",
+               param.P_EVT_WT_CAPSULE.stream_id, param.P_EVT_WT_CAPSULE.capsule_type,
+               param.P_EVT_WT_CAPSULE.len);
+      break;
+  }
+}
+
+static void wt_app_handler(YAWT_WT_Context_t *ctx,
+                             YAWT_WT_Session_t *session,
+                             YAWT_WT_EventType_t event,
+                             YAWT_WT_EventParam_t param) {
+  switch (event) {
+    case YAWT_WT_EVT_SESSION_ESTABLISHED:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_ESTABLISHED, session_id=%lu",
+               param.P_EVT_SESSION_ESTABLISHED.session_id);
+      break;
+    case YAWT_WT_EVT_STREAM_DATA:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu, stream=%lu (%zu bytes, fin=%d)",
+               param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
+               param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.fin);
+      break;
+    case YAWT_WT_EVT_STREAM_OPENED:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_OPENED, session=%lu, stream=%lu",
+               param.P_EVT_STREAM_OPENED.session_id, param.P_EVT_STREAM_OPENED.stream_id);
+      break;
+    case YAWT_WT_EVT_STREAM_RESET:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_RESET, session=%lu, stream=%lu, error=%lu",
+               param.P_EVT_STREAM_RESET.session_id, param.P_EVT_STREAM_RESET.stream_id,
+               param.P_EVT_STREAM_RESET.error_code);
+      break;
+    case YAWT_WT_EVT_DATAGRAM:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes)",
+               param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
+      break;
+    case YAWT_WT_EVT_SESSION_CLOSE:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_CLOSE, session=%lu, error=%u",
+               param.P_EVT_SESSION_CLOSE.session_id, param.P_EVT_SESSION_CLOSE.app_error_code);
+      break;
+    case YAWT_WT_EVT_SESSION_DRAIN:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_DRAIN, session=%lu",
+               param.P_EVT_SESSION_DRAIN.session_id);
+      break;
   }
 }
 
@@ -129,17 +180,28 @@ static void on_event(YAWT_Q_Connection_t *con,
       break;
 
     default: {
+      // H3 processes first (frame parsing, stream classification)
       YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
       if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
         YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
         if (h3) {
           YAWT_h3_set_event_handler(h3, h3_app_handler);
+          // Create WT context and set event handler
+          wt_ctx = YAWT_wt_context_create();
+          if (wt_ctx) {
+            YAWT_wt_set_event_handler(wt_ctx, wt_app_handler);
+          }
         }
       }
       if (rc == YAWT_H3_ERR_NO_APP_HANDLER) {
         YAWT_LOG(YAWT_LOG_WARN, "h3: event %d processed but no app handler set", event);
       } else if (rc == YAWT_H3_IGNORED) {
         YAWT_LOG(YAWT_LOG_DEBUG, "h3: event %d ignored", event);
+      }
+
+      // WT processes in parallel (looks up H3 stream metadata)
+      if (wt_ctx) {
+        YAWT_wt_on_event(wt_ctx, con, event, param);
       }
       break;
     }
@@ -244,6 +306,9 @@ int main(int argc, char *argv[]) {
 
   ev_run(loop, 0);
 
+  if (wt_ctx) {
+    YAWT_wt_context_destroy(wt_ctx);
+  }
   YAWT_q_crypto_cred_free(&server_cred);
   gnutls_global_deinit();
   close(sockfd);

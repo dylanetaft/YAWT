@@ -82,7 +82,8 @@ typedef enum {
   YAWT_H3_STREAM_WIRE_PUSH         = 0x01, /**< Push stream (RFC 9114 §6.2.2) */
   YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02, /**< QPACK encoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03, /**< QPACK decoder stream (RFC 9204 §4.2) */
-  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54, /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_WIRE_WT_UNI       = 0x54, /**< WebTransport uni stream (draft-15 §4.2) */
+  YAWT_H3_STREAM_WIRE_WT_BIDI      = 0x41, /**< WebTransport bidi stream (draft-15 §4.3) */
 } YAWT_H3_WireStreamType_t;
 
 /**
@@ -96,7 +97,10 @@ typedef enum {
   YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
   YAWT_H3_STREAM_QPACK_ENCODER, /**< QPACK encoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_QPACK_DECODER, /**< QPACK decoder stream (RFC 9204 §4.2) */
-  YAWT_H3_STREAM_WEBTRANSPORT, /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_WT_UNI,     /**< WebTransport uni stream (0x54, draft-15 §4.2) */
+  YAWT_H3_STREAM_WT_BIDI,    /**< WebTransport bidi stream (0x41, draft-15 §4.3) */
+  YAWT_H3_STREAM_WT_CONNECT, /**< Upgraded CONNECT stream (capsules in DATA, draft-15 §3.2) */
+  YAWT_H3_STREAM_WT_CONNECT_PENDING, /**< CONNECT awaiting 2xx response (draft-15 §3.2) */
   YAWT_H3_STREAM_UNKNOWN     /**< Unknown/GREASE stream type (RFC 9114 §6.2.3, RFC 9287) */
 } YAWT_H3_StreamType_t;
 
@@ -271,6 +275,8 @@ typedef enum {
   YAWT_H3_EVT_SETTINGS,       /**< SETTINGS frame decoded; param has stream_id + settings ptr */
   YAWT_H3_EVT_CLOSE,          /**< H3-level error/close; param has error_code + reason */
   YAWT_H3_EVT_WT_UNI_STREAM,  /**< Data on a 0x54 uni stream; param has stream_id + data/len (draft-15 §4.2) */
+  YAWT_H3_EVT_WT_BIDI_STREAM, /**< Data on a 0x41 bidi stream; param has stream_id + data/len (draft-15 §4.3) */
+  YAWT_H3_EVT_WT_CAPSULE,     /**< Capsule parsed on upgraded CONNECT; param has stream_id + capsule type/data (RFC 9297) */
   YAWT_H3_EVT_DATAGRAM,       /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
 } YAWT_H3_EventType_t;
 
@@ -312,6 +318,20 @@ typedef union YAWT_H3_EventParam {
     const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
     size_t len;               /**< Length of datagram payload */
   } P_EVT_DATAGRAM;
+  /** @brief Parameters for YAWT_H3_EVT_WT_BIDI_STREAM. */
+  struct {
+    uint64_t stream_id;       /**< H3 bidi stream ID (0x41 signal + session_id already consumed) */
+    uint64_t session_id;      /**< WebTransport session ID */
+    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
+    size_t len;               /**< Length of remaining data after session_id varint */
+  } P_EVT_WT_BIDI_STREAM;
+  /** @brief Parameters for YAWT_H3_EVT_WT_CAPSULE. */
+  struct {
+    uint64_t stream_id;       /**< H3 stream ID (CONNECT stream) */
+    uint64_t capsule_type;    /**< Capsule type (RFC 9297 §3.2) */
+    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
+    size_t len;               /**< Length of capsule value */
+  } P_EVT_WT_CAPSULE;
 } YAWT_H3_EventParam_t;
 
 /**

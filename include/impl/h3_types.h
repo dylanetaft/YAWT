@@ -13,6 +13,7 @@
 #include <allocnbuffer/slab.h>
 #include "../h3_types.h"
 #include "../quic_connection.h"
+#include "../capsule.h"
 
 /**
  * @ingroup H3_Types
@@ -38,6 +39,13 @@ struct YAWT_H3_Stream_t {
   YAWT_H3_HeaderFields_t *request_headers;
   YAWT_H3_HeaderFields_t *response_headers;
   YAWT_H3_Frame_t frame;
+  // WebTransport fields (draft-15)
+  uint64_t wt_session_id;            // Session ID from 0x41/0x54 header, or stream->id for upgraded CONNECT
+  YAWT_Capsule_Parser_t capsule_parser; // For WT_CONNECT streams (capsules in DATA)
+  // Accumulation buffer for 0x41 bidi signal + session_id varint (draft-15 §4.3)
+  // This is needed because the varint may span multiple QUIC chunks
+  uint8_t  wt_bidi_hdr[H3_STREAM_TYPE_MAX_BYTES];
+  uint64_t wt_bidi_accumulated;
 };
 
 /**

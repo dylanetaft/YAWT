@@ -137,19 +137,12 @@ static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   free(h3);
 }
 
-YAWT_H3_Stream_t *_h3_stream_meta_find(
+YAWT_H3_Stream_t *YAWT_h3_stream_meta_find(
     YAWT_H3_Connection_t *h3,
     uint64_t stream_id) {
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: looking up stream metadata for stream_id=%lu", stream_id);
   for (uint64_t i = 0; i < h3->nstreams; i++) {
     if (h3->streams[i].in_use && h3->streams[i].id == stream_id) {
-      return &h3->streams[i];
-    }
-  }
-  for (uint64_t i = 0; i < h3->nstreams; i++) {
-    if (!h3->streams[i].in_use) {
-      h3->streams[i].in_use = true;
-      h3->streams[i].id = stream_id;
       return &h3->streams[i];
     }
   }
@@ -200,8 +193,8 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
     case YAWT_H3_STREAM_WIRE_QPACK_DECODER:
       stream->type = YAWT_H3_STREAM_QPACK_DECODER;
       return YAWT_H3_OK;
-    case YAWT_H3_STREAM_WIRE_WEBTRANSPORT:
-      stream->type = YAWT_H3_STREAM_WEBTRANSPORT;
+    case YAWT_H3_STREAM_WIRE_WT_UNI:
+      stream->type = YAWT_H3_STREAM_WT_UNI;
       return YAWT_H3_OK;
     case YAWT_H3_STREAM_WIRE_PUSH:
       YAWT_LOG(YAWT_LOG_ERROR, "h3: client opened a push stream, stream_id=%lu",
@@ -325,6 +318,35 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
             return false;
           }
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
+
+          // Check if this is a CONNECT request with :protocol=webtransport-h3
+          // (draft-15 §3.2). If so, mark stream as pending upgrade.
+          // Also check if this is a response on a WT_CONNECT_PENDING stream
+          // (client side receiving 2xx).
+          YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
+          YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
+          YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
+
+          if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
+              protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
+            // Server side: CONNECT request with webtransport-h3 protocol
+            stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
+            stream->wt_session_id = stream->id;  // session_id = CONNECT stream ID
+            YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
+          } else if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+            // Client side: response on a pending CONNECT stream
+            // Check if status is 2xx (success)
+            if (status.value_len > 0 && status.value[0] == '2') {
+              stream->type = YAWT_H3_STREAM_WT_CONNECT;
+              YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
+            } else {
+              // Non-2xx response — revert to normal H3 stream
+              stream->type = YAWT_H3_STREAM_FRAME;
+              YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
+                       stream->id, (int)status.value_len, status.value);
+            }
+          }
+
           _h3_emit_event(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
             .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request_headers }
           });
@@ -346,18 +368,11 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
 
 YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
                                     const YAWT_Q_Frame_Stream_t *chunk,
-                                    YAWT_H3_Stream_t **out_stream,
+                                    YAWT_H3_Stream_t *stream,
                                     size_t *cursor) {
-  if (!h3con || !chunk || !out_stream || !cursor) {
+  if (!h3con || !chunk || !stream || !cursor) {
     return YAWT_H3_ERR_INVALID_PARAM;
   }
-
-  YAWT_H3_Stream_t *stream = _h3_stream_meta_find(h3con, chunk->stream_id);
-  if (!stream) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", chunk->stream_id);
-    return YAWT_H3_ERR_INVALID_PARAM;
-  }
-  *out_stream = stream;
 
   // Frame lifecycle: if the previous frame completed (parsed=true), wipe only
   // the per-frame state to prepare for the next frame header. This does NOT
@@ -379,33 +394,72 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   // Stream type resolution: runs exactly once per stream lifetime. For uni
   // streams, the stream-type varint (RFC 9114 §6.2) is consumed from the
   // first chunk(s) via _gather_h3_stream_type() and never re-sent. For bidi
-  // streams, type is set to STREAM_FRAME immediately. After this block,
-  // stream->type is stable for all subsequent calls on this stream.
+  // streams, we check for the 0x41 WT_STREAM signal (draft-15 §4.3) before
+  // assuming normal H3 frame parsing. After this block, stream->type is
+  // stable for all subsequent calls on this stream.
   if (stream->type == YAWT_H3_STREAM_UNASSIGNED) {
     switch (chunk->stream_type) {
       case YAWT_Q_C_BIDI:
-      case YAWT_Q_S_BIDI:
-        stream->type = YAWT_H3_STREAM_FRAME;
+      case YAWT_Q_S_BIDI: {
+        // Bidi streams normally carry H3 frames, but WebTransport bidi
+        // streams begin with a 0x41 signal varint followed by a session_id
+        // varint (draft-15 §4.3). We must detect this before attempting
+        // H3 frame parsing, because 0x41 is not a valid H3 frame type and
+        // the session_id varint would be misinterpreted as a frame Length.
+        //
+        // For simplicity, we only detect 0x41 if it's the first byte of the
+        // first chunk. If the signal spans chunks, we fail. This is acceptable
+        // because 0x41 is a single-byte varint and session_id is unlikely to
+        // span chunks in practice.
+        if (*cursor == 0 && chunk->data_len > 0 && chunk->data[0] == YAWT_H3_STREAM_WIRE_WT_BIDI) {
+          // 0x41 detected — decode session_id
+          YAWT_Q_ReadCursor_t rc = {
+            .data = chunk->data,
+            .len = chunk->data_len,
+            .cursor = 0,
+            .err = YAWT_Q_OK,
+          };
+          uint64_t signal = 0;
+          YAWT_q_varint_decode(&rc, &signal);
+          uint64_t session_id = 0;
+          YAWT_q_varint_decode(&rc, &session_id);
+          if (rc.err != YAWT_Q_OK) {
+            // Session_id varint spans chunks — not supported yet
+            YAWT_LOG(YAWT_LOG_ERROR, "h3: bidi stream %lu 0x41 signal or session_id spans chunks", chunk->stream_id);
+            return YAWT_H3_ERR_MALFORMED;
+          }
+          // Both varints decoded — this is a WT bidi stream
+          stream->type = YAWT_H3_STREAM_WT_BIDI;
+          stream->wt_session_id = session_id;
+          *cursor = (size_t)rc.cursor;
+          YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT bidi (0x41), session_id=%lu",
+                   chunk->stream_id, session_id);
+        } else {
+          // Not 0x41 (or not first byte) — normal H3 bidi stream
+          stream->type = YAWT_H3_STREAM_FRAME;
+          YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is normal H3 bidi", chunk->stream_id);
+        }
         break;
+      }
       case YAWT_Q_C_UNI:
        case YAWT_Q_S_UNI: {
-        YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is uni stream, gathering stream type prefix", chunk->stream_id);
-         size_t consumed = 0;
-         YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
-         if (e == YAWT_H3_ERR_INCOMPLETE) {
-           *cursor += consumed;
-           return YAWT_H3_ERR_INCOMPLETE;
-         }
-         if (e != YAWT_H3_OK) {
-           return e;
-         }
-         *cursor += consumed;
-         /* If all chunk data was consumed by stream-type prefix, continue to switch */
-          if (*cursor >= chunk->data_len) {
-            // Fall through to switch statement below
+         YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is uni stream, gathering stream type prefix", chunk->stream_id);
+          size_t consumed = 0;
+          YAWT_H3_Error_t e = _gather_h3_stream_type(stream, chunk, &consumed);
+          if (e == YAWT_H3_ERR_INCOMPLETE) {
+            *cursor += consumed;
+            return YAWT_H3_ERR_INCOMPLETE;
           }
-         break;
-       }
+          if (e != YAWT_H3_OK) {
+            return e;
+          }
+          *cursor += consumed;
+          /* If all chunk data was consumed by stream-type prefix, continue to switch */
+           if (*cursor >= chunk->data_len) {
+             // Fall through to switch statement below
+           }
+          break;
+        }
       default:
         YAWT_LOG(YAWT_LOG_ERROR, "h3: unknown stream type %d for stream_id=%lu",
                  chunk->stream_type, chunk->stream_id);
@@ -512,11 +566,24 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
       *cursor = chunk->data_len;
       return YAWT_H3_IGNORED;
 
-    case YAWT_H3_STREAM_WEBTRANSPORT:
+    case YAWT_H3_STREAM_WT_UNI:
       // Emit event with remaining data, then drain
       _h3_emit_event(h3con, YAWT_H3_EVT_WT_UNI_STREAM, (YAWT_H3_EventParam_t){
         .P_EVT_WT_UNI_STREAM = {
           .stream_id = chunk->stream_id,
+          .data = chunk->data + *cursor,
+          .len = chunk->data_len - *cursor,
+        }
+      });
+      *cursor = chunk->data_len;
+      return YAWT_H3_IGNORED;
+
+    case YAWT_H3_STREAM_WT_BIDI:
+      // Emit event with remaining data (session_id already consumed during type resolution)
+      _h3_emit_event(h3con, YAWT_H3_EVT_WT_BIDI_STREAM, (YAWT_H3_EventParam_t){
+        .P_EVT_WT_BIDI_STREAM = {
+          .stream_id = chunk->stream_id,
+          .session_id = stream->wt_session_id,
           .data = chunk->data + *cursor,
           .len = chunk->data_len - *cursor,
         }
@@ -529,6 +596,26 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
                stream->type, chunk->stream_id);
       return YAWT_H3_ERR_MALFORMED;
   }
+}
+
+// Capsule parser callback context for WT_CONNECT streams.
+typedef struct {
+  YAWT_H3_Connection_t *h3con;
+  YAWT_H3_Stream_t *stream;
+} _Capsule_Callback_Ctx_t;
+
+// Capsule parser callback for WT_CONNECT streams.
+// Called by YAWT_capsule_parse_feed() when a complete capsule is parsed.
+static void _capsule_callback(void *ctx, uint64_t type, const uint8_t *value, size_t len) {
+  _Capsule_Callback_Ctx_t *cb_ctx = (_Capsule_Callback_Ctx_t *)ctx;
+  _h3_emit_event(cb_ctx->h3con, YAWT_H3_EVT_WT_CAPSULE, (YAWT_H3_EventParam_t){
+    .P_EVT_WT_CAPSULE = {
+      .stream_id = cb_ctx->stream->id,
+      .capsule_type = type,
+      .data = value,
+      .len = len,
+    }
+  });
 }
 
 void _handle_rx_stream_frame(
@@ -547,9 +634,20 @@ void _handle_rx_stream_frame(
     uint64_t need = f->payload_len - f->accumulated;
     size_t n = (need < avail) ? (size_t)need : avail;
     int is_last = (f->accumulated + n >= f->payload_len) && chunk_fin;
-    _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
-      .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
-    });
+
+    // Check if this is a WT_CONNECT stream (upgraded CONNECT with capsules)
+    if (stream->type == YAWT_H3_STREAM_WT_CONNECT) {
+      // Feed DATA payload to capsule parser
+      // The capsule parser handles capsules that span multiple DATA frames
+      _Capsule_Callback_Ctx_t cb_ctx = { .h3con = con, .stream = stream };
+      YAWT_capsule_parse_feed(&stream->capsule_parser, chunk->data + *cursor, n,
+                               _capsule_callback, &cb_ctx);
+    } else {
+      // Normal H3 DATA frame
+      _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
+        .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
+      });
+    }
     f->accumulated += n;
     *cursor += n;
   } else {
@@ -605,11 +703,38 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       if (!h3 || !h3->app_handler) {
         return YAWT_H3_ERR_NO_APP_HANDLER;
       }
+      YAWT_Q_StreamUserData_t *sud = param.P_EVT_STREAM.stream_ud;
+      if (!sud) {
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: EVT_STREAM with NULL stream_ud");
+        return YAWT_H3_ERR_INVALID_PARAM;
+      }
       const YAWT_Q_Frame_Stream_t *chunk = param.P_EVT_STREAM.frame;
       size_t cursor = 0;
+
+      // Lazy-init H3 stream slot from stream_ud
+      YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+      if (!stream) {
+        stream = YAWT_h3_stream_meta_find(h3, chunk->stream_id);
+        if (!stream) {
+          // Claim a free slot
+          for (uint64_t i = 0; i < h3->nstreams; i++) {
+            if (!h3->streams[i].in_use) {
+              h3->streams[i].in_use = true;
+              h3->streams[i].id = chunk->stream_id;
+              stream = &h3->streams[i];
+              break;
+            }
+          }
+        }
+        if (!stream) {
+          YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", chunk->stream_id);
+          return YAWT_H3_ERR_INVALID_PARAM;
+        }
+        sud->user_data[YAWT_UD_H3] = stream;
+      }
+
       while (cursor < chunk->data_len) {
-        YAWT_H3_Stream_t *stream = NULL;
-        YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, &stream, &cursor);
+        YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, stream, &cursor);
 
         // Critical stream closure detection (RFC 9114 §6.2.1, RFC 9204 §4.2)
         // Must check FIN regardless of parse result for critical streams
@@ -873,6 +998,23 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
 
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent HEADERS on stream %lu (%zu bytes, fin=%d)",
            stream_id, hdr_len + block_len, fin);
+
+  // Server side: if this stream is WT_CONNECT_PENDING and we're sending a 2xx
+  // response, upgrade it to WT_CONNECT (draft-15 §3.2)
+  YAWT_H3_Stream_t *stream = YAWT_h3_stream_meta_find(h3, stream_id);
+  if (stream && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+    YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(headers, ":status");
+    if (status.name && status.value_len > 0 && status.value[0] == '2') {
+      stream->type = YAWT_H3_STREAM_WT_CONNECT;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (sent 2xx response)", stream_id);
+    } else {
+      // Non-2xx response — revert to normal H3 stream
+      stream->type = YAWT_H3_STREAM_FRAME;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (sent status %.*s)",
+               stream_id, (int)status.value_len, status.value);
+    }
+  }
+
   return YAWT_H3_OK;
 }
 

@@ -42,8 +42,19 @@
  */
 YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
                                     const YAWT_Q_Frame_Stream_t *chunk,
-                                    YAWT_H3_Stream_t **out_stream,
+                                    YAWT_H3_Stream_t *stream,
                                     size_t *cursor);
+
+/**
+ * @internal
+ * @ingroup H3_Internal
+ * @brief Find H3 stream metadata by stream_id.
+ * @param h3 The H3 connection.
+ * @param stream_id The stream to look up.
+ * @return Pointer to the H3 stream metadata, or NULL if not found.
+ * @note Find-only; does not create new stream entries.
+ */
+YAWT_H3_Stream_t *YAWT_h3_stream_meta_find(YAWT_H3_Connection_t *h3, uint64_t stream_id);
 
 /**
  * @internal

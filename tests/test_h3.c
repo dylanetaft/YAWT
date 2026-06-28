@@ -28,6 +28,23 @@ static YAWT_H3_Connection_t *alloc_minimal_h3_conn(void) {
     return &h3;
 }
 
+static YAWT_H3_Stream_t *test_get_or_create_stream(YAWT_H3_Connection_t *h3, uint64_t stream_id) {
+    YAWT_H3_Stream_t *stream = YAWT_h3_stream_meta_find(h3, stream_id);
+    if (!stream) {
+        for (uint64_t i = 0; i < h3->nstreams; i++) {
+            if (!h3->streams[i].in_use) {
+                memset(&h3->streams[i], 0, sizeof(YAWT_H3_Stream_t));
+                h3->streams[i].in_use = true;
+                h3->streams[i].id = stream_id;
+                h3->streams[i].type = YAWT_H3_STREAM_UNASSIGNED;
+                stream = &h3->streams[i];
+                break;
+            }
+        }
+    }
+    return stream;
+}
+
 
 /* ------------------------------------------------------------------ */
 /*  1. Settings frame on bidi stream (no stream-type prefix)           */
@@ -60,8 +77,9 @@ static void test_settings_frame_on_bidi_stream(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  YAWT_H3_Stream_t *stream = test_get_or_create_stream(h3, stream_id);
+  TEST_ASSERT_NOT_NULL(stream);
+  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_NOT_NULL(stream);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_FRAME, stream->type);

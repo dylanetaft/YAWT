@@ -223,6 +223,18 @@ void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t s
 
 /**
  * @ingroup QUIC_Connection
+ * @brief Get per-stream user data container for a given stream_id.
+ * @param con The QUIC connection.
+ * @param stream_id The stream to look up.
+ * @return Pointer to the stream's user data container, or NULL if stream not found.
+ * @note Upper layers access their slot via sud->user_data[YAWT_UD_H3], etc.
+ *       The QUIC layer's own metadata is at sud->user_data[YAWT_UD_QUIC].
+ *       Full struct definition in impl/quic_types.h.
+ */
+YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Connection_t *con, uint64_t stream_id);
+
+/**
+ * @ingroup QUIC_Connection
  * @brief Install the process-wide event handler.
  * @param handler The event handler function. Passing NULL restores the built-in no-op default.
  */
