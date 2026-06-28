@@ -48,17 +48,6 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
 /**
  * @internal
  * @ingroup H3_Internal
- * @brief Find H3 stream metadata by stream_id.
- * @param h3 The H3 connection.
- * @param stream_id The stream to look up.
- * @return Pointer to the H3 stream metadata, or NULL if not found.
- * @note Find-only; does not create new stream entries.
- */
-YAWT_H3_Stream_t *YAWT_h3_stream_meta_find(YAWT_H3_Connection_t *h3, uint64_t stream_id);
-
-/**
- * @internal
- * @ingroup H3_Internal
  * @brief Encode an H3 frame header (type varint + length varint) into buf.
  * @param frame_type The H3 frame type.
  * @param payload_len The payload length.

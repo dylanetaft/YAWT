@@ -76,12 +76,11 @@ typedef struct {
  * @internal
  * @ingroup QUIC_Internal
  * @brief Per-stream user data container — one per open stream, stored in the con->stream_userdata slab.
- * @note Each protocol layer (QUIC, H3, WT, APP) stores its per-stream metadata in user_data[slot].
- *       The QUIC layer stores YAWT_Q_StreamMeta_t* in user_data[YAWT_UD_QUIC].
- *       Upper layers access their slot via sud->user_data[YAWT_UD_H3], etc.
+ * @note Each protocol layer (QUIC, H3, WT, APP) mallocs its per-stream metadata and stores it in user_data[slot].
+ *       The QUIC layer mallocs YAWT_Q_StreamMeta_t and stores it in user_data[YAWT_UD_QUIC].
+ *       Upper layers malloc their own structs and store in their respective slots.
  */
 struct YAWT_Q_StreamUserData_t {
-  YAWT_Q_StreamMeta_t meta;
   uint64_t stream_id;
   void *user_data[YAWT_UD_COUNT];
 };

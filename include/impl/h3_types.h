@@ -53,13 +53,13 @@ struct YAWT_H3_Stream_t {
  * @brief H3 connection object.
  * @note Hung off the QUIC connection's YAWT_UD_H3 slot. Allocated on EVT_CONNECTED,
  *       freed on EVT_CLOSE (which con_free guarantees fires once).
+ *       Per-stream H3 metadata is malloc'd and stored in the QUIC stream's
+ *       YAWT_Q_StreamUserData_t[YAWT_UD_H3] slot (1:1 with QUIC streams).
  */
 struct YAWT_H3_Connection_t {
   YAWT_Q_Connection_t *qcon;            // back-reference to the QUIC layer
   YAWT_H3_EventHandler_t app_handler;   // app-level event callback
   YAWT_H3_Settings_t *local_settings;   // NULL until populated
   YAWT_H3_Settings_t *peer_settings;    // NULL until decoded from peer
-  uint64_t nstreams;                    // slot pool size (concurrent stream cap)
-  YAWT_H3_Stream_t *streams;            // preallocated slot pool, linear-scan by id
   YAWT_H3_Unique_Stream_Status_t core_stream_status[YAWT_H3_UNIQUE_STREAM_COUNT];
 };

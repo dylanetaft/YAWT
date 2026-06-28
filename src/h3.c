@@ -106,47 +106,41 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
   if (!h3) return NULL;
 
   h3->qcon = con;
-  h3->nstreams = con->local_fc.max_streams_bidi + con->local_fc.max_streams_uni;
-  h3->streams = calloc(h3->nstreams, sizeof(YAWT_H3_Stream_t));
-
-  if (!h3->streams) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to allocate connection state");
-    abort();
-  }
   return h3;
 }
 
 static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   if (!h3) return;
-  for (uint64_t i = 0; i < h3->nstreams; i++) {
-    if (h3->streams[i].frame.payload_blob != NULL) {
-      ANB_blob_destroy(h3->streams[i].frame.payload_blob);
-    }
-    if (h3->streams[i].request_headers) {
-      YAWT_h3_header_fields_destroy(h3->streams[i].request_headers);
-      h3->streams[i].request_headers = NULL;
-    }
-    if (h3->streams[i].response_headers) {
-      YAWT_h3_header_fields_destroy(h3->streams[i].response_headers);
-      h3->streams[i].response_headers = NULL;
-    }
-  }
-  free(h3->streams);
   free(h3->local_settings);
   free(h3->peer_settings);
   free(h3);
 }
 
-YAWT_H3_Stream_t *YAWT_h3_stream_meta_find(
-    YAWT_H3_Connection_t *h3,
-    uint64_t stream_id) {
-  YAWT_LOG(YAWT_LOG_DEBUG, "h3: looking up stream metadata for stream_id=%lu", stream_id);
-  for (uint64_t i = 0; i < h3->nstreams; i++) {
-    if (h3->streams[i].in_use && h3->streams[i].id == stream_id) {
-      return &h3->streams[i];
-    }
+static void _h3_stream_destroy(YAWT_H3_Stream_t *stream) {
+  if (!stream) return;
+  if (stream->frame.payload_blob != NULL) {
+    ANB_blob_destroy(stream->frame.payload_blob);
   }
-  return NULL;
+  if (stream->request_headers) {
+    YAWT_h3_header_fields_destroy(stream->request_headers);
+  }
+  if (stream->response_headers) {
+    YAWT_h3_header_fields_destroy(stream->response_headers);
+  }
+  free(stream);
+}
+
+static YAWT_H3_Stream_t *_h3_stream_get_or_create(YAWT_Q_StreamUserData_t *sud) {
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+  if (!stream) {
+    stream = (YAWT_H3_Stream_t *)malloc(sizeof(YAWT_H3_Stream_t));
+    if (!stream) return NULL;
+    memset(stream, 0, sizeof(*stream));
+    stream->id = sud->stream_id;
+    stream->type = YAWT_H3_STREAM_UNASSIGNED;
+    sud->user_data[YAWT_UD_H3] = stream;
+  }
+  return stream;
 }
 
 // Resolve a uni stream's role from its leading stream-type varint (RFC 9114
@@ -711,26 +705,10 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       const YAWT_Q_Frame_Stream_t *chunk = param.P_EVT_STREAM.frame;
       size_t cursor = 0;
 
-      // Lazy-init H3 stream slot from stream_ud
-      YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+      YAWT_H3_Stream_t *stream = _h3_stream_get_or_create(sud);
       if (!stream) {
-        stream = YAWT_h3_stream_meta_find(h3, chunk->stream_id);
-        if (!stream) {
-          // Claim a free slot
-          for (uint64_t i = 0; i < h3->nstreams; i++) {
-            if (!h3->streams[i].in_use) {
-              h3->streams[i].in_use = true;
-              h3->streams[i].id = chunk->stream_id;
-              stream = &h3->streams[i];
-              break;
-            }
-          }
-        }
-        if (!stream) {
-          YAWT_LOG(YAWT_LOG_ERROR, "h3: no stream slots available for stream_id=%lu", chunk->stream_id);
-          return YAWT_H3_ERR_INVALID_PARAM;
-        }
-        sud->user_data[YAWT_UD_H3] = stream;
+        YAWT_LOG(YAWT_LOG_ERROR, "h3: failed to allocate stream metadata for stream_id=%lu", chunk->stream_id);
+        return YAWT_H3_ERR_INVALID_PARAM;
       }
 
       while (cursor < chunk->data_len) {
@@ -1001,7 +979,8 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
 
   // Server side: if this stream is WT_CONNECT_PENDING and we're sending a 2xx
   // response, upgrade it to WT_CONNECT (draft-15 §3.2)
-  YAWT_H3_Stream_t *stream = YAWT_h3_stream_meta_find(h3, stream_id);
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
   if (stream && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
     YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(headers, ":status");
     if (status.name && status.value_len > 0 && status.value[0] == '2') {
