@@ -268,10 +268,34 @@ static void _h3_emit_event(YAWT_H3_Connection_t *con,
   }
 }
 
+// Check if decoded headers indicate a WT CONNECT upgrade (draft-15 §3.2).
+// Server side: marks stream as WT_CONNECT_PENDING if :method=CONNECT and :protocol=webtransport-h3.
+// Client side: upgrades WT_CONNECT_PENDING to WT_CONNECT on 2xx response, or reverts to FRAME on non-2xx.
+static void _check_wt_connect_upgrade(YAWT_H3_Connection_t *con, YAWT_H3_Stream_t *stream) {
+  YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
+  YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
+  YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
+
+  if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
+      protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
+    stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
+    YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
+  } else if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+    if (status.value_len > 0 && status.value[0] == '2') {
+      stream->type = YAWT_H3_STREAM_WT_CONNECT;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
+    } else {
+      stream->type = YAWT_H3_STREAM_FRAME;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
+               stream->id, (int)status.value_len, status.value);
+    }
+  }
+}
+
 // Dispatch a completed buffered frame (SETTINGS, HEADERS) based on stream type.
 // Returns true on success, false on protocol error (caller should close connection).
 static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
-                                      YAWT_H3_Stream_t *stream) {
+                                       YAWT_H3_Stream_t *stream) {
   YAWT_H3_Frame_t *f = &stream->frame;
 
   switch (stream->type) {
@@ -332,32 +356,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
           }
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
 
-          // Check if this is a CONNECT request with :protocol=webtransport-h3
-          // (draft-15 §3.2). If so, mark stream as pending upgrade.
-          // Also check if this is a response on a WT_CONNECT_PENDING stream
-          // (client side receiving 2xx).
-          YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
-          YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
-          YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
-
-          if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
-              protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
-            // Server side: CONNECT request with webtransport-h3 protocol
-            stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
-            YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
-          } else if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
-            // Client side: response on a pending CONNECT stream
-            // Check if status is 2xx (success)
-            if (status.value_len > 0 && status.value[0] == '2') {
-              stream->type = YAWT_H3_STREAM_WT_CONNECT;
-              YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
-            } else {
-              // Non-2xx response — revert to normal H3 stream
-              stream->type = YAWT_H3_STREAM_FRAME;
-              YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
-                       stream->id, (int)status.value_len, status.value);
-            }
-          }
+          _check_wt_connect_upgrade(con, stream);
 
           _h3_emit_event(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
             .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request_headers }
