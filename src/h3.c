@@ -271,31 +271,60 @@ static void _h3_emit_event(YAWT_H3_Connection_t *con,
 // Check if decoded headers indicate a WT CONNECT upgrade (draft-15 §3.2).
 // Server side: marks stream as WT_CONNECT_PENDING if :method=CONNECT and :protocol=webtransport-h3.
 // Client side: upgrades WT_CONNECT_PENDING to WT_CONNECT on 2xx response, or reverts to FRAME on non-2xx.
-static void _check_wt_connect_upgrade(YAWT_H3_Connection_t *con, YAWT_H3_Stream_t *stream) {
-  YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
-  YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
-  YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
+static void _process_wt_connect_upgrade(YAWT_H3_Connection_t *con, 
+            YAWT_Q_StreamUserData_t *sud) {
 
-  if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
-      protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
-    stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
-    YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
-  } else if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+  bool is_client_bidi = ((stream->id) & 0x03) == YAWT_Q_C_BIDI;
+  bool is_server_bidi = ((stream->id) & 0x03) == YAWT_Q_S_BIDI;
+
+  if (is_client_bidi) { //only a client can initiate a CONNECT req
+
+    YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
+    YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
+
+    if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
+        protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
+      stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
+
+    } 
+  }
+
+  else if (is_server_bidi) { //only a server can respond to a CONNECT req
+    YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
+    if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
     if (status.value_len > 0 && status.value[0] == '2') {
       stream->type = YAWT_H3_STREAM_WT_CONNECT;
       YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
     } else {
       stream->type = YAWT_H3_STREAM_FRAME;
       YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
-               stream->id, (int)status.value_len, status.value);
+              stream->id, (int)status.value_len, status.value);
+      }
+      
     }
+  }
+  else {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: stream %lu is not a request or response stream", stream->id);
+  }
+
+  if (is_client_bidi || is_server_bidi) {
+    //// app can observe the stream type to determine 
+    //// if the CONNECT was accepted or rejected 
+    YAWT_H3_EventParam_t param;
+    param.P_EVT_WT_UPGRADE.stream_id = stream->id;
+    _h3_emit_event(con, YAWT_H3_EVT_WT_UPGRADE, param); 
   }
 }
 
 // Dispatch a completed buffered frame (SETTINGS, HEADERS) based on stream type.
 // Returns true on success, false on protocol error (caller should close connection).
 static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
-                                       YAWT_H3_Stream_t *stream) {
+                                       YAWT_Q_StreamUserData_t *sud) {
+
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
   YAWT_H3_Frame_t *f = &stream->frame;
 
   switch (stream->type) {
@@ -356,7 +385,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
           }
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
 
-          _check_wt_connect_upgrade(con, stream);
+          _process_wt_connect_upgrade(con, sud);
 
           _h3_emit_event(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
             .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request_headers }
@@ -528,26 +557,6 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   }
 }
 
-// Capsule parser callback context for WT_CONNECT streams.
-typedef struct {
-  YAWT_H3_Connection_t *h3con;
-  YAWT_H3_Stream_t *stream;
-} _Capsule_Callback_Ctx_t;
-
-// Capsule parser callback for WT_CONNECT streams.
-// Called by YAWT_capsule_parse_feed() when a complete capsule is parsed.
-static void _capsule_callback(void *ctx, uint64_t type, const uint8_t *value, size_t len) {
-  _Capsule_Callback_Ctx_t *cb_ctx = (_Capsule_Callback_Ctx_t *)ctx;
-  _h3_emit_event(cb_ctx->h3con, YAWT_H3_EVT_WT_CAPSULE, (YAWT_H3_EventParam_t){
-    .P_EVT_WT_CAPSULE = {
-      .stream_id = cb_ctx->stream->id,
-      .capsule_type = type,
-      .data = value,
-      .len = len,
-    }
-  });
-}
-
 void _handle_rx_stream_frame(
     YAWT_H3_Connection_t *con,
     const YAWT_Q_Frame_Stream_t *chunk,
@@ -565,19 +574,10 @@ void _handle_rx_stream_frame(
     size_t n = (need < avail) ? (size_t)need : avail;
     int is_last = (f->accumulated + n >= f->payload_len) && chunk_fin;
 
-    // Check if this is a WT_CONNECT stream (upgraded CONNECT with capsules)
-    if (stream->type == YAWT_H3_STREAM_WT_CONNECT) {
-      // Feed DATA payload to capsule parser
-      // The capsule parser handles capsules that span multiple DATA frames
-      _Capsule_Callback_Ctx_t cb_ctx = { .h3con = con, .stream = stream };
-      YAWT_capsule_parse_feed(&stream->capsule_parser, chunk->data + *cursor, n,
-                               _capsule_callback, &cb_ctx);
-    } else {
-      // Normal H3 DATA frame
-      _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
-        .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
+    _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
+      .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
       });
-    }
+
     f->accumulated += n;
     *cursor += n;
   } else {
@@ -677,7 +677,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
         }
         if (stream->frame.payload_blob &&
             stream->frame.accumulated >= stream->frame.payload_len) {
-          if (!_dispatch_buffered_frame(h3, stream)) {
+          if (!_dispatch_buffered_frame(h3, sud)) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3: protocol error on stream %lu", stream->id);
           }
           continue;
@@ -959,5 +959,93 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: sent DATA on stream %lu (%zu bytes, fin=%d)",
            stream_id, data_len, fin);
+  return YAWT_H3_OK;
+}
+
+
+YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3, 
+                uint64_t stream_id, const char *scheme, const char *authority, const char *path) {
+  if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
+  if (!scheme || !authority || !path) return YAWT_H3_ERR_INVALID_PARAM;
+
+  if (h3->qcon->role != YAWT_Q_ROLE_CLIENT) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade called on server role (stream %lu)", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
+  if (!stream) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: no stream metadata for stream %lu", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  if (stream->type != YAWT_H3_STREAM_FRAME && stream->type != YAWT_H3_STREAM_UNASSIGNED) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: stream %lu in invalid state %d", stream_id, stream->type);
+    return YAWT_H3_ERR_INVALID_STATE;
+  }
+
+  YAWT_H3_HeaderFields_t *req = YAWT_h3_header_fields_create();
+  if (!req) return YAWT_H3_ERR_SHORT_BUFFER;
+
+  YAWT_h3_header_add_str(req, ":method", "CONNECT");
+  YAWT_h3_header_add_str(req, ":protocol", "webtransport-h3");
+  YAWT_h3_header_add_str(req, ":scheme", scheme);
+  YAWT_h3_header_add_str(req, ":authority", authority);
+  YAWT_h3_header_add_str(req, ":path", path);
+
+  YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, req, 0);
+  YAWT_h3_header_fields_destroy(req);
+
+  if (err != YAWT_H3_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: send_headers failed on stream %lu: %s",
+             stream_id, YAWT_h3_err_str(err));
+    return err;
+  }
+
+  YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_upgrade: sent CONNECT request on stream %lu", stream_id);
+  return YAWT_H3_OK;
+}
+
+YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3, 
+                uint64_t stream_id, uint16_t status_code) {
+  if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
+
+  if (h3->qcon->role != YAWT_Q_ROLE_SERVER) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_deny called on client role (stream %lu)", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
+  if (!stream) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_deny: no stream metadata for stream %lu", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  if (stream->type != YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_deny: stream %lu not in WT_CONNECT_PENDING state (state=%d)",
+             stream_id, stream->type);
+    return YAWT_H3_ERR_INVALID_STATE;
+  }
+
+  char status_buf[4];
+  snprintf(status_buf, sizeof(status_buf), "%u", status_code);
+
+  YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
+  if (!resp) return YAWT_H3_ERR_SHORT_BUFFER;
+
+  YAWT_h3_header_add_str(resp, ":status", status_buf);
+
+  YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, resp, 1);
+  YAWT_h3_header_fields_destroy(resp);
+
+  if (err != YAWT_H3_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_deny: send_headers failed on stream %lu: %s",
+             stream_id, YAWT_h3_err_str(err));
+    return err;
+  }
+
+  YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_deny: sent %s rejection on stream %lu", status_buf, stream_id);
   return YAWT_H3_OK;
 }

@@ -112,24 +112,24 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_LOG(YAWT_LOG_INFO, "wt app: CLOSE (code=%lu, reason=%s)",
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       break;
-    case YAWT_H3_EVT_WT_UNI_STREAM:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UNI_STREAM on stream %lu (%zu bytes)",
-               param.P_EVT_WT_UNI_STREAM.stream_id, param.P_EVT_WT_UNI_STREAM.len);
-      break;
+    // case YAWT_H3_EVT_WT_UNI_STREAM:
+    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UNI_STREAM on stream %lu (%zu bytes)",
+    //            param.P_EVT_WT_UNI_STREAM.stream_id, param.P_EVT_WT_UNI_STREAM.len);
+    //   break;
     case YAWT_H3_EVT_DATAGRAM:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM (%zu bytes)",
                param.P_EVT_DATAGRAM.len);
       break;
-    case YAWT_H3_EVT_WT_BIDI_STREAM:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_BIDI_STREAM on stream %lu, session %lu (%zu bytes)",
-               param.P_EVT_WT_BIDI_STREAM.stream_id, param.P_EVT_WT_BIDI_STREAM.session_id,
-               param.P_EVT_WT_BIDI_STREAM.len);
-      break;
-    case YAWT_H3_EVT_WT_CAPSULE:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_CAPSULE on stream %lu, type 0x%lx (%zu bytes)",
-               param.P_EVT_WT_CAPSULE.stream_id, param.P_EVT_WT_CAPSULE.capsule_type,
-               param.P_EVT_WT_CAPSULE.len);
-      break;
+    // case YAWT_H3_EVT_WT_BIDI_STREAM:
+    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_BIDI_STREAM on stream %lu, session %lu (%zu bytes)",
+    //            param.P_EVT_WT_BIDI_STREAM.stream_id, param.P_EVT_WT_BIDI_STREAM.session_id,
+    //            param.P_EVT_WT_BIDI_STREAM.len);
+    //   break;
+    // case YAWT_H3_EVT_WT_CAPSULE:
+    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_CAPSULE on stream %lu, type 0x%lx (%zu bytes)",
+    //            param.P_EVT_WT_CAPSULE.stream_id, param.P_EVT_WT_CAPSULE.capsule_type,
+    //            param.P_EVT_WT_CAPSULE.len);
+    //   break;
   }
 }
 

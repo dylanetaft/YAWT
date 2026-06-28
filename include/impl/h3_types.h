@@ -13,7 +13,6 @@
 #include <allocnbuffer/slab.h>
 #include "../h3_types.h"
 #include "../quic_connection.h"
-#include "../capsule.h"
 
 /**
  * @ingroup H3_Types
@@ -39,8 +38,6 @@ struct YAWT_H3_Stream_t {
   YAWT_H3_HeaderFields_t *request_headers;
   YAWT_H3_HeaderFields_t *response_headers;
   YAWT_H3_Frame_t frame;
-  // WebTransport fields (draft-15)
-  YAWT_Capsule_Parser_t capsule_parser; // For WT_CONNECT streams (capsules in DATA)
 };
 
 /**

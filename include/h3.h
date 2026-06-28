@@ -223,3 +223,33 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
                                     uint64_t stream_id,
                                     const uint8_t *data, size_t data_len,
                                     int fin);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Upgrade a request bidi stream to WebTransport (WT) mode.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to upgrade.
+ * @param scheme The URI scheme (e.g., "https").
+ * @param authority The authority (host:port).
+ * @param path The request path.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Client-side: sends a CONNECT request with :method=CONNECT, :protocol=webtransport-h3.
+ *       Server-side: not applicable (server responds via YAWT_h3_send_headers with 2xx).
+ *       After calling this, the stream enters WT_CONNECT_PENDING state until the server responds.
+ *       HEADERS/DATA frames will cease to be interpreted as HTTP/3 once upgraded.
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3, uint64_t stream_id,
+                                          const char *scheme, const char *authority, const char *path);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Deny a request bidi stream from being upgraded to WebTransport (WT) mode.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to deny.
+ * @param status_code The HTTP status code to send (e.g., 403, 404, 503).
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Server-side only: sends a non-2xx response to reject the CONNECT request.
+ *       HEADERS/DATA frames will continue to be interpreted as HTTP/3.
+ *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3, uint64_t stream_id, uint16_t status_code);

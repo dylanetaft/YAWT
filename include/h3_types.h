@@ -163,6 +163,7 @@ typedef enum {
   YAWT_H3_ERR_MALFORMED,        /**< Structurally invalid (e.g. odd SETTINGS pairs) */
   YAWT_H3_ERR_TOO_LARGE,        /**< Frame exceeds the H3 buffer cap (security policy) */
   YAWT_H3_ERR_INVALID_PARAM,    /**< Invalid parameter */
+  YAWT_H3_ERR_INVALID_STATE,    /**< Stream/connection in invalid state for operation */
   YAWT_H3_ERR_NO_APP_HANDLER,   /**< App handler not set via YAWT_h3_set_event_handler() */
   YAWT_H3_IGNORED,              /**< Event was not handled (e.g. DATAGRAM, unknown QUIC event) */
 } YAWT_H3_Error_t;
@@ -181,6 +182,7 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
     case YAWT_H3_ERR_MALFORMED:     return "MALFORMED";
     case YAWT_H3_ERR_TOO_LARGE:     return "TOO_LARGE";
     case YAWT_H3_ERR_INVALID_PARAM: return "INVALID_PARAM";
+    case YAWT_H3_ERR_INVALID_STATE: return "INVALID_STATE";
     case YAWT_H3_ERR_NO_APP_HANDLER:return "NO_APP_HANDLER";
     case YAWT_H3_IGNORED:           return "IGNORED";
     default:                        return "UNKNOWN";
@@ -273,10 +275,8 @@ typedef enum {
   YAWT_H3_EVT_DATA,           /**< DATA frame payload chunk; stream_id + data/len + fin */
   YAWT_H3_EVT_SETTINGS,       /**< SETTINGS frame decoded; param has stream_id + settings ptr */
   YAWT_H3_EVT_CLOSE,          /**< H3-level error/close; param has error_code + reason */
-  YAWT_H3_EVT_WT_UNI_STREAM,  /**< Data on a 0x54 uni stream; param has stream_id + data/len (draft-15 §4.2) */
-  YAWT_H3_EVT_WT_BIDI_STREAM, /**< Data on a 0x41 bidi stream; param has stream_id + data/len (draft-15 §4.3) */
-  YAWT_H3_EVT_WT_CAPSULE,     /**< Capsule parsed on upgraded CONNECT; param has stream_id + capsule type/data (RFC 9297) */
   YAWT_H3_EVT_DATAGRAM,       /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
+  YAWT_H3_EVT_WT_UPGRADE      /**< WebTransport upgrade request or response */
 } YAWT_H3_EventType_t;
 
 /**
@@ -306,31 +306,15 @@ typedef union YAWT_H3_EventParam {
     uint64_t error_code;
     const char *reason;
   } P_EVT_CLOSE;
-  /** @brief Parameters for YAWT_H3_EVT_WT_UNI_STREAM. */
-  struct {
-    uint64_t stream_id;       /**< H3 uni stream ID (0x54 type already consumed) */
-    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
-    size_t len;               /**< Length of remaining data after stream-type varint */
-  } P_EVT_WT_UNI_STREAM;
   /** @brief Parameters for YAWT_H3_EVT_DATAGRAM. */
   struct {
     const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
     size_t len;               /**< Length of datagram payload */
   } P_EVT_DATAGRAM;
-  /** @brief Parameters for YAWT_H3_EVT_WT_BIDI_STREAM. */
+  /** @brief Parameters for YAWT_H3_EVT_WT_UPGRADE. */
   struct {
-    uint64_t stream_id;       /**< H3 bidi stream ID (0x41 signal + session_id already consumed) */
-    uint64_t session_id;      /**< WebTransport session ID */
-    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
-    size_t len;               /**< Length of remaining data after session_id varint */
-  } P_EVT_WT_BIDI_STREAM;
-  /** @brief Parameters for YAWT_H3_EVT_WT_CAPSULE. */
-  struct {
-    uint64_t stream_id;       /**< H3 stream ID (CONNECT stream) */
-    uint64_t capsule_type;    /**< Capsule type (RFC 9297 §3.2) */
-    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
-    size_t len;               /**< Length of capsule value */
-  } P_EVT_WT_CAPSULE;
+    uint64_t stream_id;       /**< The stream ID of the upgrade request/response */
+  } P_EVT_WT_UPGRADE;
 } YAWT_H3_EventParam_t;
 
 /**
