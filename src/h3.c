@@ -269,18 +269,26 @@ static void _h3_emit_event(YAWT_H3_Connection_t *con,
 }
 
 // Check if decoded headers indicate a WT CONNECT upgrade (draft-15 §3.2).
+// Request streams are always client-initiated bidi. The distinction between
+// request (server receives) and response (client receives) is the connection role.
 // Server side: marks stream as WT_CONNECT_PENDING if :method=CONNECT and :protocol=webtransport-h3.
 // Client side: upgrades WT_CONNECT_PENDING to WT_CONNECT on 2xx response, or reverts to FRAME on non-2xx.
 static void _process_wt_connect_upgrade(YAWT_H3_Connection_t *con, 
             YAWT_Q_StreamUserData_t *sud) {
 
-
   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
   bool is_client_bidi = ((stream->id) & 0x03) == YAWT_Q_C_BIDI;
-  bool is_server_bidi = ((stream->id) & 0x03) == YAWT_Q_S_BIDI;
 
-  if (is_client_bidi) { //only a client can initiate a CONNECT req
+  if (!is_client_bidi) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is not client-initiated bidi, skipping WT upgrade check", stream->id);
+    return;
+  }
 
+  bool is_server = (con->qcon->role == YAWT_Q_ROLE_SERVER);
+  bool is_upgrade_related = false;
+
+  if (is_server) {
+    // Server receives CONNECT request from client
     YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
     YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
 
@@ -288,34 +296,29 @@ static void _process_wt_connect_upgrade(YAWT_H3_Connection_t *con,
         protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
       stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
       YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
-
-    } 
-  }
-
-  else if (is_server_bidi) { //only a server can respond to a CONNECT req
+      is_upgrade_related = true;
+    }
+  } else {
+    // Client receives response from server
     YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(stream->request_headers, ":status");
     if (status.name && stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING) {
-    if (status.value_len > 0 && status.value[0] == '2') {
-      stream->type = YAWT_H3_STREAM_WT_CONNECT;
-      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
-    } else {
-      stream->type = YAWT_H3_STREAM_FRAME;
-      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
-              stream->id, (int)status.value_len, status.value);
+      if (status.value_len > 0 && status.value[0] == '2') {
+        stream->type = YAWT_H3_STREAM_WT_CONNECT;
+        YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu upgraded to WT CONNECT (2xx response)", stream->id);
+      } else {
+        stream->type = YAWT_H3_STREAM_FRAME;
+        YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu CONNECT rejected (status %.*s)",
+                 stream->id, (int)status.value_len, status.value);
       }
-      
+      is_upgrade_related = true;
     }
   }
-  else {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: stream %lu is not a request or response stream", stream->id);
-  }
 
-  if (is_client_bidi || is_server_bidi) {
-    //// app can observe the stream type to determine 
-    //// if the CONNECT was accepted or rejected 
+  if (is_upgrade_related) {
+    // App can observe the stream type to determine if CONNECT was accepted or rejected
     YAWT_H3_EventParam_t param;
     param.P_EVT_WT_UPGRADE.stream_id = stream->id;
-    _h3_emit_event(con, YAWT_H3_EVT_WT_UPGRADE, param); 
+    _h3_emit_event(con, YAWT_H3_EVT_WT_UPGRADE, param);
   }
 }
 
