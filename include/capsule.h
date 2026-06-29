@@ -7,8 +7,7 @@
  *
  * @note Buffering strategy:
  *       - Header phase: accumulate up to 16 bytes for Type + Length varints
- *       - Payload phase: buffer entire payload for control capsules that need
- *         atomic processing (CLOSE_SESSION, MAX_DATA, MAX_STREAMS_*, etc.)
+ *       - Payload phase: buffer entire payload for control capsules (max 2KB)
  *       - Exception: DATAGRAM capsules (type 0x00) stream payload directly
  *         without buffering, since datagram payloads can be large.
  *       - Unknown capsule types are logged and skipped (RFC 9297 §3.2).
@@ -23,7 +22,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "wt_types.h"
-#include "allocnbuffer/blob.h"
+
+#define YAWT_CAPSULE_BUFFER_SIZE 2048
 
 /**
  * @ingroup Capsule
@@ -46,12 +46,10 @@ typedef struct {
   uint64_t accumulated;
   uint64_t type;
   uint64_t payload_len;
-  ANB_Blob_t *payload_blob;
+  uint8_t  payload_buf[YAWT_CAPSULE_BUFFER_SIZE];
   bool     stream_payload;
   bool     capsule_complete;
-  const uint8_t *current_value;
   size_t   current_len;
-  const uint8_t *stream_ref;
 } YAWT_Capsule_Parser_t;
 
 /**

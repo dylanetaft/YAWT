@@ -65,6 +65,139 @@ typedef enum {
 
 /**
  * @ingroup WebTransport
+ * @brief WT_CLOSE_SESSION capsule (draft-15 §6).
+ *
+ * Sent to terminate a WebTransport session with a detailed error message.
+ * After sending this capsule, the endpoint MUST send FIN on the CONNECT stream.
+ *
+ * Capsule format:
+ *   Type (i) = 0x2843
+ *   Length (i)
+ *   Application Error Code (32)
+ *   Application Error Message (..8192)
+ */
+typedef struct {
+  uint32_t app_error_code;           /**< 32-bit application error code */
+  const uint8_t *app_error_message;  /**< UTF-8 error message (max 1024 bytes) */
+  size_t message_len;                /**< Length of error message */
+} YAWT_WT_CapsuleCloseSession_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief WT_DRAIN_SESSION capsule (draft-15 §4.7).
+ *
+ * Signals that the session should be gracefully terminated.
+ * After sending/receiving, endpoints MAY continue using the session
+ * but should attempt graceful termination.
+ *
+ * Capsule format:
+ *   Type (i) = 0x78ae
+ *   Length (i) = 0
+ */
+typedef struct {
+  /* No fields - empty capsule */
+} YAWT_WT_CapsuleDrainSession_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief WT_MAX_STREAMS capsule (draft-15 §5.6.2).
+ *
+ * Informs peer of the cumulative number of streams it can open.
+ * Type 0x190B4D3F = bidirectional, 0x190B4D40 = unidirectional.
+ *
+ * Capsule format:
+ *   Type (i) = 0x190B4D3F..0x190B4D40
+ *   Length (i)
+ *   Maximum Streams (i)
+ */
+typedef struct {
+  uint64_t maximum_streams;          /**< Cumulative stream count (max 2^60) */
+  bool is_bidi;                      /**< true=bidirectional, false=unidirectional */
+} YAWT_WT_CapsuleMaxStreams_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief WT_STREAMS_BLOCKED capsule (draft-15 §5.6.3).
+ *
+ * Sent when sender wants to open a stream but is blocked by peer's limit.
+ * Type 0x190B4D43 = bidirectional, 0x190B4D44 = unidirectional.
+ *
+ * Capsule format:
+ *   Type (i) = 0x190B4D43..0x190B4D44
+ *   Length (i)
+ *   Maximum Streams (i)
+ */
+typedef struct {
+  uint64_t maximum_streams;          /**< Stream limit at time of blocking (max 2^60) */
+  bool is_bidi;                      /**< true=bidirectional, false=unidirectional */
+} YAWT_WT_CapsuleStreamsBlocked_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief WT_MAX_DATA capsule (draft-15 §5.6.4).
+ *
+ * Informs peer of the maximum data that can be sent on the session.
+ * Counts all stream body data (excludes capsules, headers, stream type, session ID).
+ *
+ * Capsule format:
+ *   Type (i) = 0x190B4D3D
+ *   Length (i)
+ *   Maximum Data (i)
+ */
+typedef struct {
+  uint64_t maximum_data;             /**< Session-level byte limit */
+} YAWT_WT_CapsuleMaxData_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief WT_DATA_BLOCKED capsule (draft-15 §5.6.5).
+ *
+ * Sent when sender wants to send data but is blocked by session-level flow control.
+ *
+ * Capsule format:
+ *   Type (i) = 0x190B4D41
+ *   Length (i)
+ *   Maximum Data (i)
+ */
+typedef struct {
+  uint64_t maximum_data;             /**< Session-level limit at which blocking occurred */
+} YAWT_WT_CapsuleDataBlocked_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief DATAGRAM capsule (RFC 9297 §3.5).
+ *
+ * Carries HTTP datagram payload on a stream using the capsule protocol.
+ * Used when QUIC DATAGRAM frames are unavailable or undesirable.
+ *
+ * Capsule format:
+ *   Type (i) = 0x00
+ *   Length (i)
+ *   HTTP Datagram Payload (..)
+ */
+typedef struct {
+  const uint8_t *payload;            /**< Datagram payload (can be empty) */
+  size_t payload_len;                /**< Length of payload */
+} YAWT_WT_CapsuleDatagram_t;
+
+/**
+ * @ingroup WebTransport
+ * @brief Parsed capsule union — contains all capsule types.
+ * @note Use with YAWT_wt_parse_capsule(). The type field indicates which
+ *       union member is valid.
+ */
+typedef union {
+  YAWT_WT_CapsuleCloseSession_t close_session;
+  YAWT_WT_CapsuleDrainSession_t drain_session;
+  YAWT_WT_CapsuleMaxStreams_t max_streams;
+  YAWT_WT_CapsuleStreamsBlocked_t streams_blocked;
+  YAWT_WT_CapsuleMaxData_t max_data;
+  YAWT_WT_CapsuleDataBlocked_t data_blocked;
+  YAWT_WT_CapsuleDatagram_t datagram;
+} YAWT_WT_Capsule_t;
+
+/**
+ * @ingroup WebTransport
  * @brief Internal return status for WT functions.
  * @note Distinct from wire error codes (YAWT_WT_ErrorCode_t) — those go on the
  *       wire; these are local API return values.
@@ -102,20 +235,6 @@ static inline const char *YAWT_wt_err_str(YAWT_WT_Error_t err) {
   }
 }
 
-/**
- * @ingroup WebTransport
- * @brief WebTransport event taxonomy.
- * @note Fired by the WT layer toward the app via YAWT_WT_EventHandler_t.
- */
-typedef enum {
-  YAWT_WT_EVT_SESSION_ESTABLISHED, /**< Session accepted/confirmed; param has session_id */
-  YAWT_WT_EVT_STREAM_DATA,         /**< Data on a WT uni stream; param has session_id + stream_id + data */
-  YAWT_WT_EVT_STREAM_OPENED,       /**< New WT uni stream opened by peer; param has session_id + stream_id */
-  YAWT_WT_EVT_STREAM_RESET,        /**< Peer reset a WT stream; param has session_id + stream_id + error_code */
-  YAWT_WT_EVT_DATAGRAM,            /**< Datagram received; param has session_id + data */
-  YAWT_WT_EVT_SESSION_CLOSE,       /**< WT_CLOSE_SESSION received/sent; param has session_id + error */
-  YAWT_WT_EVT_SESSION_DRAIN,       /**< WT_DRAIN_SESSION or GOAWAY; param has session_id */
-} YAWT_WT_EventType_t;
 
 /**
  * @ingroup WebTransport
@@ -125,10 +244,6 @@ typedef enum {
  *          you need to retain.
  */
 typedef union YAWT_WT_EventParam {
-  /** @brief Parameters for YAWT_WT_EVT_SESSION_ESTABLISHED. */
-  struct {
-    uint64_t session_id; /**< The CONNECT stream ID (= session ID) */
-  } P_EVT_SESSION_ESTABLISHED;
   /** @brief Parameters for YAWT_WT_EVT_STREAM_DATA. */
   struct {
     uint64_t session_id;      /**< WT session ID */
@@ -137,34 +252,33 @@ typedef union YAWT_WT_EventParam {
     size_t len;               /**< Length of data */
     int fin;                  /**< Non-zero if this is the last chunk on the stream */
   } P_EVT_STREAM_DATA;
-  /** @brief Parameters for YAWT_WT_EVT_STREAM_OPENED. */
-  struct {
-    uint64_t session_id; /**< WT session ID */
-    uint64_t stream_id;  /**< H3 stream ID of the new uni stream */
-  } P_EVT_STREAM_OPENED;
-  /** @brief Parameters for YAWT_WT_EVT_STREAM_RESET. */
-  struct {
-    uint64_t session_id;  /**< WT session ID */
-    uint64_t stream_id;   /**< H3 stream ID that was reset */
-    uint64_t error_code;  /**< Application error code from the reset */
-  } P_EVT_STREAM_RESET;
   /** @brief Parameters for YAWT_WT_EVT_DATAGRAM. */
   struct {
     uint64_t session_id;      /**< WT session ID */
     const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
     size_t len;               /**< Length of datagram payload */
   } P_EVT_DATAGRAM;
-  /** @brief Parameters for YAWT_WT_EVT_SESSION_CLOSE. */
+  /** @brief Parameters for YAWT_WT_EVT_CAPSULE_RECEIVED. */
   struct {
-    uint64_t session_id;          /**< WT session ID being closed */
-    uint32_t app_error_code;      /**< Application-defined error code */
-    const char *app_error_message;/**< Optional human-readable message (may be NULL) */
-  } P_EVT_SESSION_CLOSE;
-  /** @brief Parameters for YAWT_WT_EVT_SESSION_DRAIN. */
-  struct {
-    uint64_t session_id; /**< WT session ID being drained */
-  } P_EVT_SESSION_DRAIN;
+    uint64_t session_id;      /**< WT session ID */
+    YAWT_WT_CapsuleType_t type;    /**< Capsule type */
+    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
+    size_t len;               /**< Length of capsule payload */
+  } P_EVT_CAPSULE_RECEIVED;
 } YAWT_WT_EventParam_t;
+
+
+/**
+ * @ingroup WebTransport
+ * @brief WebTransport event taxonomy.
+ * @note Fired by the WT layer toward the app via YAWT_WT_EventHandler_t.
+ */
+typedef enum {
+  YAWT_WT_EVT_STREAM_DATA,         /**< Data on a WT uni stream; param has session_id + stream_id + data */
+  YAWT_WT_EVT_DATAGRAM,            /**< Datagram received; param has session_id + data */
+  YAWT_WT_EVT_CAPSULE_RECEIVED,        /**< Capsule received on a CONNECT stream; param has session_id + capsule_type + data */
+} YAWT_WT_EventType_t;
+
 
 /**
  * @ingroup WebTransport

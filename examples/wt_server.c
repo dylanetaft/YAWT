@@ -134,39 +134,23 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
 }
 
 static void wt_app_handler(YAWT_WT_Context_t *ctx,
-                             YAWT_WT_Session_t *session,
-                             YAWT_WT_EventType_t event,
-                             YAWT_WT_EventParam_t param) {
+                              YAWT_WT_Session_t *session,
+                              YAWT_WT_EventType_t event,
+                              YAWT_WT_EventParam_t param) {
   switch (event) {
-    case YAWT_WT_EVT_SESSION_ESTABLISHED:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_ESTABLISHED, session_id=%lu",
-               param.P_EVT_SESSION_ESTABLISHED.session_id);
-      break;
     case YAWT_WT_EVT_STREAM_DATA:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu, stream=%lu (%zu bytes, fin=%d)",
                param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
                param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.fin);
       break;
-    case YAWT_WT_EVT_STREAM_OPENED:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_OPENED, session=%lu, stream=%lu",
-               param.P_EVT_STREAM_OPENED.session_id, param.P_EVT_STREAM_OPENED.stream_id);
-      break;
-    case YAWT_WT_EVT_STREAM_RESET:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_RESET, session=%lu, stream=%lu, error=%lu",
-               param.P_EVT_STREAM_RESET.session_id, param.P_EVT_STREAM_RESET.stream_id,
-               param.P_EVT_STREAM_RESET.error_code);
-      break;
     case YAWT_WT_EVT_DATAGRAM:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes)",
                param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
       break;
-    case YAWT_WT_EVT_SESSION_CLOSE:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_CLOSE, session=%lu, error=%u",
-               param.P_EVT_SESSION_CLOSE.session_id, param.P_EVT_SESSION_CLOSE.app_error_code);
-      break;
-    case YAWT_WT_EVT_SESSION_DRAIN:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_DRAIN, session=%lu",
-               param.P_EVT_SESSION_DRAIN.session_id);
+    case YAWT_WT_EVT_CAPSULE_RECEIVED:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, type=%d (%zu bytes)",
+               param.P_EVT_CAPSULE_RECEIVED.session_id, param.P_EVT_CAPSULE_RECEIVED.type,
+               param.P_EVT_CAPSULE_RECEIVED.len);
       break;
   }
 }
