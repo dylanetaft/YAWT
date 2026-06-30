@@ -233,9 +233,9 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
  * @param authority The authority (host:port).
  * @param path The request path.
  * @return YAWT_H3_OK on success, or an error code.
- * @note Client-side: sends a CONNECT request with :method=CONNECT, :protocol=webtransport-h3.
- *       Server-side: not applicable (server responds via YAWT_h3_send_headers with 2xx).
+ * @note Client-side only: sends a CONNECT request with :method=CONNECT, :protocol=webtransport-h3.
  *       After calling this, the stream enters WT_CONNECT_PENDING state until the server responds.
+ *       On 2xx response, stream transitions to WT_CONNECT. On non-2xx, reverts to FRAME.
  *       HEADERS/DATA frames will cease to be interpreted as HTTP/3 once upgraded.
  */
 YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3, uint64_t stream_id,
@@ -253,3 +253,16 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3, uint64_t stre
  *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
  */
 YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3, uint64_t stream_id, uint16_t status_code);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Accept a pending WebTransport (WT) CONNECT stream.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to accept.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Server-side only: sends a 200 response to accept the CONNECT request.
+ *       Stream must be in WT_CONNECT_PENDING state (set by H3 layer on receiving CONNECT).
+ *       After calling this, stream transitions to WT_CONNECT and capsules can be exchanged.
+ *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Connection_t *h3, uint64_t stream_id);

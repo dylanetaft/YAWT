@@ -52,8 +52,8 @@ static void udp_send(const uint8_t *buf, size_t len,
 }
 
 static void h3_app_handler(YAWT_H3_Connection_t *h3con,
-                             YAWT_H3_EventType_t event,
-                             YAWT_H3_EventParam_t param) {
+                              YAWT_H3_EventType_t event,
+                              YAWT_H3_EventParam_t param) {
   switch (event) {
     case YAWT_H3_EVT_SETTINGS:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: SETTINGS on stream %lu",
@@ -64,27 +64,9 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_H3_HeaderFields_t *headers = param.P_EVT_HEADERS.headers;
 
       YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(headers, ":method");
-      YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(headers, ":protocol");
 
       if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0) {
-        YAWT_LOG(YAWT_LOG_INFO, "wt app: CONNECT request on stream %lu", sid);
-
-        if (protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
-          YAWT_LOG(YAWT_LOG_INFO, "wt app: WebTransport session request, accepting");
-
-          YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
-          YAWT_h3_header_add_str(resp, ":status", "200");
-          YAWT_h3_send_headers(h3con, sid, resp, 0);
-          YAWT_h3_header_fields_destroy(resp);
-
-          YAWT_LOG(YAWT_LOG_INFO, "wt app: WT session established on stream %lu", sid);
-        } else {
-          YAWT_LOG(YAWT_LOG_WARN, "wt app: CONNECT without :protocol=webtransport-h3, rejecting");
-          YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
-          YAWT_h3_header_add_str(resp, ":status", "404");
-          YAWT_h3_send_headers(h3con, sid, resp, 1);
-          YAWT_h3_header_fields_destroy(resp);
-        }
+        YAWT_LOG(YAWT_LOG_INFO, "wt app: CONNECT request on stream %lu (handled by WT_UPGRADE event)", sid);
       } else {
         YAWT_LOG(YAWT_LOG_INFO, "wt app: non-CONNECT request on stream %lu", sid);
         const char *body = "Hello, HTTP/3!";
@@ -101,6 +83,12 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
         YAWT_h3_send_data(h3con, sid, (const uint8_t *)body, body_len, 1);
         YAWT_h3_header_fields_destroy(resp);
       }
+      break;
+    }
+    case YAWT_H3_EVT_WT_UPGRADE: {
+      uint64_t sid = param.P_EVT_WT_UPGRADE.stream_id;
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UPGRADE on stream %lu, accepting", sid);
+      YAWT_h3_webtrans_accept(h3con, sid);
       break;
     }
     case YAWT_H3_EVT_DATA:

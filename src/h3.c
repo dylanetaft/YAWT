@@ -1010,6 +1010,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3,
     return err;
   }
 
+  stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_upgrade: sent CONNECT request on stream %lu", stream_id);
   return YAWT_H3_OK;
 }
@@ -1054,5 +1055,44 @@ YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3,
   }
 
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_deny: sent %s rejection on stream %lu", status_buf, stream_id);
+  return YAWT_H3_OK;
+}
+
+YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Connection_t *h3, uint64_t stream_id) {
+  if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
+
+  if (h3->qcon->role != YAWT_Q_ROLE_SERVER) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_accept called on client role (stream %lu)", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
+  if (!stream) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_accept: no stream metadata for stream %lu", stream_id);
+    return YAWT_H3_ERR_INVALID_PARAM;
+  }
+
+  if (stream->type != YAWT_H3_STREAM_WT_CONNECT_PENDING) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_accept: stream %lu not in WT_CONNECT_PENDING state (state=%d)",
+             stream_id, stream->type);
+    return YAWT_H3_ERR_INVALID_STATE;
+  }
+
+  YAWT_H3_HeaderFields_t *resp = YAWT_h3_header_fields_create();
+  if (!resp) return YAWT_H3_ERR_SHORT_BUFFER;
+
+  YAWT_h3_header_add_str(resp, ":status", "200");
+
+  YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, resp, 0);
+  YAWT_h3_header_fields_destroy(resp);
+
+  if (err != YAWT_H3_OK) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_accept: send_headers failed on stream %lu: %s",
+             stream_id, YAWT_h3_err_str(err));
+    return err;
+  }
+
+  YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_accept: accepted WT CONNECT on stream %lu", stream_id);
   return YAWT_H3_OK;
 }
