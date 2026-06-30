@@ -9,6 +9,7 @@
 #include "../wt_types.h"
 #include "../quic_connection.h"
 #include "../h3_types.h"
+#include "../capsule.h"
 
 typedef struct YAWT_WT_Stream_t YAWT_WT_Stream_t;
 
@@ -62,6 +63,8 @@ struct YAWT_WT_Stream_t {
   uint64_t stream_offset;          /**< Total bytes seen on this stream */
   
   YAWT_WT_Session_t *session;      /**< NULL until session exists */
+  
+  YAWT_Capsule_Parser_t capsule_parser;  /**< For WT_CONNECT streams */
 };
 
 /**

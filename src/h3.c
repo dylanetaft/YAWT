@@ -111,6 +111,10 @@ static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
 
 static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
   if (!h3) return;
+  YAWT_Q_Connection_t *con = YAWT_h3_get_qcon(h3);
+  if (con) {
+    YAWT_q_con_set_user_data(con, YAWT_UD_H3, NULL);
+  }
   free(h3->local_settings);
   free(h3->peer_settings);
   free(h3);
@@ -482,7 +486,8 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
   // Dispatch by resolved stream type
   switch (stream->type) {
     case YAWT_H3_STREAM_FRAME:
-    case YAWT_H3_STREAM_CONTROL: {
+    case YAWT_H3_STREAM_CONTROL:
+    case YAWT_H3_STREAM_WT_CONNECT: {
       // Parse frame header (Type + Length varints)
       YAWT_H3_Frame_t *f = &stream->frame;
       if (f->hdr_size == 0) {
@@ -703,7 +708,6 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
           });
         }
         _h3_conn_destroy(h3);
-        YAWT_q_con_set_user_data(con, YAWT_UD_H3, NULL);
       }
       return YAWT_H3_OK;
     }

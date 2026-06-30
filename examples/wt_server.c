@@ -107,6 +107,10 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATA on stream %lu (%zu bytes, fin=%d)",
                param.P_EVT_DATA.stream_id, param.P_EVT_DATA.len,
                param.P_EVT_DATA.fin);
+      // Forward to WT layer for capsule parsing on WT_CONNECT streams
+      if (wt_ctx) {
+        YAWT_wt_on_h3_event(wt_ctx, event, param);
+      }
       break;
     case YAWT_H3_EVT_CLOSE:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: CLOSE (code=%lu, reason=%s)",
@@ -148,9 +152,10 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
                param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
       break;
     case YAWT_WT_EVT_CAPSULE_RECEIVED:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, type=%d (%zu bytes)",
-               param.P_EVT_CAPSULE_RECEIVED.session_id, param.P_EVT_CAPSULE_RECEIVED.type,
-               param.P_EVT_CAPSULE_RECEIVED.len);
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, stream=%lu, type=0x%x",
+               param.P_EVT_CAPSULE_RECEIVED.session_id,
+               param.P_EVT_CAPSULE_RECEIVED.stream_id,
+               param.P_EVT_CAPSULE_RECEIVED.type);
       break;
   }
 }

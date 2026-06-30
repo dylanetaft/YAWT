@@ -261,9 +261,9 @@ typedef union YAWT_WT_EventParam {
   /** @brief Parameters for YAWT_WT_EVT_CAPSULE_RECEIVED. */
   struct {
     uint64_t session_id;      /**< WT session ID */
-    YAWT_WT_CapsuleType_t type;    /**< Capsule type */
-    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
-    size_t len;               /**< Length of capsule payload */
+    uint64_t stream_id;       /**< H3 stream ID carrying the capsule */
+    YAWT_WT_CapsuleType_t type;    /**< Capsule type (indicates which union member is valid) */
+    YAWT_WT_Capsule_t capsule;     /**< Parsed capsule data */
   } P_EVT_CAPSULE_RECEIVED;
 } YAWT_WT_EventParam_t;
 

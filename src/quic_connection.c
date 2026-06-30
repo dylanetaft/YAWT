@@ -318,6 +318,14 @@ YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double n
   return con;
 }
 
+// Global maintenance configuration
+static YAWT_Q_MaintenanceConfig_t _maint_cfg = {
+  .retransmit_initial = 0.5,
+  .retransmit_backoff = 1.5,
+  .retransmit_max = 10,
+  .min_maint_interval = 0.25,
+};
+
 void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   if (con == NULL || *con == NULL) return;
   YAWT_Q_Connection_t *c = *con;
@@ -332,6 +340,42 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   param.P_EVT_CLOSE.reason = c->close_reason;
   _event_handler(c, YAWT_Q_EVT_CLOSE, param);
 
+  // Check downstream connection-level slots
+  bool downstream_clean = true;
+  for (int slot = YAWT_UD_H3; slot <= YAWT_UD_WT; slot++) {
+    if (c->user_data[slot] != NULL) {
+      YAWT_LOG(YAWT_LOG_ERROR,
+               "downstream protocol did not clean up connection slot %d for CID=%s",
+               slot, YAWT_q_cid_to_hex(&c->cid));
+      downstream_clean = false;
+    }
+  }
+
+  // Check stream-level slots
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  while ((item = ANB_slab_peek_item_iter(c->stream_userdata, &iter, &item_size)) != NULL) {
+    YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
+    for (int slot = YAWT_UD_H3; slot <= YAWT_UD_WT; slot++) {
+      if (sud->user_data[slot] != NULL) {
+        YAWT_LOG(YAWT_LOG_ERROR,
+                 "downstream protocol did not clean up stream %lu slot %d for CID=%s",
+                 sud->stream_id, slot, YAWT_q_cid_to_hex(&c->cid));
+        downstream_clean = false;
+      }
+    }
+  }
+
+  if (!downstream_clean) {
+    double grace = _maint_cfg.retransmit_initial * 30.0;
+    c->stats.closing_at += grace;
+    YAWT_LOG(YAWT_LOG_ERROR,
+             "extending close time by %.1fs for CID=%s, will retry cleanup",
+             grace, YAWT_q_cid_to_hex(&c->cid));
+    return;
+  }
+
   HASH_DELETE(hh_cid, _hash_cid, c);
   YAWT_q_con_clear_odcid(c);
   YAWT_q_crypto_free(c->crypto);
@@ -340,11 +384,11 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
   ANB_slab_destroy(c->stream_rx);
   
   // Free malloc'd per-layer stream metadata before destroying slab
-  ANB_SlabIter_t iter = {0};
-  size_t item_size;
-  uint8_t *item;
-  while ((item = ANB_slab_peek_item_iter(c->stream_userdata, &iter, &item_size)) != NULL) {
-    YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
+  ANB_SlabIter_t iter2 = {0};
+  size_t item_size2;
+  uint8_t *item2;
+  while ((item2 = ANB_slab_peek_item_iter(c->stream_userdata, &iter2, &item_size2)) != NULL) {
+    YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item2;
     free(sud->user_data[YAWT_UD_QUIC]);
     free(sud->user_data[YAWT_UD_H3]);
     free(sud->user_data[YAWT_UD_WT]);
@@ -1530,14 +1574,6 @@ void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit) 
     YAWT_q_enqueue_frame_max_data(con, new_limit);
   }
 }
-
-// Global maintenance configuration
-static YAWT_Q_MaintenanceConfig_t _maint_cfg = {
-  .retransmit_initial = 0.5,
-  .retransmit_backoff = 1.5,
-  .retransmit_max = 10,
-  .min_maint_interval = 0.25,
-};
 
 // Effective idle timeout for a connection (seconds). Returns 0 if no limit.
 // Clamped to security policy min_idle_timeout_ms floor.
