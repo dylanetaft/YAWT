@@ -14,8 +14,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
-typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
+typedef struct YAWT_Q_Context_t YAWT_Q_Context_t;
+typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 typedef struct YAWT_WT_Context_t YAWT_WT_Context_t;
 typedef struct YAWT_WT_Session_t YAWT_WT_Session_t;
 

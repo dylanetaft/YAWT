@@ -564,7 +564,7 @@ typedef struct {
 typedef enum {
   YAWT_UD_APP  = 0,  /**< Application-specific data */
   YAWT_UD_QUIC = 1,  /**< QUIC stream metadata (YAWT_Q_StreamMeta_t*, per-stream only) */
-  YAWT_UD_H3   = 2,  /**< HTTP/3 stream (YAWT_H3_Stream_t*, per-stream) or connection (YAWT_H3_Connection_t*, per-connection) */
+  YAWT_UD_H3   = 2,  /**< HTTP/3 stream (YAWT_H3_Stream_t*, per-stream) or connection (YAWT_H3_Context_t*, per-connection) */
   YAWT_UD_WT   = 3,  /**< WebTransport context (YAWT_WT_Context_t*) */
   YAWT_UD_COUNT     /**< Number of user data slots (array size sentinel) */
 } YAWT_Q_UserDataSlot_t;

@@ -70,12 +70,12 @@ struct YAWT_WT_Stream_t {
 /**
  * @ingroup WebTransport
  * @brief Per-H3-connection WT manager.
- * @note Hung off the QUIC connection's YAWT_UD_WT slot. Allocated by the app
- *       after H3 SETTINGS confirm WT support, freed on connection close.
+ * @note Hung off the QUIC connection's YAWT_UD_WT slot. Allocated by WT layer
+ *       on EVT_CONNECTED, freed on EVT_CLOSE.
  */
 struct YAWT_WT_Context_t {
-  YAWT_Q_Connection_t *qcon;           /**< Back-reference to the QUIC layer */
-  YAWT_H3_Connection_t *h3con;         /**< Back-reference to the H3 layer */
+  YAWT_Q_Context_t *qcon;           /**< Back-reference to the QUIC layer */
+  YAWT_H3_Context_t *h3con;         /**< Back-reference to the H3 layer */
   YAWT_WT_EventHandler_t app_handler;  /**< App-level event callback */
   uint64_t nsessions;                  /**< Slot pool size */
   YAWT_WT_Session_t *sessions;         /**< Preallocated slot pool, linear-scan by session_id */

@@ -30,7 +30,7 @@ typedef struct YAWT_Q_PeerAddr_t {
  * @brief A QUIC connection.
  * @note Definition in impl/quic_types.h — include it to access fields directly.
  */
-typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
+typedef struct YAWT_Q_Context_t YAWT_Q_Context_t;
 
 /**
  * @ingroup QUIC_Connection
@@ -75,7 +75,7 @@ typedef struct {
  * @return Pointer to the new connection, or NULL on failure.
  * @note Registers it in the CID hash. Lifetime: until YAWT_q_con_free.
  */
-YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
+YAWT_Q_Context_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
 
 /**
  * @ingroup QUIC_Connection
@@ -87,7 +87,7 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info);
  *       starts the TLS handshake (producing ClientHello), and emits the first
  *       Initial packet via EVT_TX. The event handler must be installed before calling.
  */
-YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now);
+YAWT_Q_Context_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now);
 
 /**
  * @ingroup QUIC_Connection
@@ -95,7 +95,7 @@ YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double n
  * @param cid The Connection ID to search for.
  * @return Pointer to the connection, or NULL if not found.
  */
-YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
+YAWT_Q_Context_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
 
 /**
  * @internal
@@ -106,7 +106,7 @@ YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid);
  * @note SINGLE close chokepoint: emits EVT_CLOSE exactly once before teardown.
  *       Idempotent against NULL (double-free safe).
  */
-void YAWT_q_con_free(YAWT_Q_Connection_t **con);
+void YAWT_q_con_free(YAWT_Q_Context_t **con);
 
 /**
  * @internal
@@ -114,7 +114,7 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con);
  * @brief Clear the original DCID from a connection (used after handshake).
  * @param con The connection.
  */
-void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con);
+void YAWT_q_con_clear_odcid(YAWT_Q_Context_t *con);
 
 /**
  * @ingroup QUIC_Drive
@@ -141,7 +141,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Ownership: copies all iov[] data (caller keeps its buffers).
  */
-YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin);
 
 /**
@@ -155,7 +155,7 @@ YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
  *       RESET_STREAM with final_size=tx_next_offset, and removes pending STREAM frames
  *       from tx_buffer. Returns error if stream doesn't exist or TX already terminated.
  */
-YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
                                          uint64_t app_error_code);
 
 /**
@@ -168,7 +168,7 @@ YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
  * @note RFC 9000 §3.2: Sets STOPPED_SENT flag and enqueues STOP_SENDING. Per §3.3, peer SHOULD
  *       respond with RESET_STREAM. Returns error if stream doesn't exist or RX already terminated.
  */
-YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Context_t *con, uint64_t stream_id,
                                           uint64_t app_error_code);
 
 /**
@@ -180,7 +180,7 @@ YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
  * @note Called from within EVT_FLOW_CONTROL handler to communicate the app's decision.
  *       If new_limit <= current limit, no action is taken.
  */
-void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t new_limit);
+void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Context_t *con, uint64_t stream_id, uint64_t new_limit);
 
 /**
  * @ingroup QUIC_Connection
@@ -190,7 +190,7 @@ void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id
  * @note Called from within EVT_FLOW_CONTROL handler to communicate the app's decision.
  *       If new_limit <= current limit, no action is taken.
  */
-void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit);
+void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Context_t *con, uint64_t new_limit);
 
 /**
  * @internal
@@ -199,7 +199,7 @@ void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit);
  * @param con The QUIC connection.
  * @param new_cid The new peer Connection ID.
  */
-void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid);
+void YAWT_q_con_update_peer_cid(YAWT_Q_Context_t *con, const YAWT_Q_Cid_t *new_cid);
 
 /**
  * @ingroup QUIC_Connection
@@ -210,7 +210,7 @@ void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *ne
  * @note Lifetime is the app's responsibility. QUIC never dereferences it.
  *       Each protocol layer uses its own slot; slots never collide.
  */
-void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot, void *p);
+void YAWT_q_con_set_user_data(YAWT_Q_Context_t *con, YAWT_Q_UserDataSlot_t slot, void *p);
 
 /**
  * @ingroup QUIC_Connection
@@ -219,7 +219,7 @@ void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t sl
  * @param slot The user data slot identifier.
  * @return The opaque pointer for the given slot, or NULL if con is NULL.
  */
-void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot);
+void *YAWT_q_con_get_user_data(YAWT_Q_Context_t *con, YAWT_Q_UserDataSlot_t slot);
 
 /**
  * @ingroup QUIC_Connection
@@ -231,7 +231,7 @@ void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t s
  *       The QUIC layer's own metadata is at sud->user_data[YAWT_UD_QUIC].
  *       Full struct definition in impl/quic_types.h.
  */
-YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Connection_t *con, uint64_t stream_id);
+YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Context_t *con, uint64_t stream_id);
 
 /**
  * @ingroup QUIC_Connection
@@ -248,7 +248,7 @@ void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler);
  * @note No-op if already closing. Enqueues CONNECTION_CLOSE.
  *       The actual free (→ EVT_CLOSE) happens later, after ~3x PTO.
  */
-void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code);
+void YAWT_q_con_close(YAWT_Q_Context_t *con, uint64_t error_code);
 
 /**
  * @ingroup QUIC_Connection

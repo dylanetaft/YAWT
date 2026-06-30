@@ -21,7 +21,6 @@
 static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
-static YAWT_WT_Context_t *wt_ctx;
 
 static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
   YAWT_Q_PeerAddr_t pa;
@@ -51,9 +50,34 @@ static void udp_send(const uint8_t *buf, size_t len,
            nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
-static void h3_app_handler(YAWT_H3_Connection_t *h3con,
+static void wt_app_handler(YAWT_WT_Context_t *ctx,
+                              YAWT_WT_Session_t *session,
+                              YAWT_WT_EventType_t event,
+                              YAWT_WT_EventParam_t param) {
+  switch (event) {
+    case YAWT_WT_EVT_STREAM_DATA:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu, stream=%lu (%zu bytes, fin=%d)",
+               param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
+               param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.fin);
+      break;
+    case YAWT_WT_EVT_DATAGRAM:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes)",
+               param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
+      break;
+    case YAWT_WT_EVT_CAPSULE_RECEIVED:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, stream=%lu, type=0x%x",
+               param.P_EVT_CAPSULE_RECEIVED.session_id,
+               param.P_EVT_CAPSULE_RECEIVED.stream_id,
+               param.P_EVT_CAPSULE_RECEIVED.type);
+      break;
+  }
+}
+
+static void h3_app_handler(YAWT_H3_Context_t *h3con,
                               YAWT_H3_EventType_t event,
                               YAWT_H3_EventParam_t param) {
+  YAWT_wt_on_h3_event(h3con, event, param);
+
   switch (event) {
     case YAWT_H3_EVT_SETTINGS:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: SETTINGS on stream %lu",
@@ -95,93 +119,46 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATA on stream %lu (%zu bytes, fin=%d)",
                param.P_EVT_DATA.stream_id, param.P_EVT_DATA.len,
                param.P_EVT_DATA.fin);
-      // Forward to WT layer for capsule parsing on WT_CONNECT streams
-      if (wt_ctx) {
-        YAWT_wt_on_h3_event(wt_ctx, event, param);
-      }
       break;
     case YAWT_H3_EVT_CLOSE:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: CLOSE (code=%lu, reason=%s)",
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       break;
-    // case YAWT_H3_EVT_WT_UNI_STREAM:
-    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UNI_STREAM on stream %lu (%zu bytes)",
-    //            param.P_EVT_WT_UNI_STREAM.stream_id, param.P_EVT_WT_UNI_STREAM.len);
-    //   break;
     case YAWT_H3_EVT_DATAGRAM:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM (%zu bytes)",
                param.P_EVT_DATAGRAM.len);
       break;
-    // case YAWT_H3_EVT_WT_BIDI_STREAM:
-    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_BIDI_STREAM on stream %lu, session %lu (%zu bytes)",
-    //            param.P_EVT_WT_BIDI_STREAM.stream_id, param.P_EVT_WT_BIDI_STREAM.session_id,
-    //            param.P_EVT_WT_BIDI_STREAM.len);
-    //   break;
-    // case YAWT_H3_EVT_WT_CAPSULE:
-    //   YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_CAPSULE on stream %lu, type 0x%lx (%zu bytes)",
-    //            param.P_EVT_WT_CAPSULE.stream_id, param.P_EVT_WT_CAPSULE.capsule_type,
-    //            param.P_EVT_WT_CAPSULE.len);
-    //   break;
   }
 }
 
-static void wt_app_handler(YAWT_WT_Context_t *ctx,
-                              YAWT_WT_Session_t *session,
-                              YAWT_WT_EventType_t event,
-                              YAWT_WT_EventParam_t param) {
-  switch (event) {
-    case YAWT_WT_EVT_STREAM_DATA:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu, stream=%lu (%zu bytes, fin=%d)",
-               param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
-               param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.fin);
-      break;
-    case YAWT_WT_EVT_DATAGRAM:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes)",
-               param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
-      break;
-    case YAWT_WT_EVT_CAPSULE_RECEIVED:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, stream=%lu, type=0x%x",
-               param.P_EVT_CAPSULE_RECEIVED.session_id,
-               param.P_EVT_CAPSULE_RECEIVED.stream_id,
-               param.P_EVT_CAPSULE_RECEIVED.type);
-      break;
-  }
-}
-
-static void on_event(YAWT_Q_Connection_t *con,
+static void on_event(YAWT_Q_Context_t *con,
                        YAWT_Q_EventType_t event,
                        YAWT_Q_EventParam_t param) {
+  YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
+  YAWT_wt_on_event(con, event, param);
+
+  if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
+    YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+    YAWT_WT_Context_t *wt = YAWT_q_con_get_user_data(con, YAWT_UD_WT);
+    if (h3) {
+      YAWT_h3_set_event_handler(h3, h3_app_handler);
+    }
+    if (wt) {
+      YAWT_wt_set_event_handler(wt, wt_app_handler);
+    }
+  }
+  if (rc == YAWT_H3_ERR_NO_APP_HANDLER) {
+    YAWT_LOG(YAWT_LOG_WARN, "h3: event %d processed but no app handler set", event);
+  } else if (rc == YAWT_H3_IGNORED) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "h3: event %d ignored", event);
+  }
+
   switch (event) {
     case YAWT_Q_EVT_TX:
       udp_send(param.P_EVT_TX.buf, param.P_EVT_TX.len, param.P_EVT_TX.peer);
       break;
-
-    default: {
-      // H3 processes first (frame parsing, stream classification)
-      YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
-      if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
-        YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-        if (h3) {
-          YAWT_h3_set_event_handler(h3, h3_app_handler);
-          // Create WT context and set event handler
-          wt_ctx = YAWT_wt_context_create();
-          if (wt_ctx) {
-            YAWT_wt_set_event_handler(wt_ctx, wt_app_handler);
-          }
-        }
-      }
-      if (rc == YAWT_H3_ERR_NO_APP_HANDLER) {
-        YAWT_LOG(YAWT_LOG_WARN, "h3: event %d processed but no app handler set", event);
-      } else if (rc == YAWT_H3_IGNORED) {
-        YAWT_LOG(YAWT_LOG_DEBUG, "h3: event %d ignored", event);
-      }
-
-      // WT processes in parallel (looks up H3 stream metadata)
-      if (wt_ctx) {
-        YAWT_wt_on_event(wt_ctx, con, event, param);
-      }
+    default:
       break;
-    }
   }
 }
 
@@ -283,9 +260,6 @@ int main(int argc, char *argv[]) {
 
   ev_run(loop, 0);
 
-  if (wt_ctx) {
-    YAWT_wt_context_destroy(wt_ctx);
-  }
   YAWT_q_crypto_cred_free(&server_cred);
   gnutls_global_deinit();
   close(sockfd);

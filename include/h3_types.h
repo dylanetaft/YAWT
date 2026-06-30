@@ -33,8 +33,8 @@
  * @brief HTTP/3 protocol types, enums, frames, streams, and settings.
  */
 
-typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
-typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
+typedef struct YAWT_Q_Context_t YAWT_Q_Context_t;
+typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 
 #define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
 #define H3_STREAM_TYPE_MAX_BYTES   8  /**< Uni stream-type prefix is one varint (<=8 bytes) */
@@ -321,7 +321,7 @@ typedef union YAWT_H3_EventParam {
  * @ingroup H3_Connection
  * @brief App-level event callback for H3.
  */
-typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
+typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Context_t *con,
                                         YAWT_H3_EventType_t event,
                                         YAWT_H3_EventParam_t param);
 /**
@@ -329,7 +329,7 @@ typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
  * @brief H3 connection object.
  * @note Definition in impl/h3_types.h — include it to access fields directly.
  */
-typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
+typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 
 
 /**

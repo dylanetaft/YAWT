@@ -15,8 +15,8 @@
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-static YAWT_H3_Connection_t *alloc_minimal_h3_conn(void) {
-    YAWT_H3_Connection_t *h3 = calloc(1, sizeof(YAWT_H3_Connection_t));
+static YAWT_H3_Context_t *alloc_minimal_h3_conn(void) {
+    YAWT_H3_Context_t *h3 = calloc(1, sizeof(YAWT_H3_Context_t));
     h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
     return h3;
 }
@@ -41,7 +41,7 @@ static YAWT_Q_StreamUserData_t *test_create_stream_ud(uint64_t stream_id) {
 /* ------------------------------------------------------------------ */
 
 static void test_settings_frame_on_bidi_stream(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings = {0};
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, 1000);
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 2000);
@@ -96,7 +96,7 @@ static void test_settings_frame_on_bidi_stream(void) {
 /* ------------------------------------------------------------------ */
 
 static void test_settings_out_of_order_chunks(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings_a = {0};
   YAWT_h3_setting_set(&settings_a, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 500);
   YAWT_H3_Settings_t settings_b = {0};
@@ -164,7 +164,7 @@ YAWT_Q_ReadCursor_t dec = {0};
 /* ------------------------------------------------------------------ */
 
 static void test_settings_frame_header_only(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
   size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, 0, frame_hdr);
@@ -233,7 +233,7 @@ static void test_single_chunk_multiple_frames(void) {
   err = YAWT_q_encode_frame_stream(iov_a,sizeof(iov_a)/sizeof(iov_a[0]),0,1000,stream_id,0,0,&bf, &out_iov_offset);
   TEST_ASSERT_EQUAL(YAWT_Q_OK, err);
   YAWT_H3_Error_t h3_err;
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   size_t cursor = 0;
   YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(stream_id);
   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
@@ -274,7 +274,7 @@ static void test_single_chunk_multiple_frames(void) {
 /* ------------------------------------------------------------------ */
 
 static void test_frame_split_across_two_chunks(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings = {0};
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 777);
 
@@ -348,7 +348,7 @@ static void test_frame_split_across_two_chunks(void) {
 
 static void test_incomplete_frame_state(void) {
   /* A truncated frame header should return INCOMPLETE, not parse a frame. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload[256];
   size_t payload_len = 0;
@@ -393,7 +393,7 @@ static void test_data_frame_no_buffering(void) {
   /* DATA frames should not allocate a payload blob — they are passed through
    * directly. The frame type should be DATA and the payload should be available
    * from the chunk data itself. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t data[] = "Hello, HTTP/3!";
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
@@ -430,7 +430,7 @@ static void test_data_frame_fragmented_chunks(void) {
   /* A HEADERS frame split across multiple QUIC chunks should be correctly
     * reassembled. HEADERS frames require buffering since payload_len must
     * be known before allocating the blob. */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t data[] = "This is a fragmented HEADERS frame test payload";
    size_t data_len = sizeof(data) - 1;
@@ -498,7 +498,7 @@ static void test_data_frame_fragmented_chunks(void) {
 static void test_stream_type_bidi(void) {
   /* Bidirectional streams have no stream-type prefix and should resolve
    * immediately to STREAM_FRAME. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload[] = "bidi stream data";
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
@@ -531,7 +531,7 @@ static void test_stream_type_bidi(void) {
 
 static void test_stream_type_control_uni(void) {
   /* Unidirectional stream with 0x00 prefix should resolve to STREAM_CONTROL. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -570,7 +570,7 @@ static void test_stream_type_control_uni(void) {
 static void test_stream_type_qpack_encoder(void) {
   /* Unidirectional stream with 0x02 prefix should resolve to QPACK_ENCODER.
    * stream_id=19 is server-initiated uni (19%4=3), valid for QPACK streams. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -599,7 +599,7 @@ static void test_stream_type_qpack_encoder(void) {
 static void test_stream_type_qpack_decoder(void) {
   /* Unidirectional stream with 0x03 prefix should resolve to QPACK_DECODER.
    * stream_id=23 is server-initiated uni (23%4=3), valid for QPACK streams. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -631,7 +631,7 @@ static void test_stream_type_qpack_decoder(void) {
 static void test_stream_type_uni_split_chunks(void) {
   /* A uni stream type varint (0x00) can be split across chunks. The parser
     * should accumulate the bytes until the varint is fully decoded. */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t stream_type_buf[8];
    size_t stream_type_len = 0;
@@ -673,7 +673,7 @@ static void test_h3_parse_frame_null_params(void) {
   h3_err = YAWT_h3_parse_frame(NULL, &dummy_frame, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
 
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   h3_err = YAWT_h3_parse_frame(h3, NULL, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
@@ -693,7 +693,7 @@ static void test_headers_frame_with_payload(void) {
   /* A HEADERS frame should allocate a payload blob and parse correctly.
    * The payload contains QPACK-encoded data, but we're only testing the
    * frame parsing layer, not QPACK decoding. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   /* Simulate QPACK-encoded header section (raw bytes, not actually valid QPACK) */
   uint8_t headers_data[] = { 0x00, 0x01, 0x80, 0x00, 0xFF };
@@ -733,7 +733,7 @@ static void test_headers_frame_out_of_order_chunks(void) {
   /* A HEADERS frame split across two chunks should be correctly
    * reassembled. The parser should accumulate bytes and only dispatch
    * the frame when all data arrives. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t headers_data[] = { 0x00, 0x01, 0x82, 0x00, 0x7F, 0xFF, 0xAA, 0xBB };
   size_t headers_len = sizeof(headers_data);
@@ -791,7 +791,7 @@ static void test_headers_frame_out_of_order_chunks(void) {
 static void test_oversized_headers_frame(void) {
   /* A HEADERS frame exceeding the max_field_section_size security limit
    * should be rejected with TOO_LARGE. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   /* Set a small max_field_section_size to trigger rejection */
   YAWT_H3_SecurityPolicy_t policy = {0};
@@ -836,7 +836,7 @@ static void test_oversized_headers_frame(void) {
 static void test_cursor_advancement(void) {
   /* The cursor should advance past each fully-parsed frame so the next
    * parse call picks up the next frame in the stream. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload_a[256], payload_b[256];
   size_t payload_a_len = 0, payload_b_len = 0;
@@ -907,7 +907,7 @@ static void test_cursor_advancement(void) {
 static void test_stream_type_server_bidi(void) {
   /* Server-initiated bidirectional streams also have no prefix and resolve
      * to STREAM_FRAME. Server bidi stream IDs are odd (stream_id % 4 == 1). */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t payload[] = "server bidi response";
    uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];

@@ -2,9 +2,9 @@
 #include "h3_header.h"
 #include "qpack.h"
 #include "quic.h"   // YAWT_q_varint_* + YAWT_Q_ReadCursor_t — H3 reuses the QUIC varint codec
-#include "quic_connection.h"  // YAWT_Q_Connection_t, user_data slots, event types
-#include "impl/quic_types.h"  // YAWT_Q_Connection_t definition
-#include "impl/h3_types.h"    // YAWT_H3_Connection_t and YAWT_H3_Stream_t definitions
+#include "quic_connection.h"  // YAWT_Q_Context_t, user_data slots, event types
+#include "impl/quic_types.h"  // YAWT_Q_Context_t definition
+#include "impl/h3_types.h"    // YAWT_H3_Context_t and YAWT_H3_Stream_t definitions
 #include "security.h"
 #include "logger.h"
 #include <allocnbuffer/slab.h>
@@ -101,17 +101,17 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
   return YAWT_H3_OK;
 }
 
-static YAWT_H3_Connection_t *_h3_conn_create(YAWT_Q_Connection_t *con) {
-  YAWT_H3_Connection_t *h3 = calloc(1, sizeof(*h3));
+static YAWT_H3_Context_t *_h3_conn_create(YAWT_Q_Context_t *con) {
+  YAWT_H3_Context_t *h3 = calloc(1, sizeof(*h3));
   if (!h3) return NULL;
 
   h3->qcon = con;
   return h3;
 }
 
-static void _h3_conn_destroy(YAWT_H3_Connection_t *h3) {
+static void _h3_conn_destroy(YAWT_H3_Context_t *h3) {
   if (!h3) return;
-  YAWT_Q_Connection_t *con = YAWT_h3_get_qcon(h3);
+  YAWT_Q_Context_t *con = YAWT_h3_get_qcon(h3);
   if (con) {
     YAWT_q_con_set_user_data(con, YAWT_UD_H3, NULL);
   }
@@ -228,7 +228,7 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
 // Read the current H3 frame's header (Type + Length varints) for `stream`,
 // accumulating across QUIC stream chunks.
 static inline bool _gather_h3_frame_head(
-    YAWT_H3_Connection_t *h3,
+    YAWT_H3_Context_t *h3,
     YAWT_H3_Stream_t *stream,
     YAWT_Q_ReadCursor_t *rc) {
   size_t accumulated_before = stream->frame.accumulated;
@@ -263,21 +263,13 @@ static inline bool _gather_h3_frame_head(
   return false;
 }
 
-// Emit an H3-level event to the app handler if one is installed.
-static void _h3_emit_event(YAWT_H3_Connection_t *con,
-                            YAWT_H3_EventType_t event,
-                            YAWT_H3_EventParam_t param) {
-  if (con->app_handler) {
-    con->app_handler(con, event, param);
-  }
-}
 
 // Check if decoded headers indicate a WT CONNECT upgrade (draft-15 §3.2).
 // Request streams are always client-initiated bidi. The distinction between
 // request (server receives) and response (client receives) is the connection role.
 // Server side: marks stream as WT_CONNECT_PENDING if :method=CONNECT and :protocol=webtransport-h3.
 // Client side: upgrades WT_CONNECT_PENDING to WT_CONNECT on 2xx response, or reverts to FRAME on non-2xx.
-static void _process_wt_connect_upgrade(YAWT_H3_Connection_t *con, 
+static void _process_wt_connect_upgrade(YAWT_H3_Context_t *con, 
             YAWT_Q_StreamUserData_t *sud) {
 
   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
@@ -322,13 +314,13 @@ static void _process_wt_connect_upgrade(YAWT_H3_Connection_t *con,
     // App can observe the stream type to determine if CONNECT was accepted or rejected
     YAWT_H3_EventParam_t param;
     param.P_EVT_WT_UPGRADE.stream_id = stream->id;
-    _h3_emit_event(con, YAWT_H3_EVT_WT_UPGRADE, param);
+    con->app_handler(con, YAWT_H3_EVT_WT_UPGRADE, param);
   }
 }
 
 // Dispatch a completed buffered frame (SETTINGS, HEADERS) based on stream type.
 // Returns true on success, false on protocol error (caller should close connection).
-static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
+static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
                                        YAWT_Q_StreamUserData_t *sud) {
 
   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
@@ -361,7 +353,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
           }
           YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (val_set=0x%lx)",
                    con->peer_settings->val_set);
-          _h3_emit_event(con, YAWT_H3_EVT_SETTINGS, (YAWT_H3_EventParam_t){
+          con->app_handler(con, YAWT_H3_EVT_SETTINGS, (YAWT_H3_EventParam_t){
             .P_EVT_SETTINGS = { .stream_id = stream->id, .settings = con->peer_settings }
           });
           return true;
@@ -394,7 +386,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
 
           _process_wt_connect_upgrade(con, sud);
 
-          _h3_emit_event(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
+          con->app_handler(con, YAWT_H3_EVT_HEADERS, (YAWT_H3_EventParam_t){
             .P_EVT_HEADERS = { .stream_id = stream->id, .headers = stream->request_headers }
           });
           return true;
@@ -413,7 +405,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Connection_t *con,
   }
 }
 
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
+YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Context_t *h3con,
                                     const YAWT_Q_Frame_Stream_t *chunk,
                                     YAWT_H3_Stream_t *stream,
                                     size_t *cursor) {
@@ -566,7 +558,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
 }
 
 void _handle_rx_stream_frame(
-    YAWT_H3_Connection_t *con,
+    YAWT_H3_Context_t *con,
     const YAWT_Q_Frame_Stream_t *chunk,
     YAWT_H3_Stream_t *stream,
     size_t *cursor,
@@ -582,7 +574,7 @@ void _handle_rx_stream_frame(
     size_t n = (need < avail) ? (size_t)need : avail;
     int is_last = (f->accumulated + n >= f->payload_len) && chunk_fin;
 
-    _h3_emit_event(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
+    con->app_handler(con, YAWT_H3_EVT_DATA, (YAWT_H3_EventParam_t){
       .P_EVT_DATA = { .stream_id = stream->id, .data = chunk->data + *cursor, .len = n, .fin = is_last }
       });
 
@@ -600,47 +592,52 @@ void _handle_rx_stream_frame(
 
 
 
-YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
+YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event,
                                    YAWT_Q_EventParam_t param) {
-  switch (event) {
-    case YAWT_Q_EVT_CONNECTED: {
-      YAWT_H3_Connection_t *h3 = _h3_conn_create(con);
-      h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
-      if (!h3->local_settings) {
-        YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM allocating local_settings");
-        abort();
-      }
 
-      const YAWT_H3_SecurityPolicy_t *h3_pol = YAWT_h3_security_get();
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, h3_pol->max_field_section_size);
-
-      const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
-      if (wt_pol->max_sessions > 0) {
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, 1);
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, wt_pol->max_sessions);
-        if (wt_pol->initial_max_streams_uni > 0)
-          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI, wt_pol->initial_max_streams_uni);
-        if (wt_pol->initial_max_streams_bidi > 0)
-          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI, wt_pol->initial_max_streams_bidi);
-        if (wt_pol->initial_max_data > 0)
-          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_DATA, wt_pol->initial_max_data);
-        if (con->role == YAWT_Q_ROLE_SERVER)
-          YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL, 1);
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
-      }
-
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 0);
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_BLOCKED_STREAMS, 0);
-      YAWT_q_con_set_user_data(con, YAWT_UD_H3, h3);
-      YAWT_h3_send_settings(h3);
-      YAWT_h3_open_qpack_streams(h3);
-      return YAWT_H3_OK;
+  if (event == YAWT_Q_EVT_CONNECTED) {
+    YAWT_H3_Context_t *h3 = _h3_conn_create(con);
+    h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
+    if (!h3->local_settings) {
+      YAWT_LOG(YAWT_LOG_ERROR, "h3: OOM allocating local_settings");
+      abort();
     }
+
+    const YAWT_H3_SecurityPolicy_t *h3_pol = YAWT_h3_security_get();
+    YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, h3_pol->max_field_section_size);
+
+    const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
+    if (wt_pol->max_sessions > 0) {
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, wt_pol->max_sessions);
+      if (wt_pol->initial_max_streams_uni > 0)
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI, wt_pol->initial_max_streams_uni);
+      if (wt_pol->initial_max_streams_bidi > 0)
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI, wt_pol->initial_max_streams_bidi);
+      if (wt_pol->initial_max_data > 0)
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_DATA, wt_pol->initial_max_data);
+      if (con->role == YAWT_Q_ROLE_SERVER)
+        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
+    }
+
+    YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 0);
+    YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_BLOCKED_STREAMS, 0);
+    YAWT_q_con_set_user_data(con, YAWT_UD_H3, h3);
+    YAWT_h3_send_settings(h3);
+    YAWT_h3_open_qpack_streams(h3);
+    return YAWT_H3_OK;
+  }
+
+  YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+  if (!h3) return YAWT_H3_IGNORED;
+  if (!h3->app_handler) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: no app handler installed for event %d", event);
+    return YAWT_H3_ERR_NO_APP_HANDLER;
+  }
+
+  switch (event) {
     case YAWT_Q_EVT_STREAM: {
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-      if (!h3 || !h3->app_handler) {
-        return YAWT_H3_ERR_NO_APP_HANDLER;
-      }
       YAWT_Q_StreamUserData_t *sud = param.P_EVT_STREAM.stream_ud;
       if (!sud) {
         YAWT_LOG(YAWT_LOG_ERROR, "h3: EVT_STREAM with NULL stream_ud");
@@ -658,8 +655,6 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       while (cursor < chunk->data_len) {
         YAWT_H3_Error_t err = YAWT_h3_parse_frame(h3, chunk, stream, &cursor);
 
-        // Critical stream closure detection (RFC 9114 §6.2.1, RFC 9204 §4.2)
-        // Must check FIN regardless of parse result for critical streams
         if (chunk->fin && stream) {
           bool is_core = false;
           for (int i = 0; i < YAWT_H3_UNIQUE_STREAM_COUNT; i++) {
@@ -700,47 +695,38 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t ev
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_CLOSE: {
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-      if (h3) {
-        if (h3->app_handler) {
-          _h3_emit_event(h3, YAWT_H3_EVT_CLOSE, (YAWT_H3_EventParam_t){
-            .P_EVT_CLOSE = { .error_code = 0, .reason = "connection closed" }
-          });
-        }
-        _h3_conn_destroy(h3);
-      }
+      h3->app_handler(h3, YAWT_H3_EVT_CLOSE, (YAWT_H3_EventParam_t){
+        .P_EVT_CLOSE = { .error_code = 0, .reason = "connection closed" }
+      });
+      _h3_conn_destroy(h3);
       return YAWT_H3_OK;
     }
     case YAWT_Q_EVT_DATAGRAM: {
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-      if (h3 && h3->app_handler) {
-        _h3_emit_event(h3, YAWT_H3_EVT_DATAGRAM, (YAWT_H3_EventParam_t){
-          .P_EVT_DATAGRAM = {
-            .data = param.P_EVT_DATAGRAM.data,
-            .len = param.P_EVT_DATAGRAM.len,
-          }
-        });
-        return YAWT_H3_OK;
-      }
-      return YAWT_H3_IGNORED;
+      h3->app_handler(h3, YAWT_H3_EVT_DATAGRAM, (YAWT_H3_EventParam_t){
+        .P_EVT_DATAGRAM = {
+          .data = param.P_EVT_DATAGRAM.data,
+          .len = param.P_EVT_DATAGRAM.len,
+        }
+      });
+      return YAWT_H3_OK;
     }
     default:
       return YAWT_H3_IGNORED;
   }
 }
 
-void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
+void YAWT_h3_set_event_handler(YAWT_H3_Context_t *con,
                                 YAWT_H3_EventHandler_t handler) {
   if (con) {
     con->app_handler = handler;
   }
 }
 
-YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con) {
+YAWT_Q_Context_t *YAWT_h3_get_qcon(const YAWT_H3_Context_t *con) {
   return con ? con->qcon : NULL;
 }
 
-YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Context_t *h3,
                                          YAWT_H3_Unique_Stream_Type_t type,
                                          uint64_t stream_id) {
   if (!h3 || type < 0 || type >= YAWT_H3_UNIQUE_STREAM_COUNT) {
@@ -788,7 +774,7 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
 // Used by YAWT_h3_send_settings (control stream) and YAWT_h3_open_qpack_streams
 // (QPACK encoder/decoder streams).
 static YAWT_H3_Error_t _h3_open_uni_stream(
-    YAWT_H3_Connection_t *h3,
+    YAWT_H3_Context_t *h3,
     uint64_t wire_type,
     uint64_t stream_id,
     const YAWT_Q_IoVec_t *payload_iov,
@@ -819,7 +805,7 @@ static YAWT_H3_Error_t _h3_open_uni_stream(
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
+YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Context_t *h3) {
   if (!h3 || !h3->qcon || !h3->local_settings) return YAWT_H3_ERR_INVALID_PARAM;
 
   uint8_t settings_payload[256];
@@ -848,7 +834,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3) {
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3) {
+YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Context_t *h3) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
 
   // QPACK streams are unidirectional. Client uses even IDs (2, 4, 6, ...),
@@ -872,7 +858,7 @@ YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3) {
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Context_t *h3,
                                        uint64_t stream_id,
                                        const YAWT_H3_HeaderFields_t *headers,
                                        int fin) {
@@ -940,7 +926,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Context_t *h3,
                                      uint64_t stream_id,
                                      const uint8_t *data, size_t data_len,
                                      int fin) {
@@ -970,7 +956,7 @@ YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
 }
 
 
-YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3, 
+YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3, 
                 uint64_t stream_id, const char *scheme, const char *authority, const char *path) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
   if (!scheme || !authority || !path) return YAWT_H3_ERR_INVALID_PARAM;
@@ -1015,7 +1001,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Connection_t *h3,
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3, 
+YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Context_t *h3, 
                 uint64_t stream_id, uint16_t status_code) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
 
@@ -1058,7 +1044,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Connection_t *h3,
   return YAWT_H3_OK;
 }
 
-YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Connection_t *h3, uint64_t stream_id) {
+YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_id) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
 
   if (h3->qcon->role != YAWT_Q_ROLE_SERVER) {

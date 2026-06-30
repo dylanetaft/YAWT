@@ -13,7 +13,7 @@
 
 // Process-wide event handler — installed via YAWT_q_con_set_event_handler.
 // Defaults to a no-op so dispatch sites never need to null-check.
-static void _noop_event_handler(YAWT_Q_Connection_t *con,
+static void _noop_event_handler(YAWT_Q_Context_t *con,
                                  YAWT_Q_EventType_t event,
                                  YAWT_Q_EventParam_t param) {
   (void)con; (void)event; (void)param;
@@ -21,8 +21,8 @@ static void _noop_event_handler(YAWT_Q_Connection_t *con,
 static YAWT_Q_EventHandler_t _event_handler = _noop_event_handler;
 
 // Forward declarations
-static void _drain_tx(YAWT_Q_Connection_t *con, double now);
-static void _push_crypto_frames(YAWT_Q_Connection_t *con);
+static void _drain_tx(YAWT_Q_Context_t *con, double now);
+static void _push_crypto_frames(YAWT_Q_Context_t *con);
 
 // Calculate new auto-increased flow control limit.
 // Returns current_val * fc_auto_increase_factor (default 2x if factor is 0).
@@ -34,7 +34,7 @@ static uint64_t _get_new_auto_fc_limit(uint64_t fc_current_val) {
 
 // Auto-adjust stream RX limit if userspace didn't adjust after threshold event.
 // Called both preemptively (threshold reached) and reactively (peer sent STREAM_DATA_BLOCKED).
-static void _fc_auto_adjust_stream_rx(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t current_limit) {
+static void _fc_auto_adjust_stream_rx(YAWT_Q_Context_t *con, uint64_t stream_id, uint64_t current_limit) {
   if (current_limit == 0) return;
   uint64_t new_limit = _get_new_auto_fc_limit(current_limit);
   YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: auto-increased RX FC limit -> %lu", stream_id, new_limit);
@@ -43,7 +43,7 @@ static void _fc_auto_adjust_stream_rx(YAWT_Q_Connection_t *con, uint64_t stream_
 
 // Auto-adjust connection RX limit if userspace didn't adjust after threshold event.
 // Called both preemptively (threshold reached) and reactively (peer sent DATA_BLOCKED).
-static void _fc_auto_adjust_conn_rx(YAWT_Q_Connection_t *con, uint64_t current_limit) {
+static void _fc_auto_adjust_conn_rx(YAWT_Q_Context_t *con, uint64_t current_limit) {
   if (current_limit == 0) return;
   uint64_t new_limit = _get_new_auto_fc_limit(current_limit);
   YAWT_LOG(YAWT_LOG_INFO, "Connection: auto-increased RX FC limit -> %lu", new_limit);
@@ -51,14 +51,14 @@ static void _fc_auto_adjust_conn_rx(YAWT_Q_Connection_t *con, uint64_t current_l
 }
 
 // Check if connection is in any closing state (RFC 9000 §10.2)
-static bool _is_closing(const YAWT_Q_Connection_t *con) {
+static bool _is_closing(const YAWT_Q_Context_t *con) {
   return (con->state & (YAWT_Q_STATE_SELF_CLOSE_CLOSING | YAWT_Q_STATE_PEER_CLOSE_DRAINING)) != 0;
 }
 
 // Record why a connection is closing. The actual EVT_CLOSE is emitted later,
 // exactly once, by YAWT_q_con_free. reason is copied (bounded) so callers may
 // pass transient buffers or string literals.
-static void _record_close(YAWT_Q_Connection_t *con, uint64_t code,
+static void _record_close(YAWT_Q_Context_t *con, uint64_t code,
                           const char *reason, size_t reason_len,
                           YAWT_Q_ConnState_t state) {
   con->close_code = code;
@@ -115,7 +115,7 @@ static int _pn_is_acked(uint64_t pn, const YAWT_Q_Frame_ACK_t *ack) {
 }
 
 // Remove ACK'd frames from tx_buffer
-static void _process_ack(YAWT_Q_Connection_t *con, uint8_t level,
+static void _process_ack(YAWT_Q_Context_t *con, uint8_t level,
                           const YAWT_Q_Frame_ACK_t *ack) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
@@ -158,7 +158,7 @@ static inline bool _stream_should_rx(const YAWT_Q_StreamMeta_t *m) {
 // or other unreliable frame handlers, as they do not count towards
 // connection flow control limits.
 
-static void _preemptive_fc_conn_rx_limit_check(YAWT_Q_Connection_t *con)
+static void _preemptive_fc_conn_rx_limit_check(YAWT_Q_Context_t *con)
 {
   uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
   if (con->local_fc.max_data > 0 && pct > 0 && pct <= 100) {
@@ -179,7 +179,7 @@ static void _preemptive_fc_conn_rx_limit_check(YAWT_Q_Connection_t *con)
   }
 }
 
-static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Connection_t *con, YAWT_Q_StreamUserData_t *sud)
+static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_t *sud)
 {
 
   // The amount of data we have received on stream is close to FC limits
@@ -204,7 +204,7 @@ static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Connection_t *con, YAWT_
   }
 }
 
-static void _preemptive_fc_conn_tx_limit_check(YAWT_Q_Connection_t *con)
+static void _preemptive_fc_conn_tx_limit_check(YAWT_Q_Context_t *con)
 {
   uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
   if (con->peer_fc.max_data > 0 && pct > 0 && pct <= 100) {
@@ -223,7 +223,7 @@ static void _preemptive_fc_conn_tx_limit_check(YAWT_Q_Connection_t *con)
   }
 }
 
-static void _preemptive_fc_stream_tx_limit_check(YAWT_Q_Connection_t *con, YAWT_Q_StreamUserData_t *sud)
+static void _preemptive_fc_stream_tx_limit_check(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_t *sud)
 {
   uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
   if (SUD_META(sud)->fc.tx_max_data > 0 && pct > 0 && pct <= 100) {
@@ -243,12 +243,12 @@ static void _preemptive_fc_stream_tx_limit_check(YAWT_Q_Connection_t *con, YAWT_
   }
 }
 
-YAWT_Q_Connection_t *_hash_cid = NULL;   // Hash table by our CID
-YAWT_Q_Connection_t *_hash_odcid = NULL; // Hash table by original DCID (temporary, pre-handshake)
+YAWT_Q_Context_t *_hash_cid = NULL;   // Hash table by our CID
+YAWT_Q_Context_t *_hash_odcid = NULL; // Hash table by original DCID (temporary, pre-handshake)
 
-YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
+YAWT_Q_Context_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   if (info == NULL) return NULL;
-  YAWT_Q_Connection_t *con = calloc(1, sizeof(YAWT_Q_Connection_t));
+  YAWT_Q_Context_t *con = calloc(1, sizeof(YAWT_Q_Context_t));
   if (!con) return NULL;
   con->cid.len = YAWT_Q_CID_LEN;
   YAWT_q_crypto_random_nonce(con->cid.id, con->cid.len);
@@ -283,7 +283,7 @@ YAWT_Q_Connection_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   return con;
 }
 
-YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now) {
+YAWT_Q_Context_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double now) {
   if (!info || info->is_server) return NULL;
 
   YAWT_Q_Cid_t dcid;
@@ -292,7 +292,7 @@ YAWT_Q_Connection_t *YAWT_q_con_connect(YAWT_Q_Con_Create_Info_t *info, double n
   YAWT_q_cid_set(&info->peer_cid, dcid.id, dcid.len);
   YAWT_q_cid_set(&info->original_dcid, dcid.id, dcid.len);
 
-  YAWT_Q_Connection_t *con = YAWT_q_con_create(info);
+  YAWT_Q_Context_t *con = YAWT_q_con_create(info);
   if (!con) return NULL;
 
   con->version = 0x00000001;
@@ -326,9 +326,9 @@ static YAWT_Q_MaintenanceConfig_t _maint_cfg = {
   .min_maint_interval = 0.25,
 };
 
-void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
+void YAWT_q_con_free(YAWT_Q_Context_t **con) {
   if (con == NULL || *con == NULL) return;
-  YAWT_Q_Connection_t *c = *con;
+  YAWT_Q_Context_t *c = *con;
 
   // Single close chokepoint: every teardown path funnels through here, so
   // emitting EVT_CLOSE once guarantees the app sees exactly one close per
@@ -402,7 +402,7 @@ void YAWT_q_con_free(YAWT_Q_Connection_t **con) {
 // RFC 9000 §10.2.3: CONNECTION_CLOSE level selection based on role and handshake state.
 // Pre-handshake: server sends Initial + Handshake, client sends Handshake + 1-RTT.
 // Post-handshake: send at Application level only.
-static void _send_connection_close(YAWT_Q_Connection_t *con, uint64_t error_code, uint64_t frame_type) {
+static void _send_connection_close(YAWT_Q_Context_t *con, uint64_t error_code, uint64_t frame_type) {
   int hs_complete = YAWT_q_crypto_is_handshake_complete(con->crypto);
 
   if (hs_complete) {
@@ -426,7 +426,7 @@ static void _send_connection_close(YAWT_Q_Connection_t *con, uint64_t error_code
   }
 }
 
-void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
+void YAWT_q_con_close(YAWT_Q_Context_t *con, uint64_t error_code) {
   if (!con || _is_closing(con)) return;
 
   _send_connection_close(con, error_code, 0);
@@ -435,17 +435,17 @@ void YAWT_q_con_close(YAWT_Q_Connection_t *con, uint64_t error_code) {
             YAWT_q_cid_to_hex(&con->cid), error_code);
 }
 
-void YAWT_q_con_update_peer_cid(YAWT_Q_Connection_t *con, const YAWT_Q_Cid_t *new_cid) {
+void YAWT_q_con_update_peer_cid(YAWT_Q_Context_t *con, const YAWT_Q_Cid_t *new_cid) {
   if (!con || !new_cid || new_cid->len == 0) return;
   YAWT_q_cid_set(&con->peer_cid, new_cid->id, new_cid->len);
   YAWT_LOG(YAWT_LOG_INFO, "Peer CID updated: %s", YAWT_q_cid_to_hex(&con->peer_cid));
 }
 
-void YAWT_q_con_set_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot, void *p) {
+void YAWT_q_con_set_user_data(YAWT_Q_Context_t *con, YAWT_Q_UserDataSlot_t slot, void *p) {
   if (con) con->user_data[slot] = p;
 }
 
-void *YAWT_q_con_get_user_data(YAWT_Q_Connection_t *con, YAWT_Q_UserDataSlot_t slot) {
+void *YAWT_q_con_get_user_data(YAWT_Q_Context_t *con, YAWT_Q_UserDataSlot_t slot) {
   return con ? con->user_data[slot] : NULL;
 }
 
@@ -453,7 +453,7 @@ void YAWT_q_con_set_event_handler(YAWT_Q_EventHandler_t handler) {
   _event_handler = handler ? handler : _noop_event_handler;
 }
 
-void YAWT_q_con_clear_odcid(YAWT_Q_Connection_t *con) {
+void YAWT_q_con_clear_odcid(YAWT_Q_Context_t *con) {
   if (!con || con->original_dcid.len == 0) return;
   HASH_DELETE(hh_odcid, _hash_odcid, con);
   con->original_dcid.len = 0;
@@ -471,9 +471,9 @@ static const char *_pkt_type_name(YAWT_Q_Packet_Type_t type) {
   }
 }
 
-YAWT_Q_Connection_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
+YAWT_Q_Context_t *YAWT_q_con_find_by_cid(const YAWT_Q_Cid_t *cid) {
   if (!cid || cid->len == 0) return NULL;
-  YAWT_Q_Connection_t *con = NULL;
+  YAWT_Q_Context_t *con = NULL;
   HASH_FIND(hh_cid, _hash_cid, cid->id, cid->len, con);
   if (!con) {
     HASH_FIND(hh_odcid, _hash_odcid, cid->id, cid->len, con);
@@ -495,7 +495,7 @@ static YAWT_Q_StreamUserData_t *_stream_meta_find(ANB_Slab_t *userdata_slab, uin
 }
 
 // Create a new stream user data container in the slab.
-static YAWT_Q_StreamUserData_t *_stream_meta_add(YAWT_Q_Connection_t *con, uint64_t stream_id) {
+static YAWT_Q_StreamUserData_t *_stream_meta_add(YAWT_Q_Context_t *con, uint64_t stream_id) {
   YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)ANB_slab_alloc_item(con->stream_userdata, sizeof(YAWT_Q_StreamUserData_t));
   if (!sud) return NULL;
   memset(sud, 0, sizeof(*sud));
@@ -538,7 +538,7 @@ static YAWT_Q_StreamUserData_t *_stream_meta_add(YAWT_Q_Connection_t *con, uint6
   return sud;
 }
 
-YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Connection_t *con, uint64_t stream_id) {
+YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Context_t *con, uint64_t stream_id) {
   if (!con) return NULL;
   return _stream_meta_find(con->stream_userdata, stream_id);
 }
@@ -589,7 +589,7 @@ static YAWT_Err_t _check_final_size(YAWT_Q_StreamUserData_t *sud, uint64_t offse
 // This function is the reassembly mechanism — it delivers buffered frames
 // once the gap is filled and rx_next_offset is reached.
 // Returns YAWT_Q_OK on success, or YAWT_Q_ERR_FINAL_SIZE_ERROR on violation
-static YAWT_Err_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamUserData_t *sud) {
+static YAWT_Err_t _drain_stream_rx(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_t *sud) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -636,7 +636,7 @@ static YAWT_Err_t _drain_stream_rx(YAWT_Q_Connection_t *con, YAWT_Q_StreamUserDa
 #define YAWT_Q_CRYPTO_FRAME_HDR_MAX 9
 #define YAWT_Q_CRYPTO_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_LONG - YAWT_Q_CRYPTO_FRAME_HDR_MAX)
 
-static void _push_crypto_frames(YAWT_Q_Connection_t *con) {
+static void _push_crypto_frames(YAWT_Q_Context_t *con) {
   for (int lvl = 0; lvl < 4; lvl++) {
     size_t data_len;
     const uint8_t *data = YAWT_q_crypto_pop_tx(con->crypto, lvl, &data_len);
@@ -686,7 +686,7 @@ static int _frame_allowed_in_packet(YAWT_Q_Frame_Type_t frame, YAWT_Q_Packet_Typ
 }
 
 // This function parses and dispatches rx quic frames
-static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Connection_t *con,
+static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
                                                   YAWT_Q_Packet_t *pkt) {
   YAWT_Q_FrameHandler_Res_t res = { .err = YAWT_Q_OK, .requires_ack = 0 };
   YAWT_Q_ReadCursor_t frc = { .data = pkt->payload, .len = pkt->payload_len, .cursor = 0, .err = YAWT_Q_OK };
@@ -1148,7 +1148,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     }
     YAWT_LOG(YAWT_LOG_DEBUG, "packet %s (consumed %zu bytes)", _pkt_type_name(pkt.type), rc.cursor - prev);
 
-    YAWT_Q_Connection_t *con = YAWT_q_con_find_by_cid(&pkt.dest_cid);
+    YAWT_Q_Context_t *con = YAWT_q_con_find_by_cid(&pkt.dest_cid);
 
     // First Initial from a new client — create connection
     if (!con && pkt.type == YAWT_Q_PKT_TYPE_INITIAL) {
@@ -1307,11 +1307,11 @@ static YAWT_Q_Packet_Type_t _level_to_pkt_type(uint8_t level) {
 
 
 // Get next packet number for a given level
-static uint64_t _next_pn(YAWT_Q_Connection_t *con, uint8_t level) {
+static uint64_t _next_pn(YAWT_Q_Context_t *con, uint8_t level) {
   return con->stats.next_pkt_num_tx[level]++;
 }
 
-static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
+static void _drain_tx(YAWT_Q_Context_t *con, double now) {
   if (ANB_slab_item_count(con->tx_buffer) == 0) return;
 
   // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
@@ -1453,7 +1453,7 @@ static void _drain_tx(YAWT_Q_Connection_t *con, double now) {
 #define YAWT_Q_STREAM_FRAME_OVERHEAD 25
 #define YAWT_Q_STREAM_CHUNK_MAX (YAWT_Q_MAX_FRAME_PAYLOAD_SHORT - YAWT_Q_STREAM_FRAME_OVERHEAD) // 1284
 
-YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
                                        const YAWT_Q_IoVec_t *iov, int iov_count, int fin) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
   if (iov_count < 0) return YAWT_Q_ERR_INVALID_PARAM;
@@ -1515,7 +1515,7 @@ YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
   return YAWT_Q_OK;
 }
 
-static void _reset_stream_unbuffer(YAWT_Q_Connection_t *con, uint64_t stream_id) {
+static void _reset_stream_unbuffer(YAWT_Q_Context_t *con, uint64_t stream_id) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -1529,7 +1529,7 @@ static void _reset_stream_unbuffer(YAWT_Q_Connection_t *con, uint64_t stream_id)
   }
 }
 
-YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
                                          uint64_t app_error_code) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
@@ -1545,7 +1545,7 @@ YAWT_Err_t YAWT_q_con_reset_stream(YAWT_Q_Connection_t *con, uint64_t stream_id,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
+YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Context_t *con, uint64_t stream_id,
                                           uint64_t app_error_code) {
   if (!con) return YAWT_Q_ERR_INVALID_PARAM;
 
@@ -1557,7 +1557,7 @@ YAWT_Err_t YAWT_q_con_stop_sending(YAWT_Q_Connection_t *con, uint64_t stream_id,
   return YAWT_q_enqueue_frame_stop_sending(con, stream_id, app_error_code);
 }
 
-void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id, uint64_t new_limit) {
+void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Context_t *con, uint64_t stream_id, uint64_t new_limit) {
   if (!con) return;
   YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, stream_id);
   if (!sud) return;
@@ -1567,7 +1567,7 @@ void YAWT_q_con_set_stream_rx_limit(YAWT_Q_Connection_t *con, uint64_t stream_id
   }
 }
 
-void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit) {
+void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Context_t *con, uint64_t new_limit) {
   if (!con) return;
   if (new_limit > con->local_fc.max_data) {
     con->local_fc.max_data = new_limit;
@@ -1577,7 +1577,7 @@ void YAWT_q_con_set_conn_rx_limit(YAWT_Q_Connection_t *con, uint64_t new_limit) 
 
 // Effective idle timeout for a connection (seconds). Returns 0 if no limit.
 // Clamped to security policy min_idle_timeout_ms floor.
-static double _effective_idle_timeout(YAWT_Q_Connection_t *con) {
+static double _effective_idle_timeout(YAWT_Q_Context_t *con) {
   uint64_t local = con->local_fc.max_idle_timeout;
   uint64_t peer = con->peer_fc.max_idle_timeout;
   uint64_t ms = 0;
@@ -1597,7 +1597,7 @@ const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void) {
 
 // Check if connection should be freed. Returns 1 if freed.
 // Handles: closing state (stamp -> free after 3x PTO) and idle timeout.
-static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
+static int _maint_kill(YAWT_Q_Context_t **con, double idle_sec, double now) {
   double closing = (*con)->stats.closing_at;
 
   // Close initiated but timestamp not yet stamped — stamp it now
@@ -1633,7 +1633,7 @@ static int _maint_kill(YAWT_Q_Connection_t **con, double idle_sec, double now) {
 }
 
 // Send keepalive PING if approaching idle timeout.
-static void _maint_ping(YAWT_Q_Connection_t *con, double idle_sec, double now) {
+static void _maint_ping(YAWT_Q_Context_t *con, double idle_sec, double now) {
   if (idle_sec <= 0 || con->stats.last_rx == 0) return;
   if (ANB_slab_item_count(con->tx_buffer) > 0) return;
   double keepalive_threshold = idle_sec / 3.0;
@@ -1644,7 +1644,7 @@ static void _maint_ping(YAWT_Q_Connection_t *con, double idle_sec, double now) {
 }
 
 // Mark timed-out sent frames for retransmit on a single connection.
-static void _maint_retransmit(YAWT_Q_Connection_t *con, double now) {
+static void _maint_retransmit(YAWT_Q_Context_t *con, double now) {
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
@@ -1689,7 +1689,7 @@ static void _maint_retransmit(YAWT_Q_Connection_t *con, double now) {
 
 
 void YAWT_q_con_maintain(double now) {
-  YAWT_Q_Connection_t *con, *tmp;
+  YAWT_Q_Context_t *con, *tmp;
   HASH_ITER(hh_cid, _hash_cid, con, tmp) {
     double idle_sec = _effective_idle_timeout(con);
     if (_maint_kill(&con, idle_sec, now)) continue;

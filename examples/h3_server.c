@@ -50,7 +50,7 @@ static void udp_send(const uint8_t *buf, size_t len,
            nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
-static void h3_app_handler(YAWT_H3_Connection_t *h3con,
+static void h3_app_handler(YAWT_H3_Context_t *h3con,
                              YAWT_H3_EventType_t event,
                              YAWT_H3_EventParam_t param) {
   switch (event) {
@@ -95,7 +95,7 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
 
 // App's single event handler: owns transport glue (TX -> UDP write) and forwards
 // the application-facing events to the H3 layer.
-static void on_event(YAWT_Q_Connection_t *con,
+static void on_event(YAWT_Q_Context_t *con,
                        YAWT_Q_EventType_t event,
                        YAWT_Q_EventParam_t param) {
   switch (event) {
@@ -106,7 +106,7 @@ static void on_event(YAWT_Q_Connection_t *con,
     default: {
       YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
       if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
-        YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+        YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
         if (h3) {
           YAWT_h3_set_event_handler(h3, h3_app_handler);
         }

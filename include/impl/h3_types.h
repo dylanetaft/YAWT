@@ -48,8 +48,8 @@ struct YAWT_H3_Stream_t {
  *       Per-stream H3 metadata is malloc'd and stored in the QUIC stream's
  *       YAWT_Q_StreamUserData_t[YAWT_UD_H3] slot (1:1 with QUIC streams).
  */
-struct YAWT_H3_Connection_t {
-  YAWT_Q_Connection_t *qcon;            // back-reference to the QUIC layer
+struct YAWT_H3_Context_t {
+  YAWT_Q_Context_t *qcon;            // back-reference to the QUIC layer
   YAWT_H3_EventHandler_t app_handler;   // app-level event callback
   YAWT_H3_Settings_t *local_settings;   // NULL until populated
   YAWT_H3_Settings_t *peer_settings;    // NULL until decoded from peer

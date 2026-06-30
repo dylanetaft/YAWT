@@ -54,7 +54,7 @@
 
 struct YAWT_Q_Level_Keys;
 typedef struct YAWT_Q_Level_Keys_t YAWT_Q_Level_Keys_t;
-typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
+typedef struct YAWT_Q_Context_t YAWT_Q_Context_t;
 
 /**
  * @ingroup QUIC
@@ -64,7 +64,7 @@ typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
  *       is invoked synchronously from YAWT_q_con_rx() and YAWT_q_con_maintain().
  *       Nothing here is thread-safe.
  */
-typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Connection_t *con,
+typedef void (*YAWT_Q_EventHandler_t)(YAWT_Q_Context_t *con,
                                        YAWT_Q_EventType_t event,
                                        YAWT_Q_EventParam_t param);
 
@@ -181,7 +181,7 @@ YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Ownership: COPIES the encoded frame into con->tx_buffer.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Context_t *con, uint8_t level,
                                              const YAWT_Q_Frame_Crypto_t *frame);
 
 /**
@@ -193,7 +193,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
  * @param largest_ack Largest acknowledged packet number.
  * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack);
+YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Context_t *con, uint8_t level, uint64_t largest_ack);
 
 /**
  * @internal
@@ -204,7 +204,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uin
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. Ownership: copies frame->data into the queued WireFrame.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Context_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame);
 
 /**
@@ -215,7 +215,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
+YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Context_t *con);
 
 /**
  * @internal
@@ -227,7 +227,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con);
  * @param frame_type The frame type that triggered the error.
  * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Context_t *con, uint8_t level,
                                                       uint64_t error_code, uint64_t frame_type);
 
 /**
@@ -238,7 +238,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8
  * @param data The 8-byte data to echo back.
  * @return YAWT_ERR_OK on success, or an error code.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data);
+YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Context_t *con, const uint8_t *data);
 
 /**
  * @internal
@@ -250,7 +250,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const ui
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. Ownership: copies `data`.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Context_t *con,
                                                const uint8_t *data, size_t data_len);
 
 /**
@@ -261,7 +261,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
+YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Context_t *con);
 
 /**
  * @internal
@@ -274,7 +274,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con);
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.4.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Context_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code,
                                                    uint64_t final_size);
@@ -289,7 +289,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.5.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Context_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code);
 
@@ -302,7 +302,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.12.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t max_data);
+YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Context_t *con, uint64_t max_data);
 
 /**
  * @internal
@@ -313,7 +313,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t 
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.9.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_data);
+YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Context_t *con, uint64_t max_data);
 
 /**
  * @internal
@@ -325,7 +325,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.13.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Context_t *con,
                                                            uint64_t stream_id,
                                                            uint64_t max_stream_data);
 
@@ -339,7 +339,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
  * @return YAWT_ERR_OK on success, or an error code.
  * @note Level: APPLICATION only. RFC 9000 §19.10.
  */
-YAWT_Err_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Context_t *con,
                                                        uint64_t stream_id,
                                                        uint64_t max_stream_data);
 
