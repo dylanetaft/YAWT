@@ -90,6 +90,9 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
     // case YAWT_H3_EVT_WT_UNI_STREAM:
     case YAWT_H3_EVT_DATAGRAM:
       break;
+    default:
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: unhandled event %d", event);
+      break;
   }
 }
 

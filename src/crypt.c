@@ -359,6 +359,7 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
     { 0x08, lfc->max_streams_bidi },
     { 0x09, lfc->max_streams_uni },
     { 0x0e, 2 }, // active_connection_id_limit (RFC 9000 §18.2: MUST be >= 2)
+    { 0x20, lfc->max_datagram_frame_size },
   };
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];

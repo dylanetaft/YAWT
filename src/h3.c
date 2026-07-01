@@ -50,6 +50,25 @@ static const uint64_t _h3_setting_wire_ids[YAWT_H3_NUM_SETTINGS] = {
   [YAWT_H3_IDX_WT_INITIAL_MAX_DATA]         = 0x2b61, /**< WT per-session data limit (draft-15 §9.2) */
 };
 
+static const char *_h3_setting_names[YAWT_H3_NUM_SETTINGS] = {
+  [YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]  = "QPACK_MAX_TABLE_CAPACITY",
+  [YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]    = "MAX_FIELD_SECTION_SIZE",
+  [YAWT_H3_IDX_QPACK_BLOCKED_STREAMS]     = "QPACK_BLOCKED_STREAMS",
+  [YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL]   = "ENABLE_CONNECT_PROTOCOL",
+  [YAWT_H3_IDX_H3_DATAGRAM]               = "H3_DATAGRAM",
+  [YAWT_H3_IDX_WT_ENABLED]                = "WT_ENABLED",
+  [YAWT_H3_IDX_WT_MAX_SESSIONS]           = "WT_MAX_SESSIONS",
+  [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI]  = "WT_INITIAL_MAX_STREAMS_UNI",
+  [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI] = "WT_INITIAL_MAX_STREAMS_BIDI",
+  [YAWT_H3_IDX_WT_INITIAL_MAX_DATA]         = "WT_INITIAL_MAX_DATA",
+};
+
+
+static const char *_h3_setting_name(YAWT_H3_SettingIdx_t idx) {
+  if (idx < 0 || idx >= YAWT_H3_NUM_SETTINGS) return "unknown";
+  return _h3_setting_names[idx];
+}
+
 static int _h3_setting_wire_to_idx(uint64_t wire_id, YAWT_H3_SettingIdx_t *out) {
   for (int i = 0; i < YAWT_H3_NUM_SETTINGS; i++) {
     if (_h3_setting_wire_ids[i] == wire_id) {
@@ -95,6 +114,8 @@ YAWT_H3_Error_t YAWT_h3_settings_encode(const YAWT_H3_Settings_t *settings,
     if (YAWT_q_varint_encode(settings->vals[i], buf + off, len - off, &n) != YAWT_Q_OK)
       return YAWT_H3_ERR_SHORT_BUFFER;
     off += n;
+    YAWT_LOG(YAWT_LOG_DEBUG, "h3: encoded setting %s (wire 0x%lx) = %lu, total bytes=%zu",
+             _h3_setting_name((YAWT_H3_SettingIdx_t)i), _h3_setting_wire_ids[i], settings->vals[i], off);
   }
 
   *written = off;
@@ -274,6 +295,7 @@ static void _process_wt_connect_upgrade(YAWT_H3_Context_t *con,
 
   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
   bool is_client_bidi = ((stream->id) & 0x03) == YAWT_Q_C_BIDI;
+  YAWT_LOG(YAWT_LOG_DEBUG, "WT Connect Upgrade Check");
 
   if (!is_client_bidi) {
     YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is not client-initiated bidi, skipping WT upgrade check", stream->id);
@@ -758,6 +780,8 @@ YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
     YAWT_H3_SettingIdx_t idx;
     if (_h3_setting_wire_to_idx(id, &idx) == 0) {
       YAWT_h3_setting_set(out, idx, value);
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: decoded setting %s id=0x%lx value=%lu", 
+          _h3_setting_name(idx), id, value);  
     }
   }
 
@@ -906,6 +930,8 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Context_t *h3,
   YAWT_LOG(YAWT_LOG_INFO, "h3: sent HEADERS on stream %lu (%zu bytes, fin=%d)",
            stream_id, hdr_len + block_len, fin);
 
+  /* This is dead code, does not belong here
+
   // Server side: if this stream is WT_CONNECT_PENDING and we're sending a 2xx
   // response, upgrade it to WT_CONNECT (draft-15 §3.2)
   YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
@@ -922,7 +948,7 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Context_t *h3,
                stream_id, (int)status.value_len, status.value);
     }
   }
-
+  */
   return YAWT_H3_OK;
 }
 
@@ -1040,6 +1066,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Context_t *h3,
     return err;
   }
 
+  stream->type = YAWT_H3_STREAM_FRAME;
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_deny: sent %s rejection on stream %lu", status_buf, stream_id);
   return YAWT_H3_OK;
 }
@@ -1079,6 +1106,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_i
     return err;
   }
 
+  stream->type = YAWT_H3_STREAM_WT_CONNECT;
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_accept: accepted WT CONNECT on stream %lu", stream_id);
   return YAWT_H3_OK;
 }
