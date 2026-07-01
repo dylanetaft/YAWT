@@ -555,6 +555,18 @@ typedef struct {
 } YAWT_Q_Frame_t;
 
 /**
+ * @ingroup QUIC_FRAME_TYPES
+ * @brief A CRYPTO frame plus the storage its .frame.crypto.data points at.
+ * @note Used when a frame must outlive the input datagram (out-of-order RX buffering).
+ * bf->data is the OWNED inline copy. bf->frame.crypto.data is the borrowed pointer, set to
+ * point at bf->data when buffered.
+ */
+typedef struct YAWT_Q_Frame_BufferedCrypto_t {
+  YAWT_Q_Frame_t frame;  // full frame; access pkt_type via frame.pkt_type, crypto via frame.crypto
+  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.crypto.data points here when buffered
+} YAWT_Q_Frame_BufferedCrypto_t;
+
+/**
  * @ingroup QUIC
  * @brief User data slot identifiers for YAWT_q_con_{set,get}_user_data.
  * @note Each protocol layer uses its own slot to avoid collisions. The QUIC

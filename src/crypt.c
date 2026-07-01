@@ -659,14 +659,14 @@ static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
   size_t item_size;
   uint8_t *item;
   while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
-    YAWT_Q_Frame_t *buffered = (YAWT_Q_Frame_t *)item;
-    YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->pkt_type);
+    YAWT_Q_Frame_BufferedCrypto_t *buffered = (YAWT_Q_Frame_BufferedCrypto_t *)item;
+    YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->frame.pkt_type);
 
-    if (buffered->crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
+    if (buffered->frame.crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
       int ret = _crypto_handshake_write(crypto, lvl,
-                                         buffered->crypto.data, buffered->crypto.len);
+                                         buffered->data, buffered->frame.crypto.len);
       if (ret < 0) return ret;
-      crypto->rx_crypto_next_offset[lvl] += buffered->crypto.len;
+      crypto->rx_crypto_next_offset[lvl] += buffered->frame.crypto.len;
       ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
     }
   }
@@ -723,7 +723,18 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   }
   YAWT_LOG(YAWT_LOG_DEBUG, "CRYPTO gap at level %d: expected %lu, got offset %lu — buffering",
             level, crypto->rx_crypto_next_offset[level], offset);
-  ANB_slab_push_item(crypto->rx_crypto_buf, (const uint8_t *)frame, sizeof(*frame));
+  
+  uint8_t *slot = ANB_slab_alloc_item(crypto->rx_crypto_buf, sizeof(YAWT_Q_Frame_BufferedCrypto_t));
+  if (!slot) {
+    YAWT_LOG(YAWT_LOG_ERROR, "Failed to allocate CRYPTO buffer");
+    return YAWT_Q_ERR_SHORT_BUFFER;
+  }
+  
+  YAWT_Q_Frame_BufferedCrypto_t *buf = (YAWT_Q_Frame_BufferedCrypto_t *)slot;
+  buf->frame = *frame;
+  memcpy(buf->data, frame->crypto.data, frame->crypto.len);
+  buf->frame.crypto.data = buf->data;
+  
   return YAWT_Q_OK;
 }
 
