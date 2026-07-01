@@ -65,6 +65,7 @@ typedef enum {
   YAWT_Q_ERR_ALLOC,
   YAWT_Q_ERR_FRAME_TOO_LARGE,
   YAWT_Q_ERR_TLS_ALERT,
+  YAWT_Q_ERR_CERT_INVALID,
 } YAWT_Err_t;
 
 /**
@@ -117,6 +118,7 @@ static inline const char *YAWT_err_str(YAWT_Err_t err) {
     case YAWT_Q_ERR_ALLOC:                       return "ALLOC";
     case YAWT_Q_ERR_FRAME_TOO_LARGE:             return "FRAME_TOO_LARGE";
     case YAWT_Q_ERR_TLS_ALERT:                   return "TLS_ALERT";
+    case YAWT_Q_ERR_CERT_INVALID:                return "CERT_INVALID";
     default:                                     return "UNKNOWN";
   }
 }

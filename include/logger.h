@@ -67,6 +67,7 @@ static inline const char *YAWT_log_level_str(YAWT_log_level_t level) {
     if ((level) >= YAWT_LOG_LEVEL) {                                            \
       fprintf(stdout, "[%s] %s:%d (%s): " fmt "\n", YAWT_log_level_str(level),  \
               __FILE__, __LINE__, __func__, ##__VA_ARGS__);                    \
+      fflush(stdout);                                                           \
     }                                                                          \
   } while (0)
 #else

@@ -113,6 +113,16 @@ YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
 void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred);
 
 /**
+ * @ingroup Crypt
+ * @brief Validate certificate in credentials (expiry, SAN, hostname match).
+ * @param cred The credential handle to validate.
+ * @param hostname Optional hostname to check against certificate (NULL to skip).
+ * @return YAWT_Q_OK if valid, YAWT_Q_ERR_CERT_INVALID if any check fails.
+ * @note Logs detailed warnings/errors for each issue found.
+ */
+YAWT_Err_t YAWT_q_crypto_cert_validate(YAWT_Q_Crypto_Cred_t *cred, const char *hostname);
+
+/**
  * @internal
  * @ingroup QUIC_Internal
  * @brief Initialize per-connection crypto state.

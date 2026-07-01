@@ -174,8 +174,12 @@ int main(int argc, char *argv[]) {
 
   server_cred = YAWT_q_crypto_cred_new(cert_file, key_file, NULL);
   if (!server_cred) {
-    fprintf(stderr, "failed to load cert %s / key %s\n", cert_file, key_file);
+    YAWT_LOG(YAWT_LOG_ERROR, "failed to load cert %s / key %s", cert_file, key_file);
     return 1;
+  }
+
+  if (YAWT_q_crypto_cert_validate(server_cred, "localhost") != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "certificate validation failed");
   }
 
   YAWT_q_con_set_event_handler(on_event);

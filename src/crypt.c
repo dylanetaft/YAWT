@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include <gnutls/crypto.h>
+#include <gnutls/x509.h>
 #include "logger.h"
 
 
@@ -212,6 +214,56 @@ static int _on_alert(gnutls_session_t session,
   return 0;
 }
 
+static void _cert_sanity_check(gnutls_certificate_credentials_t cred) {
+  gnutls_x509_crt_t *crt_list = NULL;
+  unsigned int n = 0;
+  int ret = gnutls_certificate_get_x509_crt(cred, 0, &crt_list, &n);
+  if (ret < 0 || n == 0) {
+    YAWT_LOG(YAWT_LOG_WARN, "could not extract certificate for validation");
+    return;
+  }
+
+  gnutls_x509_crt_t crt = crt_list[0];
+
+  unsigned int pk_bits = 0;
+  int pk_algo = gnutls_x509_crt_get_pk_algorithm(crt, &pk_bits);
+  const char *pk_name = gnutls_pk_algorithm_get_name(pk_algo);
+  YAWT_LOG(YAWT_LOG_INFO, "certificate: %s %u-bit key", pk_name ? pk_name : "unknown", pk_bits);
+
+  time_t now = time(NULL);
+  time_t activation = gnutls_x509_crt_get_activation_time(crt);
+  time_t expiration = gnutls_x509_crt_get_expiration_time(crt);
+
+  if (now < activation) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate not yet valid (activates %ld)", (long)activation);
+  }
+  if (now > expiration) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate expired (expired %ld)", (long)expiration);
+  }
+
+  int has_san = 0;
+  for (unsigned int i = 0; ; i++) {
+    char san_buf[256];
+    size_t san_len = sizeof(san_buf);
+    unsigned int san_type;
+    ret = gnutls_x509_crt_get_subject_alt_name2(crt, i, san_buf, &san_len, &san_type, NULL);
+    if (ret < 0) break;
+    has_san = 1;
+    if (san_type == GNUTLS_SAN_DNSNAME) {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate SAN: DNS:%s", san_buf);
+    } else if (san_type == GNUTLS_SAN_IPADDRESS) {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate SAN: IP:%s", san_buf);
+    }
+  }
+
+  if (!has_san) {
+    YAWT_LOG(YAWT_LOG_WARN, "certificate has no Subject Alternative Name (SAN) - clients may reject");
+  }
+
+  gnutls_x509_crt_deinit(crt);
+  free(crt_list);
+}
+
 YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                                const char *key_file,
                                                const char *ca_file) {
@@ -229,6 +281,7 @@ YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                                 cert_file, key_file,
                                                 GNUTLS_X509_FMT_PEM);
     if (ret < 0) goto fail;
+    _cert_sanity_check(cred->cred);
   }
 
   if (ca_file) {
@@ -254,6 +307,62 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred) {
   gnutls_certificate_free_credentials((*cred)->cred);
   free(*cred);
   *cred = NULL;
+}
+
+YAWT_Err_t YAWT_q_crypto_cert_validate(YAWT_Q_Crypto_Cred_t *cred, const char *hostname) {
+  if (!cred || !cred->cred) return YAWT_Q_ERR_INVALID_PARAM;
+
+  gnutls_x509_crt_t *crt_list = NULL;
+  unsigned int n = 0;
+  int ret = gnutls_certificate_get_x509_crt(cred->cred, 0, &crt_list, &n);
+  if (ret < 0 || n == 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "could not extract certificate for validation");
+    return YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  gnutls_x509_crt_t crt = crt_list[0];
+  YAWT_Err_t result = YAWT_Q_OK;
+
+  time_t now = time(NULL);
+  time_t activation = gnutls_x509_crt_get_activation_time(crt);
+  time_t expiration = gnutls_x509_crt_get_expiration_time(crt);
+
+  if (now < activation) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate not yet valid");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+  if (now > expiration) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate expired");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  int has_san = 0;
+  for (unsigned int i = 0; ; i++) {
+    char san_buf[256];
+    size_t san_len = sizeof(san_buf);
+    unsigned int san_type;
+    ret = gnutls_x509_crt_get_subject_alt_name2(crt, i, san_buf, &san_len, &san_type, NULL);
+    if (ret < 0) break;
+    has_san = 1;
+  }
+
+  if (!has_san) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate has no Subject Alternative Name (SAN)");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  if (hostname && hostname[0]) {
+    if (!gnutls_x509_crt_check_hostname(crt, hostname)) {
+      YAWT_LOG(YAWT_LOG_ERROR, "certificate does not match hostname '%s'", hostname);
+      result = YAWT_Q_ERR_CERT_INVALID;
+    } else {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate matches hostname '%s'", hostname);
+    }
+  }
+
+  gnutls_x509_crt_deinit(crt);
+  free(crt_list);
+  return result;
 }
 
 // QUIC transport parameters extension (RFC 9000 §18, extension type 0x0039)
