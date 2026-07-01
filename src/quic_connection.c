@@ -1314,130 +1314,146 @@ static uint64_t _next_pn(YAWT_Q_Context_t *con, uint8_t level) {
 static void _drain_tx(YAWT_Q_Context_t *con, double now) {
   if (ANB_slab_item_count(con->tx_buffer) == 0) return;
 
-  // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
-  // received before address validation. Clients are not subject to this limit.
-  if (con->role == YAWT_Q_ROLE_SERVER && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
-    if (con->stats.tx_count_bytes >= 3 * con->stats.rx_count_bytes) {
-      YAWT_LOG(YAWT_LOG_INFO, "anti-amplification limit reached: tx=%lu, rx=%lu, limit=%lu",
-               con->stats.tx_count_bytes, con->stats.rx_count_bytes, 3 * con->stats.rx_count_bytes);
-      return;
-    }
-  }
-
   for (int lvl = 0; lvl < 4; lvl++) {
-    size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
-        ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
-        : YAWT_Q_MAX_FRAME_PAYLOAD_SHORT;
-    uint8_t payload[YAWT_Q_MAX_PKT_SIZE];
-    size_t payload_len = 0;
-    int found = 0;
-
-    ANB_SlabIter_t iter = {0};
-    size_t item_size;
-    uint8_t *item;
-
-    while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
-      if (item_size != sizeof(YAWT_Q_WireFrame_t))  { //defensive check, should never happen
-        YAWT_LOG(YAWT_LOG_ERROR, "invalid item in tx_buffer: size %zu (expected %zu), skipping",
-                 item_size, sizeof(YAWT_Q_WireFrame_t));
-        abort();
-      }
-      YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
-
-      //see process_ack - this removes frames from tx_buffer
-      if (f->level != lvl || f->last_sent != 0) continue; 
-
-      // RFC 9000 §4.1: flow control — hold STREAM frames until within limits.
-      // Bytes are counted optimistically at enqueue time (in send_stream);
-      // frames stay buffered here until MAX_DATA / MAX_STREAM_DATA raises limits
-      if (f->type == YAWT_Q_FRAME_STREAM) {
-        if (con->stats.tx_count_bytes > con->peer_fc.max_data) {
-          if (!con->data_blocked) {
-            con->data_blocked = true;
-            YAWT_q_enqueue_frame_data_blocked(con, con->peer_fc.max_data);
-          }
-          continue;
-        }
-        YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, f->stream_id);
-        if (sud && SUD_META(sud)->stats.tx_count_bytes >= SUD_META(sud)->fc.tx_max_data) {
-          if (_stream_state_allows_tx(SUD_META(sud)) && !(SUD_META(sud)->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
-            SUD_META(sud)->state |= YAWT_Q_STREAM_TX_BLOCKED_SENT;
-            YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, SUD_META(sud)->fc.tx_max_data);
-          }
-          continue;
+    // Send all queued packets for this level
+    while (1) {
+      // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
+      // received before address validation. Clients are not subject to this limit.
+      if (con->role == YAWT_Q_ROLE_SERVER && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+        if (con->stats.tx_count_bytes >= 3 * con->stats.rx_count_bytes) {
+          YAWT_LOG(YAWT_LOG_INFO, "anti-amplification limit reached: tx=%lu, rx=%lu, limit=%lu",
+                   con->stats.tx_count_bytes, con->stats.rx_count_bytes, 3 * con->stats.rx_count_bytes);
+          return;
         }
       }
 
-      if (payload_len + f->wire_len > max_payload) break;
+      size_t max_payload = (lvl <= YAWT_Q_LEVEL_HANDSHAKE)
+          ? YAWT_Q_MAX_FRAME_PAYLOAD_LONG
+          : YAWT_Q_MAX_FRAME_PAYLOAD_SHORT;
+      uint8_t payload[YAWT_Q_MAX_PKT_SIZE];
+      size_t payload_len = 0;
+      int found = 0;
 
-      memcpy(payload + payload_len, f->wire_data, f->wire_len);
-      payload_len += f->wire_len;
-      found = 1;
-    }
+      ANB_SlabIter_t iter = {0};
+      size_t item_size;
+      uint8_t *item;
 
-    if (!found) continue;
+      while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter, &item_size)) != NULL) {
+        if (item_size != sizeof(YAWT_Q_WireFrame_t))  { //defensive check, should never happen
+          YAWT_LOG(YAWT_LOG_ERROR, "invalid item in tx_buffer: size %zu (expected %zu), skipping",
+                   item_size, sizeof(YAWT_Q_WireFrame_t));
+          abort();
+        }
+        YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
 
-    if (!YAWT_q_crypto_key_level_available(con->crypto, lvl)) {
-      printf("  no write keys for level %d, skipping send\n", lvl);
-      continue;
-    }
+        //see process_ack - this removes frames from tx_buffer
+        if (f->level != lvl || f->last_sent != 0) continue;
 
-    // RFC 9000 §12.3: If sending packet number reaches 2^62-1, sender MUST close
-    // connection without CONNECTION_CLOSE or further packets.
-    if (con->stats.next_pkt_num_tx[lvl] >= (1ULL << 62)) {
-      YAWT_LOG(YAWT_LOG_ERROR, "packet number overflow: level %d reached 2^62-1, closing connection", lvl);
-      _record_close(con, YAWT_Q_ERR_AEAD_LIMIT_REACHED, "packet number space exhausted",
-                    sizeof("packet number space exhausted") - 1,
-                    YAWT_Q_STATE_SELF_CLOSE_CLOSING);
-      return;
-    }
+        // RFC 9000 §4.1: flow control — hold STREAM frames until within limits.
+        // Bytes are counted optimistically at enqueue time (in send_stream);
+        // frames stay buffered here until MAX_DATA / MAX_STREAM_DATA raises limits
+        if (f->type == YAWT_Q_FRAME_STREAM) {
+          if (con->stats.tx_count_bytes > con->peer_fc.max_data) {
+            if (!con->data_blocked) {
+              con->data_blocked = true;
+              YAWT_q_enqueue_frame_data_blocked(con, con->peer_fc.max_data);
+            }
+            continue;
+          }
+          YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, f->stream_id);
+          if (sud && SUD_META(sud)->stats.tx_count_bytes >= SUD_META(sud)->fc.tx_max_data) {
+            if (_stream_state_allows_tx(SUD_META(sud)) && !(SUD_META(sud)->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
+              SUD_META(sud)->state |= YAWT_Q_STREAM_TX_BLOCKED_SENT;
+              YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, SUD_META(sud)->fc.tx_max_data);
+            }
+            continue;
+          }
+        }
 
-    YAWT_Q_Packet_Type_t pkt_type = _level_to_pkt_type(lvl);
-    uint64_t pn = _next_pn(con, lvl);
+        if (payload_len + f->wire_len > max_payload) break;
 
-    YAWT_Q_Packet_t pkt;
-    memset(&pkt, 0, sizeof(pkt));
-    pkt.type = pkt_type;
-    pkt.version = con->version;
-    pkt.dest_cid = con->peer_cid;
-    pkt.src_cid = con->cid;
-    pkt.packet_num = pn;
-    pkt.packet_number_length = 4;
-    pkt.reserved = 0;
-    pkt.payload = payload;
-    pkt.payload_len = payload_len;
+        memcpy(payload + payload_len, f->wire_data, f->wire_len);
+        payload_len += f->wire_len;
+        found = 1;
+      }
 
-    if (pkt_type == YAWT_Q_PKT_TYPE_INITIAL) {
-      pkt.extra.initial.token_len = 0;
-      pkt.extra.initial.token = NULL;
-    }
+      if (!found) break;
 
-    const uint8_t *wire_data;
-    int wire_len = YAWT_q_encode_packet(&pkt, con->crypto, &wire_data);
-    if (wire_len < 0) {
-      printf("  error: encode packet failed: %d\n", wire_len);
-      continue;
-    }
+      if (!YAWT_q_crypto_key_level_available(con->crypto, lvl)) {
+        printf("  no write keys for level %d, skipping send\n", lvl);
+        break;
+      }
 
-    size_t send_size = (size_t)wire_len;
-    YAWT_Q_EventParam_t param;
-    param.P_EVT_TX.buf = wire_data;
-    param.P_EVT_TX.len = send_size;
-    param.P_EVT_TX.peer = &con->peer_addr;
-    _event_handler(con, YAWT_Q_EVT_TX, param);
-    con->stats.last_tx = now;
-    if (!(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
-      con->stats.tx_count_bytes += send_size;
-    }
+      // RFC 9000 §12.3: If sending packet number reaches 2^62-1, sender MUST close
+      // connection without CONNECTION_CLOSE or further packets.
+      if (con->stats.next_pkt_num_tx[lvl] >= (1ULL << 62)) {
+        YAWT_LOG(YAWT_LOG_ERROR, "packet number overflow: level %d reached 2^62-1, closing connection", lvl);
+        _record_close(con, YAWT_Q_ERR_AEAD_LIMIT_REACHED, "packet number space exhausted",
+                      sizeof("packet number space exhausted") - 1,
+                      YAWT_Q_STATE_SELF_CLOSE_CLOSING);
+        return;
+      }
 
-    // Mark frames as sent. ACK frames are one-shot — RFC 9000 §13.2.1 says ACK
-    // info is regenerated from current rx state, never retransmitted — so pop
-    // them now instead of leaving them to the retransmit timer.
-    ANB_SlabIter_t iter2 = {0};
-    while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
-      if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
-      YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
-      if (f->level == lvl && f->last_sent == 0) {
+      YAWT_Q_Packet_Type_t pkt_type = _level_to_pkt_type(lvl);
+      uint64_t pn = _next_pn(con, lvl);
+
+      YAWT_Q_Packet_t pkt;
+      memset(&pkt, 0, sizeof(pkt));
+      pkt.type = pkt_type;
+      pkt.version = con->version;
+      pkt.dest_cid = con->peer_cid;
+      pkt.src_cid = con->cid;
+      pkt.packet_num = pn;
+      pkt.packet_number_length = 4;
+      pkt.reserved = 0;
+      pkt.payload = payload;
+      pkt.payload_len = payload_len;
+
+      if (pkt_type == YAWT_Q_PKT_TYPE_INITIAL) {
+        pkt.extra.initial.token_len = 0;
+        pkt.extra.initial.token = NULL;
+      }
+
+      const uint8_t *wire_data;
+      int wire_len = YAWT_q_encode_packet(&pkt, con->crypto, &wire_data);
+      if (wire_len < 0) {
+        printf("  error: encode packet failed: %d\n", wire_len);
+        break;
+      }
+
+      size_t send_size = (size_t)wire_len;
+      YAWT_Q_EventParam_t param;
+      param.P_EVT_TX.buf = wire_data;
+      param.P_EVT_TX.len = send_size;
+      param.P_EVT_TX.peer = &con->peer_addr;
+      _event_handler(con, YAWT_Q_EVT_TX, param);
+      con->stats.last_tx = now;
+      if (!(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
+        con->stats.tx_count_bytes += send_size;
+      }
+
+      // Mark frames as sent. Only mark frames that were actually included in this packet.
+      // We iterate again and mark frames until we've accounted for payload_len bytes.
+      // ACK frames are one-shot — RFC 9000 §13.2.1 says ACK info is regenerated from
+      // current rx state, never retransmitted — so pop them now.
+      size_t accounted = 0;
+      ANB_SlabIter_t iter2 = {0};
+      while ((item = ANB_slab_peek_item_iter(con->tx_buffer, &iter2, &item_size)) != NULL) {
+        if (item_size < sizeof(YAWT_Q_WireFrame_t)) continue;
+        YAWT_Q_WireFrame_t *f = (YAWT_Q_WireFrame_t *)item;
+        if (f->level != lvl || f->last_sent != 0) continue;
+
+        // Skip flow-controlled STREAM frames (they weren't included)
+        if (f->type == YAWT_Q_FRAME_STREAM) {
+          if (con->stats.tx_count_bytes > con->peer_fc.max_data) continue;
+          YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, f->stream_id);
+          if (sud && SUD_META(sud)->stats.tx_count_bytes >= SUD_META(sud)->fc.tx_max_data) continue;
+        }
+
+        // Check if this frame fits in the remaining payload
+        if (accounted + f->wire_len > payload_len) break;
+
+        accounted += f->wire_len;
         f->last_sent = now;
         f->packet_num = pn;
         if (f->type == YAWT_Q_FRAME_ACK) {

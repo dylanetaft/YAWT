@@ -68,6 +68,10 @@ static void udp_send(const uint8_t *buf, size_t len,
   socklen_t ss_len = _peer_to_sockaddr(peer_addr, &ss);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
                          (struct sockaddr *)&ss, ss_len);
+  if (nsent < 0) {
+    perror("sendto");
+    return;
+  }
   char addr_str[INET6_ADDRSTRLEN];
   uint16_t port;
   if (ss.ss_family == AF_INET) {
@@ -238,10 +242,14 @@ int main(int argc, char *argv[]) {
   }
 
   int reuse = 1;
-  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    perror("setsockopt SO_REUSEADDR");
+  }
 
   int v6only = 0;
-  setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+  if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only)) < 0) {
+    perror("setsockopt IPV6_V6ONLY");
+  }
 
   struct sockaddr_in6 bind_addr = {
     .sin6_family = AF_INET6,
@@ -255,7 +263,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  printf("listening on udp :%d\n", port);
+  printf("listening on udp [::]:%d\n", port);
 
   struct ev_loop *loop = ev_default_loop(0);
   ev_io udp_watcher;
