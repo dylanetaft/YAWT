@@ -48,6 +48,8 @@ static const uint64_t _h3_setting_wire_ids[YAWT_H3_NUM_SETTINGS] = {
   [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI]  = 0x2b64, /**< WT per-session uni stream limit (draft-15 §9.2) */
   [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI] = 0x2b65, /**< WT per-session bidi stream limit (draft-15 §9.2) */
   [YAWT_H3_IDX_WT_INITIAL_MAX_DATA]         = 0x2b61, /**< WT per-session data limit (draft-15 §9.2) */
+  [YAWT_H3_IDX_WT_ENABLED_DRAFT02]          = 0x2b603742, /**< WebTransport enabled (draft-02) */
+  [YAWT_H3_IDX_H3_DATAGRAM_DRAFT04]         = 0x00ffd277, /**< HTTP/3 datagrams (draft-04) */
 };
 
 static const char *_h3_setting_names[YAWT_H3_NUM_SETTINGS] = {
@@ -61,6 +63,8 @@ static const char *_h3_setting_names[YAWT_H3_NUM_SETTINGS] = {
   [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI]  = "WT_INITIAL_MAX_STREAMS_UNI",
   [YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI] = "WT_INITIAL_MAX_STREAMS_BIDI",
   [YAWT_H3_IDX_WT_INITIAL_MAX_DATA]         = "WT_INITIAL_MAX_DATA",
+  [YAWT_H3_IDX_WT_ENABLED_DRAFT02]          = "WT_ENABLED_DRAFT02",
+  [YAWT_H3_IDX_H3_DATAGRAM_DRAFT04]         = "H3_DATAGRAM_DRAFT04",
 };
 
 
@@ -77,6 +81,12 @@ static int _h3_setting_wire_to_idx(uint64_t wire_id, YAWT_H3_SettingIdx_t *out) 
     }
   }
   return -1;
+}
+
+static YAWT_H3_WT_Version_t _h3_detect_wt_version(const YAWT_H3_Settings_t *peer) {
+  if (YAWT_h3_setting_isset(peer, YAWT_H3_IDX_WT_ENABLED_DRAFT02))
+    return YAWT_H3_WT_VERSION_DRAFT02;
+  return YAWT_H3_WT_VERSION_DEFAULT;
 }
 
 YAWT_H3_Error_t YAWT_h3_setting_set(YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx, uint64_t val) {
@@ -306,12 +316,14 @@ static void _process_wt_connect_upgrade(YAWT_H3_Context_t *con,
   bool is_upgrade_related = false;
 
   if (is_server) {
-    // Server receives CONNECT request from client
+    const char *expected_protocol = (con->wt_version == YAWT_H3_WT_VERSION_DRAFT02)
+        ? "webtransport" : "webtransport-h3";
     YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(stream->request_headers, ":method");
     YAWT_H3_Header_Field_t protocol = YAWT_h3_header_find_str(stream->request_headers, ":protocol");
 
     if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0 &&
-        protocol.name && strncmp(protocol.value, "webtransport-h3", protocol.value_len) == 0) {
+        protocol.name && protocol.value_len == strlen(expected_protocol) &&
+        strncmp(protocol.value, expected_protocol, protocol.value_len) == 0) {
       stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
       YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT CONNECT pending upgrade", stream->id);
       is_upgrade_related = true;
@@ -373,8 +385,9 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
             YAWT_LOG(YAWT_LOG_ERROR, "h3: SETTINGS decode failed: %s", YAWT_h3_err_str(err));
             return false;
           }
-          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (val_set=0x%lx)",
-                   con->peer_settings->val_set);
+          con->wt_version = _h3_detect_wt_version(con->peer_settings);
+          YAWT_LOG(YAWT_LOG_INFO, "h3: peer settings decoded (val_set=0x%lx, wt_version=%d)",
+                   con->peer_settings->val_set, con->wt_version);
           con->app_handler(con, YAWT_H3_EVT_SETTINGS, (YAWT_H3_EventParam_t){
             .P_EVT_SETTINGS = { .stream_id = stream->id, .settings = con->peer_settings }
           });
@@ -395,8 +408,13 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
           if (!stream->request_headers) {
             stream->request_headers = YAWT_h3_header_fields_create();
           }
+          YAWT_LOG(YAWT_LOG_DEBUG, "h3: HEADERS frame on stream %lu, payload_len=%lu", stream->id, f->payload_len);
+          const uint8_t *hb_data = ANB_blob_data(f->payload_blob);
+          for (size_t i = 0; i < (size_t)f->payload_len && i < 64; i++) {
+            YAWT_LOG(YAWT_LOG_DEBUG, "  hb[%zu] = 0x%02x", i, hb_data[i]);
+          }
           YAWT_QPACK_Error_t qerr = YAWT_qpack_decode_header_block(
-              ANB_blob_data(f->payload_blob), (size_t)f->payload_len, stream->request_headers);
+              hb_data, (size_t)f->payload_len, stream->request_headers);
           if (qerr != YAWT_QPACK_OK) {
             YAWT_LOG(YAWT_LOG_ERROR, "h3: QPACK decode failed on stream %lu: %d",
                      stream->id, qerr);
@@ -405,6 +423,13 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
             return false;
           }
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
+          ANB_SlabIter_t iter = {0};
+          YAWT_H3_Header_Field_t field;
+          while ((field = YAWT_h3_header_iter(stream->request_headers, &iter)).name != NULL) {
+            YAWT_LOG(YAWT_LOG_DEBUG, "  header: %.*s = %.*s", 
+                     (int)field.name_len, field.name,
+                     (int)field.value_len, field.value);
+          }
 
           _process_wt_connect_upgrade(con, sud);
 
@@ -630,17 +655,8 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event
 
     const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
     if (wt_pol->max_sessions > 0) {
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, 1);
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, wt_pol->max_sessions);
-      if (wt_pol->initial_max_streams_uni > 0)
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI, wt_pol->initial_max_streams_uni);
-      if (wt_pol->initial_max_streams_bidi > 0)
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI, wt_pol->initial_max_streams_bidi);
-      if (wt_pol->initial_max_data > 0)
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_INITIAL_MAX_DATA, wt_pol->initial_max_data);
-      if (con->role == YAWT_Q_ROLE_SERVER)
-        YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL, 1);
-      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED_DRAFT02, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM_DRAFT04, 1);
     }
 
     YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 0);
@@ -810,6 +826,12 @@ static YAWT_H3_Error_t _h3_open_uni_stream(
   if (YAWT_q_varint_encode(wire_type, stream_type_buf, sizeof(stream_type_buf), &n) != YAWT_Q_OK)
     return YAWT_H3_ERR_SHORT_BUFFER;
 
+  YAWT_LOG(YAWT_LOG_DEBUG, "h3: opening uni stream %lu with type 0x%lx (encoded as %lu bytes):",
+           stream_id, wire_type, n);
+  for (size_t i = 0; i < n; i++) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "  stream_type[%zu] = 0x%02x", i, stream_type_buf[i]);
+  }
+
   // Prepend stream-type varint to caller's iov
   YAWT_Q_IoVec_t iov[1 + 4]; // max 4 payload iovs + 1 stream type
   if (payload_iov_count + 1 > sizeof(iov) / sizeof(iov[0]))
@@ -861,11 +883,13 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Context_t *h3) {
 YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Context_t *h3) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
 
-  // QPACK streams are unidirectional. Client uses even IDs (2, 4, 6, ...),
-  // server uses odd IDs (3, 5, 7, ...). Control stream is first (2 or 3),
-  // so QPACK encoder is second (4 or 5), decoder is third (6 or 7).
-  uint64_t encoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 4 : 5;
-  uint64_t decoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 6 : 7;
+  // QPACK streams are unidirectional. Per RFC 9000 §2.1, unidirectional stream
+  // IDs step by 4 within their own space: client-uni = 2, 6, 10, ...;
+  // server-uni = 3, 7, 11, ... (low 2 bits: 0x2 = client-uni, 0x3 = server-uni).
+  // Control stream is first (2 or 3), so QPACK encoder is the next uni ID
+  // (6 or 7), and the decoder is the one after (10 or 11).
+  uint64_t encoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 6 : 7;
+  uint64_t decoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 10 : 11;
 
   // RFC 9204 §4.2: QPACK encoder stream type is 0x02
   YAWT_H3_Error_t err = _h3_open_uni_stream(h3, YAWT_H3_STREAM_WIRE_QPACK_ENCODER, encoder_stream_id, NULL, 0, 0);
@@ -1007,11 +1031,17 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3,
   YAWT_H3_HeaderFields_t *req = YAWT_h3_header_fields_create();
   if (!req) return YAWT_H3_ERR_SHORT_BUFFER;
 
+  const char *protocol_value = (h3->wt_version == YAWT_H3_WT_VERSION_DRAFT02)
+      ? "webtransport" : "webtransport-h3";
   YAWT_h3_header_add_str(req, ":method", "CONNECT");
-  YAWT_h3_header_add_str(req, ":protocol", "webtransport-h3");
+  YAWT_h3_header_add_str(req, ":protocol", protocol_value);
   YAWT_h3_header_add_str(req, ":scheme", scheme);
   YAWT_h3_header_add_str(req, ":authority", authority);
   YAWT_h3_header_add_str(req, ":path", path);
+
+  if (h3->wt_version == YAWT_H3_WT_VERSION_DRAFT02) {
+    YAWT_h3_header_add_str(req, "Sec-Webtransport-Http3-Draft02", "1");
+  }
 
   YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, req, 0);
   YAWT_h3_header_fields_destroy(req);
@@ -1096,6 +1126,10 @@ YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_i
   if (!resp) return YAWT_H3_ERR_SHORT_BUFFER;
 
   YAWT_h3_header_add_str(resp, ":status", "200");
+
+  if (h3->wt_version == YAWT_H3_WT_VERSION_DRAFT02) {
+    YAWT_h3_header_add_str(resp, "Sec-Webtransport-Http3-Draft", "draft02");
+  }
 
   YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, resp, 0);
   YAWT_h3_header_fields_destroy(resp);

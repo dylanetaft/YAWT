@@ -160,11 +160,46 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 // On Huffman, decodes into scratch blob at offset (grows on demand).
 // Returns pointer/len into the blob data. Caller advances offset by *out_len.
 // Advances the caller's cur/remaining.
+static YAWT_QPACK_Error_t _h3_decode_string_literal_with_length(
+    const uint8_t **cur, size_t *remaining,
+    ANB_Blob_t *scratch,
+    size_t str_len, int huff,
+    const uint8_t **out, size_t *out_len)
+{
+    YAWT_LOG(YAWT_LOG_DEBUG, "_h3_decode_string_literal_with_length: str_len=%zu, huff=%d, remaining=%zu", str_len, huff, *remaining);
+    if (*remaining < str_len) {
+      YAWT_LOG(YAWT_LOG_ERROR, "  SHORT_BUFFER: remaining=%zu < str_len=%zu", *remaining, str_len);
+      return YAWT_QPACK_ERR_SHORT_BUFFER;
+    }
+
+    const uint8_t *str_data = *cur;
+    uint8_t *buf = ANB_blob_data(scratch);
+    size_t cap = ANB_blob_capacity(scratch);
+
+    if (huff) {
+        size_t decoded = 0;
+        YAWT_QPACK_Error_t err = YAWT_QPACK_huff_decode_string(str_data, str_len,
+                                            buf, cap, &decoded);
+        if (err != YAWT_QPACK_OK) return err;
+        *out = buf;
+        *out_len = decoded;
+    } else {
+        memcpy(buf, str_data, str_len);
+        *out = buf;
+        *out_len = str_len;
+    }
+
+    *cur += str_len;
+    *remaining -= str_len;
+    return YAWT_QPACK_OK;
+}
+
 static YAWT_QPACK_Error_t _h3_decode_string_literal(
     const uint8_t **cur, size_t *remaining,
     ANB_Blob_t *scratch,
     const uint8_t **out, size_t *out_len)
 {
+    YAWT_LOG(YAWT_LOG_DEBUG, "_h3_decode_string_literal: remaining=%zu", *remaining);
     if (*remaining == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
 
     uint8_t first = **cur;
@@ -173,9 +208,13 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
     uint64_t cons = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_prefix_int(
         *cur, *remaining, 1, &str_len, &cons);
+    YAWT_LOG(YAWT_LOG_DEBUG, "  prefix_int: err=%d, str_len=%lu, cons=%lu, huff=%d", err, str_len, cons, huff);
     if (err != YAWT_QPACK_OK) return err;
 
-    if (*remaining < cons + (size_t)str_len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    if (*remaining < cons + (size_t)str_len) {
+      YAWT_LOG(YAWT_LOG_ERROR, "  SHORT_BUFFER: remaining=%zu < cons+str_len=%lu", *remaining, cons + str_len);
+      return YAWT_QPACK_ERR_SHORT_BUFFER;
+    }
 
     const uint8_t *str_data = *cur + cons;
 
@@ -205,6 +244,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     const uint8_t *data, size_t len,
     YAWT_H3_HeaderFields_t *out)
 {
+    YAWT_LOG(YAWT_LOG_DEBUG, "YAWT_qpack_decode_header_block: len=%zu", len);
     if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
 
     static ANB_Blob_t *s_scratch_n = NULL;
@@ -232,18 +272,21 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 
     const uint8_t *cur = data + pcons;
     size_t rem = len - pcons;
+    YAWT_LOG(YAWT_LOG_DEBUG, "  prefix decoded: pcons=%zu, rem=%zu, ric=%lu, base=%lu", pcons, rem, ric, base);
 
     while (rem > 0) {
         uint8_t b = *cur;
         uint8_t pbits = 0;
         YAWT_QPACK_FieldLineRepType_t rep =
             YAWT_H3_QPACK_decode_field_line_msb(b, &pbits);
+        YAWT_LOG(YAWT_LOG_DEBUG, "  dispatch: byte=0x%02x, rep=%d, pbits=%d, rem=%zu", b, rep, pbits, rem);
 
         switch (rep) {
         case YAWT_QPACK_FIELD_LINE_INDEXED: {
             int T = (b >> 6) & 1;
             uint64_t idx = 0, cons = 0;
             err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 1, &idx, &cons);
+            YAWT_LOG(YAWT_LOG_DEBUG, "  INDEXED: T=%d, idx=%lu, cons=%lu, rem_before=%zu", T, idx, cons, rem);
             if (err != YAWT_QPACK_OK) return err;
             cur += cons; rem -= cons;
 
@@ -261,7 +304,9 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
         case YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF: {
             int T = (b >> 4) & 1;
             uint64_t idx = 0, cons = 0;
+            YAWT_LOG(YAWT_LOG_DEBUG, "  LITERAL_NAME_REF: byte=0x%02x, rem=%zu", b, rem);
             err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &idx, &cons);
+            YAWT_LOG(YAWT_LOG_DEBUG, "    T=%d, idx=%lu, cons=%lu", T, idx, cons);
             if (err != YAWT_QPACK_OK) return err;
             cur += cons; rem -= cons;
 
@@ -281,8 +326,17 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
         }
 
         case YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME: {
+            uint64_t name_len = 0, cons = 0;
+            int T_name = (b >> 3) & 1;
+            YAWT_LOG(YAWT_LOG_DEBUG, "  LITERAL_LITERAL_NAME: byte=0x%02x, rem=%zu, T_name=%d", b, rem, T_name);
+            err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &name_len, &cons);
+            YAWT_LOG(YAWT_LOG_DEBUG, "    name_len=%lu, cons=%lu", name_len, cons);
+            if (err != YAWT_QPACK_OK) return err;
+            cur += cons; rem -= cons;
+
             const uint8_t *name = NULL; size_t nlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch_n, &name, &nlen);
+            err = _h3_decode_string_literal_with_length(&cur, &rem, s_scratch_n, (size_t)name_len, T_name, &name, &nlen);
+            YAWT_LOG(YAWT_LOG_DEBUG, "    decoded name: nlen=%zu, name=%.*s, err=%d", nlen, (int)nlen, name, err);
             if (err != YAWT_QPACK_OK) return err;
 
             const uint8_t *val = NULL; size_t vlen = 0;

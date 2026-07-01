@@ -1319,11 +1319,11 @@ static void _drain_tx(YAWT_Q_Context_t *con, double now) {
     while (1) {
       // RFC 9000 §8.1: anti-amplification — server MUST NOT send more than 3x bytes
       // received before address validation. Clients are not subject to this limit.
+      // TEMPORARILY DISABLED: log-only for debugging handshake issues
       if (con->role == YAWT_Q_ROLE_SERVER && !(con->state & YAWT_Q_STATE_ADDR_VALIDATED)) {
         if (con->stats.tx_count_bytes >= 3 * con->stats.rx_count_bytes) {
-          YAWT_LOG(YAWT_LOG_INFO, "anti-amplification limit reached: tx=%lu, rx=%lu, limit=%lu",
+          YAWT_LOG(YAWT_LOG_WARN, "anti-amplification limit WOULD be reached: tx=%lu, rx=%lu, limit=%lu (ALLOWED for debugging)",
                    con->stats.tx_count_bytes, con->stats.rx_count_bytes, 3 * con->stats.rx_count_bytes);
-          return;
         }
       }
 

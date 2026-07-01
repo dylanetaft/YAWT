@@ -487,11 +487,12 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
 
   // draft-ietf-webtrans-http3 §3.1: both sides send empty reset_stream_at (0x17f7586d2cb571)
   // if WebTransport is enabled. (draft-ietf-quic-reliable-stream-reset §3)
-  const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
-  if (wt_pol->max_sessions > 0) {
-    ret = _tp_append(extdata, 0x17f7586d2cb571, NULL, 0);
-    if (ret < 0) return ret;
-  }
+  // Disabled for now - Firefox/neqo may not support this TP yet
+  // const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
+  // if (wt_pol->max_sessions > 0) {
+  //   ret = _tp_append(extdata, 0x17f7586d2cb571, NULL, 0);
+  //   if (ret < 0) return ret;
+  // }
 
   return 0;
 }

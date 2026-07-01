@@ -147,7 +147,9 @@ typedef enum {
   YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI  = 7,
   YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI = 8,
   YAWT_H3_IDX_WT_INITIAL_MAX_DATA         = 9,
-  YAWT_H3_NUM_SETTINGS = 10
+  YAWT_H3_IDX_WT_ENABLED_DRAFT02          = 10,
+  YAWT_H3_IDX_H3_DATAGRAM_DRAFT04         = 11,
+  YAWT_H3_NUM_SETTINGS = 12
 } YAWT_H3_SettingIdx_t;
 
 /**
@@ -345,3 +347,14 @@ typedef enum {
     DUPLICATE,               /**< Duplicate entry (RFC 9204 §4.3.4) */
     UNKNOWN                  /**< Unknown instruction */
 } YAWT_H3_QPACK_EncoderInstructionType_t;
+
+/**
+ * @ingroup H3_Types
+ * @brief WebTransport draft version negotiated for this connection.
+ * @note Detected from peer SETTINGS: DRAFT02 if peer sent 0x2b603742 (draft-ietf-webtrans-http3-02),
+ *       DEFAULT otherwise (draft-15+). Affects :protocol value and draft version headers.
+ */
+typedef enum {
+  YAWT_H3_WT_VERSION_DEFAULT = 0,  /**< Current draft (draft-15+) — :protocol=webtransport-h3 */
+  YAWT_H3_WT_VERSION_DRAFT02,      /**< draft-ietf-webtrans-http3-02 — :protocol=webtransport */
+} YAWT_H3_WT_Version_t;

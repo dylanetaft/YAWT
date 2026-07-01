@@ -54,4 +54,5 @@ struct YAWT_H3_Context_t {
   YAWT_H3_Settings_t *local_settings;   // NULL until populated
   YAWT_H3_Settings_t *peer_settings;    // NULL until decoded from peer
   YAWT_H3_Unique_Stream_Status_t core_stream_status[YAWT_H3_UNIQUE_STREAM_COUNT];
+  YAWT_H3_WT_Version_t wt_version;      // detected from peer settings (DEFAULT until detected)
 };
