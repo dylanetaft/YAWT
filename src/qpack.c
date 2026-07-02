@@ -8,96 +8,83 @@
 // QPACK static table — RFC 9204 Appendix A, entries 0 through 98.
 static const YAWT_QPACK_StaticEntry_t STATIC_TABLE[YAWT_QPACK_STATIC_TABLE_SIZE] = {
   { ":authority",                          "" },   //  0
-  { ":path",                               "/" },   //  1
-  { "age",                                 "0" },   //  2
-  { "content-disposition",                 "" },   //  3
-  { "content-length",                      "0" },   //  4
-  { "cookie",                              "" },   //  5
-  { "date",                                "" },   //  6
-  { "etag",                                "" },   //  7
-  { "if-modified-since",                   "" },   //  8
-  { "if-none-match",                       "" },   //  9
-  { "last-modified",                       "" },   // 10
-  { "link",                                "" },   // 11
-  { "location",                            "" },   // 12
-  { "referer",                             "" },   // 13
-  { "set-cookie",                          "" },   // 14
-  { ":method",                             "CONNECT" },   // 15
-  { ":method",                             "DELETE" },   // 16
-  { ":method",                             "GET" },   // 17
-  { ":method",                             "HEAD" },   // 18
-  { ":method",                             "OPTIONS" },   // 19
-  { ":method",                             "POST" },   // 20
-  { ":method",                             "PUT" },   // 21
-  { ":scheme",                             "http" },   // 22
-  { ":scheme",                             "https" },   // 23
-  { ":status",                             "103" },   // 24
-  { ":status",                             "200" },   // 25
-  { ":status",                             "304" },   // 26
-  { ":status",                             "404" },   // 27
-  { ":status",                             "503" },   // 28
-  { "accept",                              "*/*" },   // 29
-  { "accept",                              "application/dns-message" },   // 30
-  { "accept-encoding",                     "gzip, deflate, br" },   // 31
-  { "accept-ranges",                       "bytes" },   // 32
-  { "access-control-allow-headers",        "cache-control" },   // 33
-  { "access-control-allow-headers",        "content-type" },   // 34
-  { "access-control-allow-origin",         "*" },   // 35
-  { "cache-control",                       "max-age=0" },   // 36
-  { "cache-control",                       "max-age=2592000" },   // 37
-  { "cache-control",                       "max-age=604800" },   // 38
-  { "cache-control",                       "no-cache" },   // 39
-  { "cache-control",                       "no-store" },   // 40
-  { "cache-control",                       "public, max-age=31536000" },   // 41
-  { "content-encoding",                    "br" },   // 42
-  { "content-encoding",                    "gzip" },   // 43
-  { "content-type",                        "application/dns-message" },   // 44
-  { "content-type",                        "application/javascript" },   // 45
-  { "content-type",                        "application/json" },   // 46
-  { "content-type",                        "application/x-www-form-urlencoded" },   // 47
-  { "content-type",                        "image/gif" },   // 48
-  { "content-type",                        "image/jpeg" },   // 49
-  { "content-type",                        "image/png" },   // 50
-  { "content-type",                        "text/css" },   // 51
-  { "content-type",                        "text/html; charset=utf-8" },   // 52
-  { "content-type",                        "text/plain" },   // 53
-  { "content-type",                        "text/plain;charset=utf-8" },   // 54
-  { "range",                               "bytes=0-" },   // 55
-  { "strict-transport-security",           "max-age=31536000" },   // 56
-  { "strict-transport-security",           "max-age=31536000; includesubdomains" },   // 57
-  { "strict-transport-security",           "max-age=31536000; includesubdomains; preload" },   // 58
-  { "vary",                                "accept-encoding" },   // 59
-  { "vary",                                "origin" },   // 60
-  { "x-content-type-options",              "nosniff" },   // 61
-  { "x-xss-protection",                    "1; mode=block" },   // 62
-  { ":status",                             "100" },   // 63
-  { ":status",                             "204" },   // 64
-  { ":status",                             "206" },   // 65
-  { ":status",                             "302" },   // 66
-  { ":status",                             "400" },   // 67
-  { ":status",                             "403" },   // 68
-  { ":status",                             "421" },   // 69
-  { ":status",                             "425" },   // 70
-  { ":status",                             "500" },   // 71
-  { "accept-language",                     "" },   // 72
-  { "access-control-allow-credentials",    "FALSE" },   // 73
-  { "access-control-allow-credentials",    "TRUE" },   // 74
-  { "access-control-allow-headers",        "*" },   // 75
-  { "access-control-allow-methods",        "get" },   // 76
-  { "access-control-allow-methods",        "get, post, options" },   // 77
-  { "access-control-allow-methods",        "options" },   // 78
-  { "access-control-expose-headers",       "content-length" },   // 79
-  { "access-control-request-headers",      "content-type" },   // 80
-  { "access-control-request-method",       "get" },   // 81
-  { "access-control-request-method",       "post" },   // 82
-  { "alt-svc",                             "clear" },   // 83
-  { "authorization",                       "" },   // 84
-  { "content-security-policy",             "script-src 'none'; object-src 'none'; base-uri 'none'" },   // 85
-  { "early-data",                          "1" },   // 86
-  { "expect-ct",                           "" },   // 87
-  { "forwarded",                           "" },   // 88
-  { "if-range",                            "" },   // 89
-  { "origin",                              "" },   // 90
+  { ":method",                             "CONNECT" },   //  1
+  { ":method",                             "DELETE" },   //  2
+  { ":method",                             "GET" },   //  3
+  { ":method",                             "HEAD" },   //  4
+  { ":method",                             "OPTIONS" },   //  5
+  { ":method",                             "POST" },   //  6
+  { ":method",                             "PUT" },   //  7
+  { ":path",                               "/" },   //  8
+  { ":path",                               "/index.html" },   //  9
+  { ":scheme",                             "http" },   // 10
+  { ":scheme",                             "https" },   // 11
+  { ":status",                             "103" },   // 12
+  { ":status",                             "200" },   // 13
+  { ":status",                             "204" },   // 14
+  { ":status",                             "206" },   // 15
+  { ":status",                             "304" },   // 16
+  { ":status",                             "308" },   // 17
+  { ":status",                             "404" },   // 18
+  { ":status",                             "421" },   // 19
+  { ":status",                             "425" },   // 20
+  { ":status",                             "429" },   // 21
+  { ":status",                             "500" },   // 22
+  { ":status",                             "503" },   // 23
+  { ":status",                             "521" },   // 24
+  { "accept",                              "*/*" },   // 25
+  { "accept",                              "application/dns-message" },   // 26
+  { "accept-encoding",                     "gzip, deflate, br" },   // 27
+  { "accept-ranges",                       "bytes" },   // 28
+  { "access-control-allow-headers",        "cache-control" },   // 29
+  { "access-control-allow-headers",        "content-type" },   // 30
+  { "access-control-allow-origin",         "*" },   // 31
+  { "cache-control",                       "max-age=0" },   // 32
+  { "cache-control",                       "max-age=2592000" },   // 33
+  { "cache-control",                       "max-age=604800" },   // 34
+  { "cache-control",                       "no-cache" },   // 35
+  { "cache-control",                       "no-store" },   // 36
+  { "cache-control",                       "public, max-age=31536000" },   // 37
+  { "content-encoding",                    "br" },   // 38
+  { "content-encoding",                    "gzip" },   // 39
+  { "content-type",                        "application/dns-message" },   // 40
+  { "content-type",                        "application/javascript" },   // 41
+  { "content-type",                        "application/json" },   // 42
+  { "content-type",                        "application/x-www-form-urlencoded" },   // 43
+  { "content-type",                        "image/gif" },   // 44
+  { "content-type",                        "image/jpeg" },   // 45
+  { "content-type",                        "image/png" },   // 46
+  { "content-type",                        "text/css" },   // 47
+  { "content-type",                        "text/html; charset=utf-8" },   // 48
+  { "content-type",                        "text/plain" },   // 49
+  { "content-type",                        "text/plain;charset=utf-8" },   // 50
+  { "range",                               "bytes=0-" },   // 51
+  { "strict-transport-security",           "max-age=31536000" },   // 52
+  { "strict-transport-security",           "max-age=31536000; includesubdomains" },   // 53
+  { "strict-transport-security",           "max-age=31536000; includesubdomains; preload" },   // 54
+  { "vary",                                "accept-encoding" },   // 55
+  { "vary",                                "origin" },   // 56
+  { "x-content-type-options",              "nosniff" },   // 57
+  { "x-xss-protection",                    "1; mode=block" },   // 58
+  { "accept-language",                     "" },   // 59
+  { "access-control-allow-credentials",    "FALSE" },   // 60
+  { "access-control-allow-credentials",    "TRUE" },   // 61
+  { "access-control-allow-headers",        "*" },   // 62
+  { "access-control-allow-methods",        "get" },   // 63
+  { "access-control-allow-methods",        "get, post, options" },   // 64
+  { "access-control-allow-methods",        "options" },   // 65
+  { "access-control-expose-headers",       "content-length" },   // 66
+  { "access-control-request-headers",      "content-type" },   // 67
+  { "access-control-request-method",       "get" },   // 68
+  { "access-control-request-method",       "post" },   // 69
+  { "alt-svc",                             "clear" },   // 70
+  { "authorization",                       "" },   // 71
+  { "content-security-policy",             "script-src 'none'; object-src 'none'; base-uri 'none'" },   // 72
+  { "early-data",                          "1" },   // 73
+  { "expect-ct",                           "" },   // 74
+  { "forwarded",                           "" },   // 75
+  { "if-range",                            "" },   // 76
+  { "origin",                              "" },   // 77
   { "purpose",                             "prefetch" },   // 91
   { "server",                              "" },   // 92
   { "timing-allow-origin",                 "*" },   // 93
@@ -113,19 +100,26 @@ const YAWT_QPACK_StaticEntry_t *YAWT_qpack_static_get(uint64_t index) {
   return &STATIC_TABLE[index];
 }
 
-int YAWT_qpack_static_find_name(const char *name) {
+int YAWT_qpack_static_find_name(const YAWT_H3_Header_Field_t *field) {
   for (int i = 0; i < YAWT_QPACK_STATIC_TABLE_SIZE; i++) {
-    if (strcmp(STATIC_TABLE[i].name, name) == 0) {
+    if (!STATIC_TABLE[i].name) continue;
+    if (strlen(STATIC_TABLE[i].name) == field->name_len &&
+        strncmp(STATIC_TABLE[i].name, field->name, field->name_len) == 0) {
       return i;
     }
   }
   return -1;
 }
 
-int YAWT_qpack_static_find_entry(const char *name, const char *value) {
+int YAWT_qpack_static_find_entry(const YAWT_H3_Header_Field_t *field) {
   for (int i = 0; i < YAWT_QPACK_STATIC_TABLE_SIZE; i++) {
-    if (strcmp(STATIC_TABLE[i].name, name) == 0 &&
-        strcmp(STATIC_TABLE[i].value, value) == 0) {
+    if (!STATIC_TABLE[i].name || !STATIC_TABLE[i].value) continue;
+    size_t name_len = strlen(STATIC_TABLE[i].name);
+    size_t value_len = strlen(STATIC_TABLE[i].value);
+    if (name_len == field->name_len &&
+        strncmp(STATIC_TABLE[i].name, field->name, field->name_len) == 0 &&
+        value_len == field->value_len &&
+        strncmp(STATIC_TABLE[i].value, field->value, field->value_len) == 0) {
       return i;
     }
   }
@@ -762,55 +756,73 @@ YAWT_QPACK_Error_t YAWT_H3_QPACK_encode_field_line(
   size_t off = 0;
 
   // Look up in static table at encode time
-  int idx = YAWT_qpack_static_find_entry(field->name, field->value);
+  int idx = YAWT_qpack_static_find_entry(field);
   if (idx >= 0) {
-    // Indexed Field Line representation
+    // Indexed Field Line (RFC 9204 §4.5.2)
+    // Format: 1 Index(7 bits) — index encoded directly in dispatch byte
     if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-    buf[off] = 0xC0;
-    uint64_t cons = 0;
-    YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-        buf + off, len - off, 2, (uint64_t)idx, &cons);
-    if (err != YAWT_QPACK_OK) return err;
-    off += (size_t)cons;
+    buf[off] = 0x80 | ((uint8_t)idx);
+    off++;
     if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_INDEXED;
-  } else {
-    idx = YAWT_qpack_static_find_name(field->name);
-    if (idx >= 0) {
-      // Literal w/ Name Reference
-      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-      buf[off] = 0x50;
-      uint64_t cons = 0;
-      YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
-          buf + off, len - off, 4, (uint64_t)idx, &cons);
-      if (err != YAWT_QPACK_OK) return err;
-      off += (size_t)cons;
+ } else {
+      idx = YAWT_qpack_static_find_name(field);
+      if (idx >= 0) {
+       // Literal w/ Name Reference (RFC 9204 §4.5.4)
+       // Format: 01 N T Index(4-N bits) | Index(prefix int) | Value(H|length)
+       // N=2 (from dispatcher), T=0 (no Huffman for value)
+       if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+       buf[off] = 0x60;  // 01 10 0 0000 (N=2, T=0, Index=0)
+       off++;
 
-      size_t slen = 0;
-      err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
-      if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF;
+       // Encode the index as a prefix integer with offset_bits = pbits + 1 = 3
+       uint64_t cons = 0;
+       YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+           buf + off, len - off, 3, (uint64_t)idx, &cons);
+       if (err != YAWT_QPACK_OK) return err;
+       off += (size_t)cons;
+
+       // Encode the value string (H=0, non-Huffman)
+       size_t slen = 0;
+       err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+       if (err != YAWT_QPACK_OK) return err;
+       off += slen;
+       if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_NAME_REF;
     } else {
-      // Literal w/ Literal Name
-      if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
-      buf[off] = 0x20;
-      off++;
+       // Literal w/ Literal Name (RFC 9204 §4.5.6)
+       // Format: 001 N T NameLen(3 bits) | NameLen(prefix int) | Name(H|length) | Value(H|length)
+       if (off >= len) return YAWT_QPACK_ERR_SHORT_BUFFER;
+       
+       // N=3 means 3 prefix bits for name_len (can encode 0-7 inline, >7 uses continuation)
+       uint8_t name_len_prefix_bits = 3;
+       
+       // Set the dispatch byte: 0x20 (001 0 0) | name_len_prefix_bits
+       buf[off] = 0x20 | name_len_prefix_bits;
+       off++;
 
-      size_t slen = 0;
-      YAWT_QPACK_Error_t err = _encode_string_literal(
-          buf + off, len - off, field->name, field->name_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
+       // Encode the name length as a prefix integer
+       uint64_t name_cons = 0;
+       YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_prefix_int(
+           buf + off, len - off, 8 - name_len_prefix_bits, (uint64_t)field->name_len, &name_cons);
+       if (err != YAWT_QPACK_OK) return err;
+       off += (size_t)name_cons;
 
-      err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
-      if (err != YAWT_QPACK_OK) return err;
-      off += slen;
-      if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME;
-    }
-  }
+       // Encode the name string (H=0, non-Huffman)
+       size_t slen = 0;
+       err = _encode_string_literal(
+           buf + off, len - off, field->name, field->name_len, &slen);
+       if (err != YAWT_QPACK_OK) return err;
+       off += slen;
 
-  *written = off;
-  return YAWT_QPACK_OK;
+       // Encode the value string (H=0, non-Huffman)
+       err = _encode_string_literal(buf + off, len - off, field->value, field->value_len, &slen);
+       if (err != YAWT_QPACK_OK) return err;
+       off += slen;
+       if (out_type) *out_type = YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME;
+     }
+   }
+
+   *written = off;
+   return YAWT_QPACK_OK;
 }
 
 size_t YAWT_H3_QPACK_encode_field_line_max_size(const YAWT_H3_Header_Field_t *field) {

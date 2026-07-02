@@ -40,20 +40,19 @@ const YAWT_QPACK_StaticEntry_t *YAWT_qpack_static_get(uint64_t index);
  * @internal
  * @ingroup H3_Internal
  * @brief Find the first static-table index whose name matches.
- * @param name The name to search for.
+ * @param field The header field to search for.
  * @return The index, or -1 if not found.
  */
-int YAWT_qpack_static_find_name(const char *name);
+int YAWT_qpack_static_find_name(const YAWT_H3_Header_Field_t *field);
 
 /**
  * @internal
  * @ingroup H3_Internal
  * @brief Find the first static-table index whose name AND value match.
- * @param name The name to search for.
- * @param value The value to search for.
+ * @param field The header field to search for.
  * @return The index, or -1 if not found.
  */
-int YAWT_qpack_static_find_entry(const char *name, const char *value);
+int YAWT_qpack_static_find_entry(const YAWT_H3_Header_Field_t *field);
 
 /**
  * @ingroup H3_Headers

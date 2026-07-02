@@ -388,6 +388,8 @@ YAWT_QPACK_Error_t YAWT_qpack_encode_header_block(
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_encode_field_line(
         &v, buf + off, len - off, &flen, NULL);
     if (err != YAWT_QPACK_OK) return err;
+    YAWT_LOG(YAWT_LOG_DEBUG, "  encoded %zu bytes: %s=%02x %02x %02x %02x %02x %02x %02x %02x", flen, v.name,
+        buf[off+0], buf[off+1], buf[off+2], buf[off+3], buf[off+4], buf[off+5], buf[off+6], buf[off+7]);
     off += flen;
   }
 
@@ -436,12 +438,12 @@ size_t YAWT_qpack_header_block_size(const YAWT_H3_HeaderFields_t *headers) {
     YAWT_H3_Header_Field_t v = _field_view_from_buffered(bf);
 
     // Look up in static table at encode time
-    int idx = YAWT_qpack_static_find_entry(v.name, v.value);
+    int idx = YAWT_qpack_static_find_entry(&v);
     if (idx >= 0) {
       // Indexed representation
       size += 1 + _prefix_int_size((uint64_t)idx, 6);
     } else {
-      idx = YAWT_qpack_static_find_name(v.name);
+      idx = YAWT_qpack_static_find_name(&v);
       if (idx >= 0) {
         // Literal w/ Name Reference
         size += 1 + _prefix_int_size((uint64_t)idx, 4);
