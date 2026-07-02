@@ -188,24 +188,6 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
     const YAWT_Q_Frame_Stream_t *chunk,
     size_t *consumed) {
 
-  // Bidi streams: check first byte for WT signal (0x41)
-  if (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI) {
-    if (chunk->data_len > 0 && chunk->data[0] == YAWT_H3_STREAM_WIRE_WT_BIDI) {
-      // 0x41 detected — WT bidi stream
-      stream->type = YAWT_H3_STREAM_WT;
-      *consumed = 1;  // Consumed the signal byte
-      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT bidi (0x41)", chunk->stream_id);
-      return YAWT_H3_OK;
-    } else {
-      // Not 0x41 — normal H3 frame stream
-      stream->type = YAWT_H3_STREAM_FRAME;
-      *consumed = 0;
-      YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is normal H3 bidi", chunk->stream_id);
-      return YAWT_H3_OK;
-    }
-  }
-
-  // Uni streams: accumulate and decode varint
   size_t accumulated_before = stream->accumulated;
   size_t take = chunk->data_len;
   if (take > H3_STREAM_TYPE_MAX_BYTES - accumulated_before) {
@@ -216,9 +198,6 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu accumulating %zu bytes for stream type (total %zu), chunk offset=%lu",
            stream->id, take, stream->accumulated, chunk->offset);
-  for (size_t i = 0; i < stream->accumulated && i < 16; i++) {
-    YAWT_LOG(YAWT_LOG_DEBUG, "  hdr[%zu] = 0x%02x", i, stream->hdr[i]);
-  }
 
   YAWT_Q_ReadCursor_t rc = {0};
   rc.data = stream->hdr;
@@ -229,6 +208,24 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type(
     *consumed = take;
     return YAWT_H3_ERR_INCOMPLETE;
   }
+
+  bool is_bidi = (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI);
+
+  if (is_bidi) {
+    if (wire == YAWT_H3_STREAM_WIRE_WT_BIDI) {
+      stream->type = YAWT_H3_STREAM_WT;
+      *consumed = (size_t)rc.cursor - accumulated_before;
+      YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu is WT bidi (0x%lx)", chunk->stream_id, wire);
+      return YAWT_H3_OK;
+    } else {
+      stream->type = YAWT_H3_STREAM_FRAME;
+      *consumed = 0;
+      stream->accumulated = 0;
+      YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu is normal H3 bidi (frame type 0x%lx)", chunk->stream_id, wire);
+      return YAWT_H3_OK;
+    }
+  }
+
   *consumed = (size_t)rc.cursor - accumulated_before;
 
   switch (wire) {
