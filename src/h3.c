@@ -1040,7 +1040,8 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3,
   YAWT_h3_header_add_str(req, ":path", path);
 
   if (h3->wt_version == YAWT_H3_WT_VERSION_DRAFT02) {
-    YAWT_h3_header_add_str(req, "Sec-Webtransport-Http3-Draft02", "1");
+    // RFC 9114 §4.1.2/§4.2: field names MUST be lowercase on the wire.
+    YAWT_h3_header_add_str(req, "sec-webtransport-http3-draft02", "1");
   }
 
   YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, req, 0);
@@ -1128,7 +1129,8 @@ YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_i
   YAWT_h3_header_add_str(resp, ":status", "200");
 
   if (h3->wt_version == YAWT_H3_WT_VERSION_DRAFT02) {
-    YAWT_h3_header_add_str(resp, "Sec-Webtransport-Http3-Draft", "draft02");
+    // RFC 9114 §4.1.2/§4.2: field names MUST be lowercase on the wire.
+    YAWT_h3_header_add_str(resp, "sec-webtransport-http3-draft", "draft02");
   }
 
   YAWT_H3_Error_t err = YAWT_h3_send_headers(h3, stream_id, resp, 0);
