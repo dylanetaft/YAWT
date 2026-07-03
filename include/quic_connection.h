@@ -235,6 +235,16 @@ YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Context_t *con, u
 
 /**
  * @ingroup QUIC_Connection
+ * @brief Get the stream user data slab for iteration.
+ * @param con The QUIC connection.
+ * @return Pointer to the ANB_Slab_t containing YAWT_Q_StreamUserData_t items, or NULL if con is NULL.
+ * @note Use ANB_slab_peek_item_iter() to iterate. Upper layers use this to clean up
+ *       their per-stream data on connection close.
+ */
+ANB_Slab_t *YAWT_q_con_get_stream_userdata_slab(YAWT_Q_Context_t *con);
+
+/**
+ * @ingroup QUIC_Connection
  * @brief Install the process-wide event handler.
  * @param handler The event handler function. Passing NULL restores the built-in no-op default.
  */

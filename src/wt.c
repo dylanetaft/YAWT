@@ -43,6 +43,25 @@ YAWT_WT_Context_t *_wt_conn_create(YAWT_Q_Context_t *qcon) {
 
 static void _wt_conn_destroy(YAWT_WT_Context_t *ctx) {
   if (!ctx) return;
+  YAWT_Q_Context_t *con = ctx->qcon;
+  if (con) {
+    ANB_Slab_t *slab = YAWT_q_con_get_stream_userdata_slab(con);
+    if (slab) {
+      ANB_SlabIter_t iter = {0};
+      size_t item_size;
+      uint8_t *item;
+      while ((item = ANB_slab_peek_item_iter(slab, &iter, &item_size)) != NULL) {
+        YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
+        YAWT_H3_Stream_t *h3_stream = sud->user_data[YAWT_UD_H3];
+        if (h3_stream && (h3_stream->type == YAWT_H3_STREAM_WT ||
+                          h3_stream->type == YAWT_H3_STREAM_WT_CONNECT ||
+                          h3_stream->type == YAWT_H3_STREAM_WT_CONNECT_PENDING)) {
+          free(sud->user_data[YAWT_UD_WT]);
+          sud->user_data[YAWT_UD_WT] = NULL;
+        }
+      }
+    }
+  }
   for (uint64_t i = 0; i < ctx->nsessions; i++) {
     if (ctx->sessions[i].in_use) {
       YAWT_LOG(YAWT_LOG_INFO, "wt: terminating session %lu on context destroy",

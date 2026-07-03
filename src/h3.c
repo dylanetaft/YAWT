@@ -15,6 +15,7 @@
 #define H3_MAX_FRAME_SIZE 16384
 static uint8_t _h3_encode_buf[H3_MAX_FRAME_SIZE];
 
+static void _h3_stream_destroy(YAWT_H3_Stream_t *stream);
 
 size_t YAWT_h3_encode_frame_header(uint64_t frame_type, size_t payload_len, uint8_t *buf) {
   if (!buf) return 0;
@@ -144,6 +145,19 @@ static void _h3_conn_destroy(YAWT_H3_Context_t *h3) {
   if (!h3) return;
   YAWT_Q_Context_t *con = YAWT_h3_get_qcon(h3);
   if (con) {
+    ANB_Slab_t *slab = YAWT_q_con_get_stream_userdata_slab(con);
+    if (slab) {
+      ANB_SlabIter_t iter = {0};
+      size_t item_size;
+      uint8_t *item;
+      while ((item = ANB_slab_peek_item_iter(slab, &iter, &item_size)) != NULL) {
+        YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
+        if (sud->user_data[YAWT_UD_H3]) {
+          _h3_stream_destroy(sud->user_data[YAWT_UD_H3]);
+          sud->user_data[YAWT_UD_H3] = NULL;
+        }
+      }
+    }
     YAWT_q_con_set_user_data(con, YAWT_UD_H3, NULL);
   }
   free(h3->local_settings);

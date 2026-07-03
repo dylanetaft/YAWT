@@ -368,11 +368,10 @@ void YAWT_q_con_free(YAWT_Q_Context_t **con) {
   }
 
   if (!downstream_clean) {
-    double grace = _maint_cfg.retransmit_initial * 30.0;
-    c->stats.closing_at += grace;
+    c->stats.closing_at = 0;
     YAWT_LOG(YAWT_LOG_ERROR,
-             "extending close time by %.1fs for CID=%s, will retry cleanup",
-             grace, YAWT_q_cid_to_hex(&c->cid));
+             "resetting closing_at for CID=%s, will retry cleanup",
+             YAWT_q_cid_to_hex(&c->cid));
     return;
   }
 
@@ -390,8 +389,6 @@ void YAWT_q_con_free(YAWT_Q_Context_t **con) {
   while ((item2 = ANB_slab_peek_item_iter(c->stream_userdata, &iter2, &item_size2)) != NULL) {
     YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item2;
     free(sud->user_data[YAWT_UD_QUIC]);
-    free(sud->user_data[YAWT_UD_H3]);
-    free(sud->user_data[YAWT_UD_WT]);
     free(sud->user_data[YAWT_UD_APP]);
   }
   ANB_slab_destroy(c->stream_userdata);
@@ -541,6 +538,11 @@ static YAWT_Q_StreamUserData_t *_stream_meta_add(YAWT_Q_Context_t *con, uint64_t
 YAWT_Q_StreamUserData_t *YAWT_q_con_get_stream_userdata(YAWT_Q_Context_t *con, uint64_t stream_id) {
   if (!con) return NULL;
   return _stream_meta_find(con->stream_userdata, stream_id);
+}
+
+ANB_Slab_t *YAWT_q_con_get_stream_userdata_slab(YAWT_Q_Context_t *con) {
+  if (!con) return NULL;
+  return con->stream_userdata;
 }
 
 // Count open streams of a given type (low 2 bits of stream_id: 0x00=bidi_c, 0x01=bidi_s, 0x02=uni_c, 0x03=uni_s)
