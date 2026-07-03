@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.14)
 project(yawt)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(YAWT_ENABLE_LOGGING "Enable debug logging" ON)
+option(YAWT_ENABLE_LOGGING "Enable debug logging" OFF) 
 set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
-option(BUILD_EXAMPLES "Build example programs" OFF)
+#option(BUILD_EXAMPLES "Build example programs" ON)
+#option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection" ON)
 
 
 file(GLOB_RECURSE YAWT_SOURCES ${PROJECT_SOURCE_DIR}/*.c)
@@ -21,6 +22,10 @@ if(YAWT_ENABLE_LOGGING)
     YAWT_ENABLE_LOGGING
     YAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
   )
+endif()
+
+if(YAWT_ENABLE_FUZZ_CORPUS)
+  target_compile_definitions(yawt PRIVATE YAWT_ENABLE_FUZZ_CORPUS)
 endif()
 
 find_library(LIBEV ev REQUIRED)
@@ -45,4 +50,8 @@ if(BUILD_TESTS)
     enable_testing()
     include(FetchContent)
     add_subdirectory(${PROJECT_SOURCE_DIR}/../tests ${CMAKE_BINARY_DIR}/tests)
+endif()
+
+if(BUILD_FUZZ)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/../fuzz ${CMAKE_BINARY_DIR}/fuzz)
 endif()

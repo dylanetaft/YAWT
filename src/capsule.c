@@ -1,5 +1,6 @@
 #include "capsule.h"
 #include "quic.h"
+#include "corpus.h"
 #include "logger.h"
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +66,9 @@ size_t YAWT_capsule_encode(uint64_t type, const uint8_t *value, size_t value_len
 
 int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p, const uint8_t *data, size_t len) {
   if (!p || !data) return YAWT_CAPSULE_ERROR;
+  YAWT_corpus_emit(2,
+      p,    sizeof(*p),
+      data, len);
 
   if (p->capsule_complete) {
     memset(p, 0, sizeof(*p));

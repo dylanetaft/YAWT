@@ -5,6 +5,8 @@ set(MY_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 
 option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection at parse boundaries" OFF)
+option(BUILD_FUZZ "Build fuzz harness targets (requires clang with -fsanitize=fuzzer)" ON)
 
 ExternalProject_add(
   libev
@@ -56,5 +58,7 @@ ExternalProject_Add(
       -DBUILD_TESTS=${BUILD_TESTS}
       -DBUILD_EXAMPLES=${BUILD_EXAMPLES}
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DYAWT_ENABLE_FUZZ_CORPUS=${YAWT_ENABLE_FUZZ_CORPUS}
+      -DBUILD_FUZZ=${BUILD_FUZZ}
 )
 

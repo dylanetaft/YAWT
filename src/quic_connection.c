@@ -6,6 +6,7 @@
 #include <allocnbuffer/slab.h>
 #include "logger.h"
 #include "security.h"
+#include "corpus.h"
 #include <arpa/inet.h>
 #include <float.h>
 
@@ -1123,6 +1124,7 @@ static bool _rx_skip_padding(YAWT_Q_ReadCursor_t *rc) {
 
 void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
                               const YAWT_Q_PeerAddr_t *peer_addr, double now) {
+  YAWT_corpus_emit(1, data, len);
   YAWT_Q_ReadCursor_t rc = { .data = data, .len = len, .cursor = 0, .err = YAWT_Q_OK };
   YAWT_LOG(YAWT_LOG_DEBUG, "Received datagram, processing");
   while (rc.cursor < rc.len && rc.err == YAWT_Q_OK) {

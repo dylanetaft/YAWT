@@ -2,6 +2,7 @@
 #include "quic.h"
 #include "quic_connection.h"
 #include "crypt.h"
+#include "corpus.h"
 #include "impl/quic_types.h"
 
 static uint8_t _encode_buf[YAWT_Q_MAX_PKT_SIZE];
@@ -476,6 +477,9 @@ static int _encode_pkt_1rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
 
 void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
                          YAWT_Q_Frame_t *out) {
+  YAWT_corpus_emit(2,
+      rc->data + rc->cursor, rc->len - rc->cursor,
+      &pkt_type, sizeof(YAWT_Q_Packet_Type_t));
   memset(out, 0, sizeof(*out));
   out->pkt_type = pkt_type;
   if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
@@ -1193,6 +1197,8 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
 }
 
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out) {
+  YAWT_corpus_emit(1,
+      rc->data + rc->cursor, rc->len - rc->cursor);
   memset(out, 0, sizeof(*out));
 
   if (rc->cursor >= rc->len) {

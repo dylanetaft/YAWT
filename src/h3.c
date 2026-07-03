@@ -6,6 +6,7 @@
 #include "impl/quic_types.h"  // YAWT_Q_Context_t definition
 #include "impl/h3_types.h"    // YAWT_H3_Context_t and YAWT_H3_Stream_t definitions
 #include "security.h"
+#include "corpus.h"
 #include "logger.h"
 #include <allocnbuffer/slab.h>
 #include <string.h>
@@ -795,6 +796,8 @@ YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Context_t *h3,
 YAWT_H3_Error_t YAWT_h3_settings_decode(YAWT_Q_ReadCursor_t *rc,
                                           YAWT_H3_Settings_t *out) {
   if (!rc || !out) return YAWT_H3_ERR_INVALID_PARAM;
+  YAWT_corpus_emit(1,
+      rc->data + rc->cursor, rc->len - rc->cursor);
 
   while (rc->cursor < rc->len) {
     uint64_t id, value;

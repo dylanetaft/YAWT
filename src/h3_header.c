@@ -1,5 +1,6 @@
 #include "h3_header.h"
 #include "qpack.h"
+#include "corpus.h"
 #include "logger.h"
 #include "security.h"
 #include <allocnbuffer/blob.h>
@@ -155,11 +156,12 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 // H3 header/blob includes for cleaner test builds, while the API is declared
 // in qpack.h for the existing call-site name.
 // ---------------------------------------------------------------------------
-
+/*
 // Decode one string literal from the block (H bit + 7+ length + payload).
 // On Huffman, decodes into scratch blob at offset (grows on demand).
 // Returns pointer/len into the blob data. Caller advances offset by *out_len.
 // Advances the caller's cur/remaining.
+// FIXME pretty sure this function should not exist
 static YAWT_QPACK_Error_t _h3_decode_string_literal_with_length(
     const uint8_t **cur, size_t *remaining,
     ANB_Blob_t *scratch,
@@ -193,7 +195,7 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal_with_length(
     *remaining -= str_len;
     return YAWT_QPACK_OK;
 }
-
+*/
 static YAWT_QPACK_Error_t _h3_decode_string_literal(
     const uint8_t **cur, size_t *remaining,
     ANB_Blob_t *scratch,
@@ -211,8 +213,8 @@ static YAWT_QPACK_Error_t _h3_decode_string_literal(
     YAWT_LOG(YAWT_LOG_DEBUG, "  prefix_int: err=%d, str_len=%lu, cons=%lu, huff=%d", err, str_len, cons, huff);
     if (err != YAWT_QPACK_OK) return err;
 
-    if (*remaining < cons + (size_t)str_len) {
-      YAWT_LOG(YAWT_LOG_ERROR, "  SHORT_BUFFER: remaining=%zu < cons+str_len=%lu", *remaining, cons + str_len);
+    if (cons > *remaining || str_len > *remaining - cons) {
+      YAWT_LOG(YAWT_LOG_ERROR, "  SHORT_BUFFER: remaining=%zu < cons=%lu+str_len=%lu", *remaining, cons, str_len);
       return YAWT_QPACK_ERR_SHORT_BUFFER;
     }
 
@@ -244,6 +246,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
     const uint8_t *data, size_t len,
     YAWT_H3_HeaderFields_t *out)
 {
+    YAWT_corpus_emit(1, data, len);
     YAWT_LOG(YAWT_LOG_DEBUG, "YAWT_qpack_decode_header_block: len=%zu", len);
     if (!data || !out) return YAWT_QPACK_ERR_INVALID_PARAM;
 
@@ -329,6 +332,10 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             uint64_t name_len = 0, cons = 0;
             int T_name = (b >> 3) & 1;
             YAWT_LOG(YAWT_LOG_DEBUG, "  LITERAL_LITERAL_NAME: byte=0x%02x, rem=%zu, T_name=%d", b, rem, T_name);
+            //FIXME
+            // Pretty sure we just want to use _h3_decode_string_literal here
+            // as it handles the prefix integer and Huffman bit for us 
+            /*
             err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &name_len, &cons);
             YAWT_LOG(YAWT_LOG_DEBUG, "    name_len=%lu, cons=%lu", name_len, cons);
             if (err != YAWT_QPACK_OK) return err;
@@ -336,9 +343,14 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
 
             const uint8_t *name = NULL; size_t nlen = 0;
             err = _h3_decode_string_literal_with_length(&cur, &rem, s_scratch_n, (size_t)name_len, T_name, &name, &nlen);
+            */
+            
+            const uint8_t *name = NULL; size_t nlen = 0;
+            err = _h3_decode_string_literal(&cur, &rem, s_scratch_n, &name, &nlen);
             YAWT_LOG(YAWT_LOG_DEBUG, "    decoded name: nlen=%zu, name=%.*s, err=%d", nlen, (int)nlen, name, err);
+            YAWT_LOG(YAWT_LOG_DEBUG,"There is a FIXME overhere if a unit test broke.");
             if (err != YAWT_QPACK_OK) return err;
-
+            //TODO confirm this is right - name and val follow eachother immediately
             const uint8_t *val = NULL; size_t vlen = 0;
             err = _h3_decode_string_literal(&cur, &rem, s_scratch_v, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;

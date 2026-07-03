@@ -1,0 +1,11 @@
+[package]
+name = "wt-test-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neqo-http3 = { git = "https://github.com/mozilla/neqo", branch = "main" }
+neqo-transport = { git = "https://github.com/mozilla/neqo", branch = "main" }
+neqo-common = { git = "https://github.com/mozilla/neqo", branch = "main" }
+nss = { version = "0.13", package = "nss-rs", git = "https://github.com/mozilla/nss-rs" }
+test-fixture = { git = "https://github.com/mozilla/neqo", branch = "main" }
