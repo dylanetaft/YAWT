@@ -654,21 +654,46 @@ static int _crypto_handshake_write(YAWT_Q_Crypto_t *crypto,
   return 0;
 }
 
-// Drain buffered out-of-order CRYPTO frames that are now contiguous
+// Drain buffered out-of-order CRYPTO frames that are now contiguous.
+//
+// Fragments can be buffered in any order (peers may fragment and reorder the
+// ClientHello arbitrarily), so a single forward pass over the FIFO is not
+// enough: the fragment that becomes contiguous next may sit earlier in the
+// queue than where the iterator currently is. We keep re-scanning until a full
+// pass makes no progress. Popping while iterating is safe (deleted items are
+// skipped), so matched items are popped inline.
 static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
-  ANB_SlabIter_t iter = {0};
-  size_t item_size;
-  uint8_t *item;
-  while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
-    YAWT_Q_Frame_BufferedCrypto_t *buffered = (YAWT_Q_Frame_BufferedCrypto_t *)item;
-    YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->frame.pkt_type);
+  int progress = 1;
+  while (progress) {
+    progress = 0;
+    ANB_SlabIter_t iter = {0};
+    size_t item_size;
+    uint8_t *item;
+    while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
+      YAWT_Q_Frame_BufferedCrypto_t *buffered = (YAWT_Q_Frame_BufferedCrypto_t *)item;
+      YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->frame.pkt_type);
 
-    if (buffered->frame.crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
-      int ret = _crypto_handshake_write(crypto, lvl,
-                                         buffered->data, buffered->frame.crypto.len);
-      if (ret < 0) return ret;
-      crypto->rx_crypto_next_offset[lvl] += buffered->frame.crypto.len;
-      ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+      uint64_t off = buffered->frame.crypto.offset;
+      uint64_t len = buffered->frame.crypto.len;
+      uint64_t end = off + len;
+
+      // Fully duplicate data already consumed — drop it.
+      if (end <= crypto->rx_crypto_next_offset[lvl]) {
+        ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+        progress = 1;
+        continue;
+      }
+
+      // Contiguous (possibly with an already-consumed prefix) — feed the tail.
+      if (off <= crypto->rx_crypto_next_offset[lvl]) {
+        uint64_t skip = crypto->rx_crypto_next_offset[lvl] - off;
+        int ret = _crypto_handshake_write(crypto, lvl,
+                                           buffered->data + skip, len - skip);
+        if (ret < 0) return ret;
+        crypto->rx_crypto_next_offset[lvl] = end;
+        ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+        progress = 1;
+      }
     }
   }
   return 0;
@@ -678,7 +703,14 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                                     const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(frame->pkt_type);
 
-  // Reject CRYPTO frames at levels that are no longer active
+  // A CRYPTO frame at a level whose keys are already retired (DONE) is a
+  // benign retransmission: the peer hasn't yet seen our ACK / key discard.
+  // RFC 9000 §12.4 — silently ignore rather than treat as a protocol error.
+  if (crypto->level_keys[level].state == YAWT_Q_KEY_STATE_DONE) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "Ignoring CRYPTO frame at retired level %d", level);
+    return YAWT_Q_OK;
+  }
+  // Reject CRYPTO frames at levels that were never activated.
   if (crypto->level_keys[level].state != YAWT_Q_KEY_STATE_ACTIVE) {
     YAWT_LOG(YAWT_LOG_WARN, "Rejecting CRYPTO frame at level %d (state=%d)",
               level, crypto->level_keys[level].state);
@@ -691,10 +723,14 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   // Skip fully duplicate data
   if (end <= crypto->rx_crypto_next_offset[level]) return YAWT_Q_OK;
 
-  // In-order: feed directly to TLS
-  if (offset == crypto->rx_crypto_next_offset[level]) {
+  // In-order (possibly with a partially-duplicate prefix): feed the new tail
+  // directly to TLS. Peers may fragment/overlap CRYPTO ranges, so accept any
+  // frame whose start is at or before the next expected offset.
+  if (offset <= crypto->rx_crypto_next_offset[level]) {
+    uint64_t skip = crypto->rx_crypto_next_offset[level] - offset;
     int ret = _crypto_handshake_write(crypto, level,
-                                       frame->crypto.data, frame->crypto.len);
+                                       frame->crypto.data + skip,
+                                       frame->crypto.len - skip);
     if (ret < 0) {
       // Check if this was caused by a TLS alert
       if (crypto->last_tls_alert != 0) {
@@ -735,7 +771,20 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   buf->frame = *frame;
   memcpy(buf->data, frame->crypto.data, frame->crypto.len);
   buf->frame.crypto.data = buf->data;
-  
+
+  // The frame we just buffered may itself bridge a gap (or another buffered
+  // fragment might now be contiguous), so re-attempt the drain. Without this,
+  // a chain-completing fragment that arrives in an all-out-of-order packet
+  // would sit in the buffer forever because drain only runs after an in-order
+  // write.
+  int drain_ret = _drain_crypto_buf(crypto);
+  if (drain_ret < 0) {
+    if (crypto->last_tls_alert != 0) {
+      return YAWT_Q_ERR_TLS_ALERT;
+    }
+    return YAWT_Q_ERR_INVALID_PACKET;
+  }
+
   return YAWT_Q_OK;
 }
 
