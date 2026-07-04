@@ -279,3 +279,11 @@ const YAWT_Q_MaintenanceConfig_t *YAWT_q_con_get_maint_config(void);
  *       close/idle has expired, each emitting EVT_CLOSE via YAWT_q_con_free.
  */
 void YAWT_q_con_maintain(double now);
+
+/** @ingroup QUIC_Connection
+ * @brief Get the connection's current Connection ID.
+ * @param con The QUIC connection.
+ * @return The connection's current Connection ID.
+ */
+const YAWT_Q_Cid_t *YAWT_q_con_get_cid(const YAWT_Q_Context_t *con);
+

@@ -375,7 +375,8 @@ void YAWT_q_con_free(YAWT_Q_Context_t **con) {
              YAWT_q_cid_to_hex(&c->cid));
     return;
   }
-
+  
+  YAWT_LOG(YAWT_LOG_INFO, "CID:%s quic: destroying context", YAWT_q_cid_to_hex(YAWT_q_con_get_cid(c)));
   HASH_DELETE(hh_cid, _hash_cid, c);
   YAWT_q_con_clear_odcid(c);
   YAWT_q_crypto_free(c->crypto);
@@ -389,8 +390,8 @@ void YAWT_q_con_free(YAWT_Q_Context_t **con) {
   uint8_t *item2;
   while ((item2 = ANB_slab_peek_item_iter(c->stream_userdata, &iter2, &item_size2)) != NULL) {
     YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item2;
-    free(sud->user_data[YAWT_UD_QUIC]);
-    free(sud->user_data[YAWT_UD_APP]);
+    if (sud->user_data[YAWT_UD_QUIC] != NULL) free(sud->user_data[YAWT_UD_QUIC]);
+    if (sud->user_data[YAWT_UD_APP] != NULL) free(sud->user_data[YAWT_UD_APP]);
   }
   ANB_slab_destroy(c->stream_userdata);
   free(c);
@@ -1720,3 +1721,8 @@ void YAWT_q_con_maintain(double now) {
     _drain_tx(con, now);
   }
 }
+
+const YAWT_Q_Cid_t *YAWT_q_con_get_cid(const YAWT_Q_Context_t *con) {
+  return &con->cid;
+}
+

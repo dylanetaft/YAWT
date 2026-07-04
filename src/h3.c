@@ -146,6 +146,8 @@ static void _h3_conn_destroy(YAWT_H3_Context_t *h3) {
   if (!h3) return;
   YAWT_Q_Context_t *con = YAWT_h3_get_qcon(h3);
   if (con) {
+        
+  YAWT_LOG(YAWT_LOG_INFO, "CID:%s h3: destroying context", YAWT_q_cid_to_hex(YAWT_q_con_get_cid(con)));
     ANB_Slab_t *slab = YAWT_q_con_get_stream_userdata_slab(con);
     if (slab) {
       ANB_SlabIter_t iter = {0};
