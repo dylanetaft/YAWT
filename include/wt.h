@@ -118,3 +118,41 @@ int YAWT_wt_parse_capsule(YAWT_Capsule_Parser_t *parser,
                           const uint8_t *data, size_t len,
                           YAWT_WT_CapsuleType_t *type_out,
                           YAWT_WT_Capsule_t *capsule_out);
+
+/**
+ * @ingroup WebTransport
+ * @brief Process an incoming QUIC datagram for WebTransport.
+ *
+ * Decodes the Quarter Stream ID (RFC 9297 §2.1), looks up the session,
+ * and emits YAWT_WT_EVT_DATAGRAM to the app handler.  The entire datagram
+ * must be contained in the buffer — no buffering or reassembly required.
+ *
+ * @param ctx      The WT context.
+ * @param data     Raw HTTP/3 Datagram bytes (Quarter Stream ID + payload).
+ * @param len      Length of @p data.
+ * @return YAWT_WT_OK on success (or silent drop for unknown session),
+ *         or YAWT_WT_ERR_INVALID_PARAM on malformed input.
+ *
+ * @note Called internally by YAWT_wt_on_h3_event() when it sees
+ *       YAWT_H3_EVT_DATAGRAM.  Also available for direct use.
+ */
+YAWT_WT_Error_t YAWT_wt_on_datagram(YAWT_WT_Context_t *ctx,
+                                     const uint8_t *data, size_t len);
+
+/**
+ * @ingroup WebTransport
+ * @brief Send a datagram for a WT session.
+ *
+ * Prepends the Quarter Stream ID varint (session->connect_stream_id / 4)
+ * and enqueues the packet via YAWT_q_enqueue_frame_datagram().
+ *
+ * @param ctx        The WT context.
+ * @param session_id The WT session ID.
+ * @param data       Application payload (no header — Quarter Stream ID
+ *                   is added automatically).
+ * @param len        Length of @p data.
+ * @return YAWT_WT_OK on success, or an error code.
+ */
+YAWT_WT_Error_t YAWT_wt_send_datagram(YAWT_WT_Context_t *ctx,
+                                        uint64_t session_id,
+                                        const uint8_t *data, size_t len);

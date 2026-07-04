@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(unity)
 add_executable(yawt_tests
     test_main.c
     test_qpack_prefix_int.c
+    test_qpack_literal_literal.c
     test_huffman.c
     test_h3.c
 )

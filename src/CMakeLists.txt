@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(yawt)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(YAWT_ENABLE_LOGGING "Enable debug logging" OFF) 
-set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
 #option(BUILD_EXAMPLES "Build example programs" ON)
 #option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection" ON)
 

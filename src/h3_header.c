@@ -37,6 +37,8 @@ static YAWT_H3_Error_t _store_field(YAWT_H3_HeaderFields_t *section,
   bf->data[name_len] = '\0';
   memcpy(bf->data + name_len + 1, value, value_len);
   bf->data[name_len + 1 + value_len] = '\0';
+  YAWT_LOG(YAWT_LOG_DEBUG, "h3_header: stored field '%.*s'='%.*s' (name_len=%zu, value_len=%zu)",
+           (int)name_len, name, (int)value_len, value, name_len, value_len);
 
   return YAWT_H3_OK;
 }
@@ -156,60 +158,22 @@ YAWT_H3_Header_Field_t YAWT_h3_header_iter(const YAWT_H3_HeaderFields_t *section
 // H3 header/blob includes for cleaner test builds, while the API is declared
 // in qpack.h for the existing call-site name.
 // ---------------------------------------------------------------------------
-/*
-// Decode one string literal from the block (H bit + 7+ length + payload).
-// On Huffman, decodes into scratch blob at offset (grows on demand).
-// Returns pointer/len into the blob data. Caller advances offset by *out_len.
-// Advances the caller's cur/remaining.
-// FIXME pretty sure this function should not exist
-static YAWT_QPACK_Error_t _h3_decode_string_literal_with_length(
-    const uint8_t **cur, size_t *remaining,
-    ANB_Blob_t *scratch,
-    size_t str_len, int huff,
-    const uint8_t **out, size_t *out_len)
-{
-    YAWT_LOG(YAWT_LOG_DEBUG, "_h3_decode_string_literal_with_length: str_len=%zu, huff=%d, remaining=%zu", str_len, huff, *remaining);
-    if (*remaining < str_len) {
-      YAWT_LOG(YAWT_LOG_ERROR, "  SHORT_BUFFER: remaining=%zu < str_len=%zu", *remaining, str_len);
-      return YAWT_QPACK_ERR_SHORT_BUFFER;
-    }
-
-    const uint8_t *str_data = *cur;
-    uint8_t *buf = ANB_blob_data(scratch);
-    size_t cap = ANB_blob_capacity(scratch);
-
-    if (huff) {
-        size_t decoded = 0;
-        YAWT_QPACK_Error_t err = YAWT_QPACK_huff_decode_string(str_data, str_len,
-                                            buf, cap, &decoded);
-        if (err != YAWT_QPACK_OK) return err;
-        *out = buf;
-        *out_len = decoded;
-    } else {
-        memcpy(buf, str_data, str_len);
-        *out = buf;
-        *out_len = str_len;
-    }
-
-    *cur += str_len;
-    *remaining -= str_len;
-    return YAWT_QPACK_OK;
-}
-*/
 static YAWT_QPACK_Error_t _h3_decode_string_literal(
     const uint8_t **cur, size_t *remaining,
+    uint8_t offset_bits,
     ANB_Blob_t *scratch,
     const uint8_t **out, size_t *out_len)
 {
     YAWT_LOG(YAWT_LOG_DEBUG, "_h3_decode_string_literal: remaining=%zu", *remaining);
     if (*remaining == 0) return YAWT_QPACK_ERR_SHORT_BUFFER;
+    if (offset_bits > 7) return YAWT_QPACK_ERR_INVALID_PARAM;
 
     uint8_t first = **cur;
-    int huff = (first & 0x80) != 0;
+    int huff = (first & (0x80 >> offset_bits)) != 0;
     uint64_t str_len = 0;
     uint64_t cons = 0;
     YAWT_QPACK_Error_t err = YAWT_H3_QPACK_decode_prefix_int(
-        *cur, *remaining, 1, &str_len, &cons);
+        *cur, *remaining, 1 + offset_bits, &str_len, &cons);
     YAWT_LOG(YAWT_LOG_DEBUG, "  prefix_int: err=%d, str_len=%lu, cons=%lu, huff=%d", err, str_len, cons, huff);
     if (err != YAWT_QPACK_OK) return err;
 
@@ -318,7 +282,7 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
             if (!e) return YAWT_QPACK_ERR_MALFORMED;
 
             const uint8_t *val = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch_v, &val, &vlen);
+            err = _h3_decode_string_literal(&cur, &rem, 0, s_scratch_v, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;
 
             if (YAWT_h3_header_add(out,
@@ -327,32 +291,21 @@ YAWT_QPACK_Error_t YAWT_qpack_decode_header_block(
                 return YAWT_QPACK_ERR_MALFORMED;
             break;
         }
-
+        //4.5.6 Literal Field Line with Literal Name
         case YAWT_QPACK_FIELD_LINE_LITERAL_LITERAL_NAME: {
-            uint64_t name_len = 0, cons = 0;
+            /* RFC 9204 §4.5.6: name is a 4-bit prefix string literal (§4.1.2),
+             * i.e. H + length + data per RFC 7541 §5.2 shifted mid-byte.
+             * Name and value follow each other immediately on the wire. */
             int T_name = (b >> 3) & 1;
             YAWT_LOG(YAWT_LOG_DEBUG, "  LITERAL_LITERAL_NAME: byte=0x%02x, rem=%zu, T_name=%d", b, rem, T_name);
-            //FIXME
-            // Pretty sure we just want to use _h3_decode_string_literal here
-            // as it handles the prefix integer and Huffman bit for us 
-            /*
-            err = YAWT_H3_QPACK_decode_prefix_int(cur, rem, pbits + 2, &name_len, &cons);
-            YAWT_LOG(YAWT_LOG_DEBUG, "    name_len=%lu, cons=%lu", name_len, cons);
-            if (err != YAWT_QPACK_OK) return err;
-            cur += cons; rem -= cons;
 
             const uint8_t *name = NULL; size_t nlen = 0;
-            err = _h3_decode_string_literal_with_length(&cur, &rem, s_scratch_n, (size_t)name_len, T_name, &name, &nlen);
-            */
-            
-            const uint8_t *name = NULL; size_t nlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch_n, &name, &nlen);
+            err = _h3_decode_string_literal(&cur, &rem, 4, s_scratch_n, &name, &nlen);
             YAWT_LOG(YAWT_LOG_DEBUG, "    decoded name: nlen=%zu, name=%.*s, err=%d", nlen, (int)nlen, name, err);
-            YAWT_LOG(YAWT_LOG_DEBUG,"There is a FIXME overhere if a unit test broke.");
             if (err != YAWT_QPACK_OK) return err;
-            //TODO confirm this is right - name and val follow eachother immediately
+
             const uint8_t *val = NULL; size_t vlen = 0;
-            err = _h3_decode_string_literal(&cur, &rem, s_scratch_v, &val, &vlen);
+            err = _h3_decode_string_literal(&cur, &rem, 0, s_scratch_v, &val, &vlen);
             if (err != YAWT_QPACK_OK) return err;
 
             if (YAWT_h3_header_add(out, (const char *)name, nlen,

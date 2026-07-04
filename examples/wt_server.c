@@ -96,8 +96,11 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
                param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.fin);
       break;
     case YAWT_WT_EVT_DATAGRAM:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes)",
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes), echoing",
                param.P_EVT_DATAGRAM.session_id, param.P_EVT_DATAGRAM.len);
+      YAWT_wt_send_datagram(ctx, param.P_EVT_DATAGRAM.session_id,
+                            param.P_EVT_DATAGRAM.data,
+                            param.P_EVT_DATAGRAM.len);
       break;
     case YAWT_WT_EVT_CAPSULE_RECEIVED:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: CAPSULE, session=%lu, stream=%lu, type=0x%x",

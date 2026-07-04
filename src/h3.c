@@ -437,11 +437,6 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
           YAWT_LOG(YAWT_LOG_DEBUG, "h3: headers decoded on stream %lu", stream->id);
           ANB_SlabIter_t iter = {0};
           YAWT_H3_Header_Field_t field;
-          while ((field = YAWT_h3_header_iter(stream->request_headers, &iter)).name != NULL) {
-            YAWT_LOG(YAWT_LOG_DEBUG, "  header: %.*s = %.*s", 
-                     (int)field.name_len, field.name,
-                     (int)field.value_len, field.value);
-          }
 
           _process_wt_connect_upgrade(con, sud);
 
@@ -669,6 +664,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event
     if (wt_pol->max_sessions > 0) {
       YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED_DRAFT02, 1);
       YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM_DRAFT04, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);
     }
 
     YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 0);

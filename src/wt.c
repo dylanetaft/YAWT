@@ -14,6 +14,7 @@
 #include "impl/h3_types.h"
 #include "impl/quic_types.h"
 #include "h3.h"
+#include "quic.h"
 #include "capsule.h"
 #include "logger.h"
 #include <stdlib.h>
@@ -316,9 +317,117 @@ YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
       }
       return YAWT_WT_OK;
     }
+    case YAWT_H3_EVT_DATAGRAM: {
+      // QUIC DATAGRAM forwarded by H3 layer — parse Quarter Stream ID and dispatch
+      return YAWT_wt_on_datagram(ctx, param.P_EVT_DATAGRAM.data, param.P_EVT_DATAGRAM.len);
+    }
     default:
       return YAWT_WT_OK;
   }
+}
+
+YAWT_WT_Error_t YAWT_wt_on_datagram(YAWT_WT_Context_t *ctx,
+                                     const uint8_t *data, size_t len) {
+  if (!ctx) return YAWT_WT_ERR_INVALID_PARAM;
+  if (!data || len == 0) {
+    YAWT_LOG(YAWT_LOG_WARN, "wt: empty datagram, dropping");
+    return YAWT_WT_OK;
+  }
+
+  // RFC 9297 §2.1: HTTP/3 Datagram = [Quarter Stream ID (i)] [HTTP Datagram Payload (..)]
+  // Decode the Quarter Stream ID varint
+  YAWT_Q_ReadCursor_t rc = {
+    .data = (uint8_t *)data,
+    .len = len,
+    .cursor = 0,
+    .err = YAWT_Q_OK,
+  };
+  uint64_t quarter_stream_id = 0;
+  YAWT_q_varint_decode(&rc, &quarter_stream_id);
+  if (rc.err != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "wt: datagram too short to parse Quarter Stream ID (%zu bytes), dropping", len);
+    return YAWT_WT_OK;
+  }
+
+  // Validate: Quarter Stream ID must be <= 2^60-1
+  if (quarter_stream_id > ((1ULL << 60) - 1)) {
+    YAWT_LOG(YAWT_LOG_ERROR, "wt: Quarter Stream ID %lu exceeds 2^60-1", quarter_stream_id);
+    // RFC 9297: connection error H3_DATAGRAM_ERROR (0x33) — but we just drop for now
+    return YAWT_WT_ERR_INVALID_PARAM;
+  }
+
+  // Session ID = Quarter Stream ID * 4 (reverse of /4 in RFC 9297 §2.1)
+  uint64_t session_id = quarter_stream_id * 4;
+
+  // Look up session
+  YAWT_WT_Session_t *session = _wt_session_find(ctx, session_id);
+  if (!session) {
+    // RFC 9297 §2.1: "drop that datagram silently or buffer it temporarily"
+    YAWT_LOG(YAWT_LOG_DEBUG, "wt: datagram for unknown session %lu (quarter=%lu), dropping",
+             session_id, quarter_stream_id);
+    return YAWT_WT_OK;
+  }
+
+  // Emit datagram event with remaining payload (past the Quarter Stream ID varint)
+  size_t varint_bytes = rc.cursor;
+  _wt_emit_event(ctx, session, YAWT_WT_EVT_DATAGRAM, (YAWT_WT_EventParam_t){
+    .P_EVT_DATAGRAM = {
+      .session_id = session_id,
+      .data = data + varint_bytes,
+      .len = len - varint_bytes,
+    }
+  });
+
+  return YAWT_WT_OK;
+}
+
+YAWT_WT_Error_t YAWT_wt_send_datagram(YAWT_WT_Context_t *ctx,
+                                        uint64_t session_id,
+                                        const uint8_t *data, size_t len) {
+  if (!ctx || !ctx->qcon) return YAWT_WT_ERR_INVALID_PARAM;
+
+  YAWT_WT_Session_t *session = _wt_session_find(ctx, session_id);
+  if (!session) return YAWT_WT_ERR_NO_SESSION;
+
+  // Quarter Stream ID = connect_stream_id / 4
+  uint64_t quarter_stream_id = session->connect_stream_id / 4;
+
+  // Build buffer: [Quarter Stream ID varint] [payload]
+  size_t varint_sz = YAWT_q_varint_size(quarter_stream_id);
+  if (varint_sz == 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "wt: varint size() returned 0 for quarter_stream_id %lu", quarter_stream_id);
+    return YAWT_WT_ERR_INVALID_PARAM;
+  }
+
+  size_t total_len = varint_sz + len;
+  uint8_t *buf = malloc(total_len);
+  if (!buf) {
+    YAWT_LOG(YAWT_LOG_ERROR, "wt: OOM allocating datagram buffer (%zu bytes)", total_len);
+    return YAWT_WT_ERR_SHORT_BUFFER;
+  }
+
+  uint64_t written = 0;
+  YAWT_Err_t rc = YAWT_q_varint_encode(quarter_stream_id, buf, varint_sz, &written);
+  if (rc != YAWT_Q_OK) {
+    free(buf);
+    return YAWT_WT_ERR_SHORT_BUFFER;
+  }
+
+  if (len > 0) {
+    memcpy(buf + varint_sz, data, len);
+  }
+
+  rc = YAWT_q_enqueue_frame_datagram(ctx->qcon, buf, total_len);
+  free(buf);
+
+  if (rc != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "wt: enqueue_frame_datagram failed: %s", YAWT_err_str(rc));
+    return YAWT_WT_ERR_SHORT_BUFFER;
+  }
+
+  YAWT_LOG(YAWT_LOG_DEBUG, "wt: sent datagram for session %lu (%zu + %zu bytes)",
+           session_id, varint_sz, len);
+  return YAWT_WT_OK;
 }
 
 YAWT_WT_Error_t YAWT_wt_send_data(YAWT_WT_Context_t *ctx,

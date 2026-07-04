@@ -7,6 +7,8 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
 option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection at parse boundaries" OFF)
 option(BUILD_FUZZ "Build fuzz harness targets (requires clang with -fsanitize=fuzzer)" ON)
+option(YAWT_ENABLE_LOGGING "Enable debug logging" ON) 
+set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
 
 ExternalProject_add(
   libev
@@ -60,5 +62,7 @@ ExternalProject_Add(
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DYAWT_ENABLE_FUZZ_CORPUS=${YAWT_ENABLE_FUZZ_CORPUS}
       -DBUILD_FUZZ=${BUILD_FUZZ}
+      -DYAWT_ENABLE_LOGGING=${YAWT_ENABLE_LOGGING}
+      -DYAWT_LOG_LEVEL=${YAWT_LOG_LEVEL}
 )
 
