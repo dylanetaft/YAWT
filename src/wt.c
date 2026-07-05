@@ -212,7 +212,15 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
     wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
     wt_stream->session_id = session;
     wt_stream->hdr_complete = true; //we have a complete header, no need to buffer
-    YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header parsed in fast path", chunk->stream_id);
+    YAWT_WT_Session_t *fast_session = _wt_session_find_or_create(wt_ctx, session);
+    if (!fast_session) {
+      free(wt_stream);
+      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused;
+      return YAWT_WT_ERR_NO_SESSION;
+    }
+    wt_stream->session = fast_session; //draft-15 §2.2: session_id == CONNECT stream ID
+    YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header parsed in fast path, session %lu",
+             chunk->stream_id, session);
     *out_offset = rc.cursor; //return how many bytes we consumed from this chunk
     sud->user_data[YAWT_UD_WT] = wt_stream; 
     return YAWT_WT_OK;
@@ -262,14 +270,14 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
   wt_stream->session_id = session;
   wt_stream->hdr_complete = true;
   *out_offset = rc.cursor; //return how many bytes we consumed from this chunk 
-  //TODO we didn't ask the user, a session is just created as data arrived, which I believe is valid to RFC
   YAWT_WT_Session_t *wt_session = _wt_session_find_or_create(wt_ctx, wt_stream->session_id);
-  if (!session) {
+  if (!wt_session) {
     YAWT_LOG(YAWT_LOG_ERROR, "wt: no free session slots for stream %lu session %lu, marking stream as unused",
              chunk->stream_id, wt_stream->session_id);
     _wt_sud_destroy(sud); //free the stream metadata and mark as unused
     return YAWT_WT_ERR_NO_SESSION;
   }
+  wt_stream->session = wt_session; //draft-15 §2.2: session_id == CONNECT stream ID
 
   return YAWT_WT_OK;
 }
@@ -334,9 +342,12 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
           .fin = chunk->fin,
         }
         });
+      return YAWT_WT_OK;
     }
     case YAWT_Q_EVT_DATAGRAM: {
-      return YAWT_WT_OK;
+      // QUIC DATAGRAM received directly from the QUIC layer (RFC 9297 §2.1).
+      // Parse Quarter Stream ID and dispatch to the owning WT session.
+      return YAWT_wt_on_datagram(ctx, param.P_EVT_DATAGRAM.data, param.P_EVT_DATAGRAM.len);
     }
     default:
       return YAWT_WT_OK;
@@ -397,6 +408,48 @@ YAWT_WT_Error_t YAWT_wt_on_datagram(YAWT_WT_Context_t *ctx,
   });
 
   return YAWT_WT_OK;
+}
+
+/**
+ * Feed DATA payload from a WT_CONNECT stream into the per-session capsule
+ * parser. The app calls this from its H3 EVT_DATA handler when it detects
+ * the stream is WT_CONNECT — the capsule types (CLOSE_SESSION, DRAIN_SESSION,
+ * MAX_STREAMS_*, STREAMS_BLOCKED_*, etc.) are defined by draft-15 §6 / RFC 9297.
+ *
+ * Returns YAWT_WT_OK when a capsule was fully parsed (event emitted),
+ * YAWT_WT_ERR_INCOMPLETE if more bytes are needed, or another error.
+ */
+YAWT_WT_Error_t YAWT_wt_receive_capsule(YAWT_WT_Context_t *ctx,
+                                         uint64_t session_id,
+                                         const uint8_t *data, size_t len) {
+  if (!ctx) return YAWT_WT_ERR_INVALID_PARAM;
+  if (len > 0 && !data) return YAWT_WT_ERR_INVALID_PARAM;
+  if (len == 0) return YAWT_WT_OK;
+
+  YAWT_WT_Session_t *session = _wt_session_find(ctx, session_id);
+  if (!session) {
+    YAWT_LOG(YAWT_LOG_WARN, "wt: capsule data for unknown session %lu, dropping",
+             session_id);
+    return YAWT_WT_ERR_NO_SESSION;
+  }
+
+  YAWT_WT_CapsuleType_t type;
+  YAWT_WT_Capsule_t capsule;
+  int rc = YAWT_wt_parse_capsule(&session->capsule_parser, data, len, &type, &capsule);
+  if (rc == YAWT_CAPSULE_OK) {
+    _wt_emit_event(ctx, session, YAWT_WT_EVT_CAPSULE_RECEIVED, (YAWT_WT_EventParam_t){
+      .P_EVT_CAPSULE_RECEIVED = {
+        .session_id = session_id,
+        .stream_id = session_id,  /* CONNECT stream IS the session per draft-15 §2.2 */
+        .type = type,
+        .capsule = capsule,
+      }
+    });
+    return YAWT_WT_OK;
+  }
+  if (rc == YAWT_CAPSULE_INCOMPLETE) return YAWT_WT_ERR_INCOMPLETE;
+  YAWT_LOG(YAWT_LOG_WARN, "wt: capsule parse error on session %lu", session_id);
+  return YAWT_WT_ERR_MALFORMED;
 }
 
 YAWT_WT_Error_t YAWT_wt_send_datagram(YAWT_WT_Context_t *ctx,

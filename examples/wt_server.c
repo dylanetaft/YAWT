@@ -159,11 +159,26 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
       }
       break;
     }
-    case YAWT_H3_EVT_DATA:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: DATA on stream %lu (%zu bytes, fin=%d)",
-               param.P_EVT_DATA.stream_id, param.P_EVT_DATA.len,
-               param.P_EVT_DATA.fin);
+    case YAWT_H3_EVT_DATA: {
+      uint64_t sid = param.P_EVT_DATA.stream_id;
+      /* If the stream is a WT_CONNECT, feed DATA bytes to the per-session
+       * capsule parser. Capsule types (CLOSE_SESSION, DRAIN_SESSION, etc.)
+       * flow on the CONNECT stream per draft-15 §6. */
+      uint64_t stype = YAWT_h3_stream_get_type(h3con, sid);
+      if (stype == YAWT_H3_STREAM_WT_CONNECT) {
+        YAWT_WT_Context_t *wt_ctx = YAWT_q_con_get_user_data(
+            YAWT_h3_get_qcon(h3con), YAWT_UD_WT);
+        if (wt_ctx) {
+          YAWT_wt_receive_capsule(wt_ctx, sid,
+                                  param.P_EVT_DATA.data,
+                                  param.P_EVT_DATA.len);
+        }
+      } else {
+        YAWT_LOG(YAWT_LOG_INFO, "wt app: DATA on stream %lu (%zu bytes, fin=%d) type=%lu",
+                 sid, param.P_EVT_DATA.len, param.P_EVT_DATA.fin, stype);
+      }
       break;
+    }
     case YAWT_H3_EVT_CLOSE:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: CLOSE (code=%lu, reason=%s)",
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);

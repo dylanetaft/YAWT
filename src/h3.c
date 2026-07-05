@@ -782,6 +782,14 @@ YAWT_Q_Context_t *YAWT_h3_get_qcon(const YAWT_H3_Context_t *con) {
   return con ? con->qcon : NULL;
 }
 
+uint64_t YAWT_h3_stream_get_type(YAWT_H3_Context_t *con, uint64_t stream_id) {
+  if (!con || !con->qcon) return YAWT_H3_STREAM_UNASSIGNED;
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(con->qcon, stream_id);
+  if (!sud) return YAWT_H3_STREAM_UNASSIGNED;
+  YAWT_H3_Stream_t *stream = (YAWT_H3_Stream_t *)sud->user_data[YAWT_UD_H3];
+  return stream ? stream->type : YAWT_H3_STREAM_UNASSIGNED;
+}
+
 YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Context_t *h3,
                                          YAWT_H3_Unique_Stream_Type_t type,
                                          uint64_t stream_id) {

@@ -42,6 +42,7 @@ struct YAWT_WT_Session_t {
 
   bool     draining;           /**< WT_DRAIN_SESSION sent/received */
   bool     closed;             /**< Session terminated */
+  YAWT_Capsule_Parser_t capsule_parser; /**< Per-session capsule parser for CONNECT stream DATA */
 };
 
 /**
@@ -60,7 +61,6 @@ struct YAWT_WT_Stream_t {
   
   // Session ID buffering (draft-15 §4.3)
   ANB_Blob_t *hdr_buffer;
-  YAWT_Capsule_Parser_t *capsule_parser;  /**< For WT_CONNECT streams */
 };
 
 /**

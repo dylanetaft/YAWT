@@ -39,18 +39,22 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
 
 /**
  * @ingroup WebTransport
- * @brief Process an H3 event in the WT layer.
- * @param h3con The H3 connection.
- * @param event The H3 event type.
- * @param param The event parameters.
- * @return YAWT_WT_OK on success, or an error code.
- * @note This should be called from the app's H3 event callback. WT parses
- *       capsules from DATA frame payloads on WT_CONNECT streams and emits
- *       WT-specific events to the application.
+ * @brief Feed DATA payload from a WT_CONNECT stream to the capsule parser.
+ *
+ * Call this from the H3 application handler when DATA arrives on a
+ * stream whose type is YAWT_H3_STREAM_WT_CONNECT. Completes a capsule
+ * -> emits YAWT_WT_EVT_CAPSULE_RECEIVED to the WT event handler.
+ *
+ * @param ctx        The WT context.
+ * @param session_id Session ID (= CONNECT stream ID, draft-15 §2.2).
+ * @param data       Bytes from the DATA frame payload.
+ * @param len        Length of 
+ * @return YAWT_WT_OK when a capsule was emitted, YAWT_WT_ERR_INCOMPLETE
+ *         when more bytes are required, or an error.
  */
-YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
-                                      YAWT_H3_EventType_t event,
-                                      YAWT_H3_EventParam_t param);
+YAWT_WT_Error_t YAWT_wt_receive_capsule(YAWT_WT_Context_t *ctx,
+                                         uint64_t session_id,
+                                         const uint8_t *data, size_t len);
 
 /**
  * @ingroup WebTransport

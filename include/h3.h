@@ -163,6 +163,15 @@ YAWT_Q_Context_t *YAWT_h3_get_qcon(const YAWT_H3_Context_t *con);
 
 /**
  * @ingroup H3_Connection
+ * @brief Returns the H3 stream type (e.g. YAWT_H3_STREAM_WT_CONNECT) for a given
+ *        stream ID, or YAWT_H3_STREAM_UNASSIGNED if the stream is unknown.
+ * @note Used by the application to identify the kind of stream DATA events
+ *       belong to, so that capsules can be dispatched to the WT layer.
+ */
+uint64_t YAWT_h3_stream_get_type(YAWT_H3_Context_t *con, uint64_t stream_id);
+
+/**
+ * @ingroup H3_Connection
  * @brief Open the server control stream and send a SETTINGS frame.
  * @param h3 The H3 connection.
  * @return YAWT_H3_OK on success, or an error code.
