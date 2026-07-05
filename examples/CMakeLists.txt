@@ -1,44 +1,15 @@
-add_executable(h3_server h3_server.c)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-target_include_directories(h3_server PRIVATE
-    ${CMAKE_INSTALL_PREFIX}/include
-)
+foreach(target h3_server h3_client wt_server)
+    add_executable(${target} ${target}.c)
 
-target_compile_definitions(h3_server PRIVATE
-    YAWT_ENABLE_LOGGING
-    YAWT_LOG_LEVEL=0
-)
+    target_compile_definitions(${target} PRIVATE
+        YAWT_ENABLE_LOGGING
+        YAWT_LOG_LEVEL=0
+    )
 
-target_link_libraries(h3_server yawt)
+    target_link_libraries(${target} PRIVATE yawt)
 
-install(TARGETS h3_server RUNTIME DESTINATION bin/examples)
-
-add_executable(h3_client h3_client.c)
-
-target_include_directories(h3_client PRIVATE
-    ${CMAKE_INSTALL_PREFIX}/include
-)
-
-target_compile_definitions(h3_client PRIVATE
-    YAWT_ENABLE_LOGGING
-    YAWT_LOG_LEVEL=0
-)
-
-target_link_libraries(h3_client yawt)
-
-install(TARGETS h3_client RUNTIME DESTINATION bin/examples)
-
-add_executable(wt_server wt_server.c)
-
-target_include_directories(wt_server PRIVATE
-    ${CMAKE_INSTALL_PREFIX}/include
-)
-
-target_compile_definitions(wt_server PRIVATE
-    YAWT_ENABLE_LOGGING
-    YAWT_LOG_LEVEL=0
-)
-
-target_link_libraries(wt_server yawt)
-
-install(TARGETS wt_server RUNTIME DESTINATION bin/examples)
+    include(GNUInstallDirs)
+    install(TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/examples)
+endforeach()
