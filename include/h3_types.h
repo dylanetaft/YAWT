@@ -199,14 +199,14 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
  *       blob-backed accumulation state. Only one frame parses at a time per stream,
  *       so a single embedded instance serves.
  *
- *       Lifecycle: Between frames, payload accumulation state is reset (hdr_buffer
- *       and payload_blob are cleared, hdr_size zeroed) when `parsed` is set —
- *       see YAWT_h3_parse_frame2(). Blob allocations persist across frames to
- *       avoid malloc/free churn (only freed in _h3_stream_destroy). The wipe
- *       does NOT touch the stream type (`stream->type`) or the stream-type
- *       accumulation buffer — those live in YAWT_H3_Stream_t and persist for
- *       the stream's entire lifetime (RFC 9114 §6.2: the stream-type varint
- *       is sent once at the start of a uni stream and never repeated).
+ *       Lifecycle: Between frames, payload accumulation state is reset when
+ *       `parsed` is set — the payload blob is destroyed (fully consumed by
+ *       _dispatch_buffered_frame) and hdr_buffer is preserved (cleared by
+ *       _gate_h3_frame_head2 on the next header parse). The wipe does NOT
+ *       touch the stream type (`stream->type`) or the stream-type accumulation
+ *       buffer — those live in YAWT_H3_Stream_t and persist for the stream's
+ *       entire lifetime (RFC 9114 §6.2: the stream-type varint is sent once
+ *       at the start of a uni stream and never repeated).
  *
  *       For DATA frames, payload_blob is NULL — the payload streams through
  *       _handle_rx_stream_frame() directly to the app without buffering.

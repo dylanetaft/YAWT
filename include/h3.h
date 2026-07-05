@@ -39,8 +39,8 @@
  *         Error codes for malformed data or policy violations.
  * @note This is the single gatekeeper: handles stream type resolution, frame header parsing,
  *       buffering decisions (SETTINGS/HEADERS get blobs), and security policy checks.
- *       Blobs are lazy-allocated and cleared (not destroyed) between frames to avoid
- *       malloc/free churn on the hot path.
+ *       Blobs are lazy-allocated and destroyed after the buffered frame is
+ *       dispatched; hdr_buffer is preserved across frames to avoid churn.
  */
 YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
                                       const YAWT_Q_Frame_Stream_t *chunk,

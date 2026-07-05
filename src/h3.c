@@ -618,20 +618,20 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
   }
 
   // Frame lifecycle: the frame struct is reused across frames. parsed=true
-  // means the previous frame was delivered to the app layer. Reset per-frame
-  // state now, but preserve blob allocations for the stream — clear (not
-  // destroy) so the buffers are reused for the next frame, avoiding per-frame
-  // malloc/free churn. Blobs are actually freed only in _h3_stream_destroy.
+  // means the previous frame was delivered to the app layer. Destroy the
+  // payload blob (it was fully consumed by _dispatch_buffered_frame) and
+  // reset per-frame state. Preserve hdr_buffer across frames to avoid
+  // malloc/free churn — it is cleared by _gate_h3_frame_head2 on each
+  // successful header parse and freed only in _h3_stream_destroy.
   // stream->type and its blob are per-stream, not per-frame — they persist
   // for the stream's entire lifetime.
   if (stream->frame.parsed) {
-    ANB_Blob_t *saved_hdr_buf    = stream->frame.hdr_buffer;
-    ANB_Blob_t *saved_payload_buf = stream->frame.payload_blob;
+    if (stream->frame.payload_blob) {
+      ANB_blob_destroy(stream->frame.payload_blob);
+    }
+    ANB_Blob_t *saved_hdr_buf = stream->frame.hdr_buffer;
     memset(&stream->frame, 0, sizeof(YAWT_H3_Frame_t));
-    stream->frame.hdr_buffer    = saved_hdr_buf;
-    stream->frame.payload_blob  = saved_payload_buf;
-    if (saved_payload_buf) ANB_blob_clear(saved_payload_buf);
-    if (saved_hdr_buf)     ANB_blob_clear(saved_hdr_buf);
+    stream->frame.hdr_buffer = saved_hdr_buf;
   }
 
   YAWT_LOG(YAWT_LOG_DEBUG, "h3: stream %lu received chunk (v2): offset=%lu, len=%zu, fin=%d",
@@ -725,13 +725,9 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
                      f->payload_len, sec->max_frame_buffer_bytes, stream->id);
             return YAWT_H3_ERR_TOO_LARGE;
           }
-          // Allocate payload_blob once (ANB_blob_push grows capacity as needed).
-          // Reuse across frame transitions via clear rather than destroy.
-          if (f->payload_blob == NULL) {
-            f->payload_blob = ANB_blob_create(f->payload_len);
-            YAWT_LOG(YAWT_LOG_DEBUG, "h3: buffering frame type 0x%lx, payload_len=%lu, stream_id=%lu (v2)",
-                     f->type, f->payload_len, stream->id);
-          }
+          f->payload_blob = ANB_blob_create(f->payload_len);
+          YAWT_LOG(YAWT_LOG_DEBUG, "h3: buffering frame type 0x%lx, payload_len=%lu, stream_id=%lu (v2)",
+                   f->type, f->payload_len, stream->id);
         }
 
         if (must_buffer) {
@@ -754,12 +750,10 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
             f->parsed = true;
           }
         }
-        // For non-buffered frames (DATA, GOAWAY, etc) we return here and
-        // let the caller's _handle_rx_stream_frame handle the payload.
       } else if (f->payload_blob) {
         // Header was parsed in a prior call: we're mid-accumulation of a
         // buffered frame (SETTINGS/HEADERS). Continue pushing payload data.
-        // Non-buffered frames have payload_blob == NULL and fall through to.
+        // Non-buffered frames have payload_blob == NULL and fall through to
         // the caller, which routes the payload via _handle_rx_stream_frame.
         size_t avail = chunk->data_len - *cursor;
         uint64_t need = f->payload_len - f->accumulated;
