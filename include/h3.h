@@ -31,7 +31,7 @@
  * @brief Parse the next H3 frame header from a QUIC stream chunk.
  * @param h3con The H3 connection.
  * @param chunk The QUIC stream frame carrying the bytes.
- * @param out_stream Output: resolved stream metadata (set on YAWT_H3_OK).
+ * @param stream The stream to update (type resolved on first call, then frame state).
  * @param cursor In/out: position in chunk->data. Advanced as bytes are consumed.
  * @return YAWT_H3_OK if frame header parsed (type+length decoded, blob allocated if needed).
  *         YAWT_H3_ERR_INCOMPLETE if more data needed.
@@ -39,11 +39,13 @@
  *         Error codes for malformed data or policy violations.
  * @note This is the single gatekeeper: handles stream type resolution, frame header parsing,
  *       buffering decisions (SETTINGS/HEADERS get blobs), and security policy checks.
+ *       Blobs are lazy-allocated and cleared (not destroyed) between frames to avoid
+ *       malloc/free churn on the hot path.
  */
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Context_t *h3con,
-                                    const YAWT_Q_Frame_Stream_t *chunk,
-                                    YAWT_H3_Stream_t *stream,
-                                    size_t *cursor);
+YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
+                                      const YAWT_Q_Frame_Stream_t *chunk,
+                                      YAWT_H3_Stream_t *stream,
+                                      size_t *cursor);
 
 /**
  * @internal

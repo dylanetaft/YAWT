@@ -29,13 +29,7 @@ struct YAWT_H3_Stream_t {
   bool     in_use;
   uint64_t id;
   YAWT_H3_StreamType_t type;  // ie frame, qpack, etc; UNASSIGNED until resolved
-  // Uni streams begin with a stream-type varint (RFC 9114 §6.2). It may be split
-  // across QUIC chunks, so accumulate it here until decoded. Bidi (request)
-  // streams have no prefix and resolve straight to STREAM_FRAME; type ==
-  // UNASSIGNED is the "prefix not yet read" signal. Unused once type is set.
-  uint8_t  hdr[H3_STREAM_TYPE_MAX_BYTES];
-  uint64_t accumulated;
-  ANB_Blob_t *hdr_buffer;  /* NEW: stream-type accumulate buffer (replaces hdr[]+accumulated) */
+  ANB_Blob_t *hdr_buffer;  // Stream-type accumulation buffer (blob-backed, lazy-allocated)
   // Header pointers — NULL until parsed
   YAWT_H3_HeaderFields_t *request_headers;
   YAWT_H3_HeaderFields_t *response_headers;

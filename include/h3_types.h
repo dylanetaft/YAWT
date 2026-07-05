@@ -195,14 +195,15 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
 /**
  * @ingroup H3_Types
  * @brief The one H3 frame currently in flight on a stream.
- * @note Holds both the decoded result (type, payload_len, payload) and the
- *       byte-level decode scratch (hdr/hdr_size/accumulated). Only one frame
- *       parses at a time per stream, so a single embedded instance serves.
+ * @note Holds both the decoded result (type, payload_len, payload_blob) and the
+ *       blob-backed accumulation state. Only one frame parses at a time per stream,
+ *       so a single embedded instance serves.
  *
- *       Lifecycle: This struct is wiped (memset to 0) between frames when
- *       `parsed` is set — see YAWT_h3_parse_frame(). The wipe resets only
- *       the per-frame state (header scratch, payload blob, accumulated count).
- *       It does NOT touch the stream type (`stream->type`) or the stream-type
+ *       Lifecycle: Between frames, payload accumulation state is reset (hdr_buffer
+ *       and payload_blob are cleared, hdr_size zeroed) when `parsed` is set —
+ *       see YAWT_h3_parse_frame2(). Blob allocations persist across frames to
+ *       avoid malloc/free churn (only freed in _h3_stream_destroy). The wipe
+ *       does NOT touch the stream type (`stream->type`) or the stream-type
  *       accumulation buffer — those live in YAWT_H3_Stream_t and persist for
  *       the stream's entire lifetime (RFC 9114 §6.2: the stream-type varint
  *       is sent once at the start of a uni stream and never repeated).
@@ -211,20 +212,22 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
  *       _handle_rx_stream_frame() directly to the app without buffering.
  *       Only SETTINGS and HEADERS require whole-frame buffering for decode.
  *
- * @warning READ-ONLY / NOT retained when handed to the app: `payload` points
- *          into transient stream bytes, and the whole struct is reset and reused
- *          for the next frame, so anything kept beyond the delivering call must be copied.
+ * @warning READ-ONLY / NOT retained when handed to the app: the blob backing
+ *          payload_blob is reused for the next frame, so anything kept beyond
+ *          the delivering call must be copied.
  */
 typedef struct {
   uint64_t type;          // decoded frame type (raw varint; unknown types survive)
   uint64_t payload_len;   // decoded Length
-  ANB_Blob_t *payload_blob; // Buffered payload (SETTINGS/HEADERS); NULL for DATA/unknown frames
 
-  uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
-  uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
-  uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
-  ANB_Blob_t *hdr_buffer; /* NEW: frame-header accumulate buffer (replaces hdr[]+hdr_size) */
-  bool     parsed;        // set after frame complete; triggers reset on next parse
+  // Header tracking: hdr_buffer accumulates frame-header bytes across chunks
+  // (blob-backed, lazy-allocated). hdr_size is 0 until header is complete.
+  ANB_Blob_t *hdr_buffer;  // frame-header accumulation buffer
+  uint8_t  hdr_size;       // bytes of header decoded; 0 == header not yet read
+  uint64_t accumulated;    // payload bytes accumulated for the current frame
+
+  ANB_Blob_t *payload_blob; // Buffered payload blob (SETTINGS/HEADERS); NULL otherwise
+  bool     parsed;          // set after frame complete; triggers reset on next parse
 } YAWT_H3_Frame_t;
 
 /**
