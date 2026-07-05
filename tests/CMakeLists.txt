@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-FetchContent_Declare(
-    unity
-    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-    GIT_TAG        v2.6.1
-)
-FetchContent_MakeAvailable(unity)
+find_package(unity REQUIRED)
 
 add_executable(yawt_tests
     test_main.c
@@ -15,14 +10,12 @@ add_executable(yawt_tests
     test_h3.c
 )
 
-target_link_libraries(yawt_tests PRIVATE unity yawt)
+target_link_libraries(yawt_tests PRIVATE unity::framework yawt)
 
 # yawt target already propagates public headers and dependency includes transitively.
 # Only add paths not covered by the yawt target.
 target_include_directories(yawt_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
-    ${unity_SOURCE_DIR}/src
-    ${unity_BINARY_DIR}
 )
 
 if(YAWT_ENABLE_LOGGING)

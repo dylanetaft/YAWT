@@ -50,4 +50,4 @@ The superbuild manages these dependencies:
 | uthash | ExternalProject (headers only) | github.com/troydhanson/uthash |
 | libev | ExternalProject (autotools) | github.com/dylanetaft/libev |
 | GnuTLS | **System package** (pkg-config) | System package manager |
-| Unity | FetchContent (tests only) | github.com/ThrowTheSwitch/Unity |
+| Unity | ExternalProject + find_package (tests only) | github.com/ThrowTheSwitch/Unity |

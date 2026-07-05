@@ -48,11 +48,21 @@ ExternalProject_add(
 
 # GnuTLS is expected to come from the system (use system package manager: apt/rpm/brew)
 
+# --- Unity: test framework, built and installed via ExternalProject ---
+ExternalProject_Add(
+  unity
+  UPDATE_DISCONNECTED True
+  GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+  GIT_TAG        v2.6.1
+  CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_PREFIX}
+)
+
 # --- yawt: the main project ---
 ExternalProject_Add(
     yawt
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/src
-    DEPENDS libev AllocNBuffer uthash
+    DEPENDS libev AllocNBuffer uthash unity
     CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_PREFIX}
       -DCMAKE_PREFIX_PATH=${MY_INSTALL_PREFIX}
