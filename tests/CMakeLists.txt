@@ -32,7 +32,9 @@ if(BUILD_EXAMPLES)
   find_program(PYTHON3 python3 REQUIRED)
   # Integration tests default YAWT_BUILD_DIR to ../../build relative to the
   # test scripts (which resolves to the superbuild binary dir).
-  # Scripts look for: ${YAWT_BUILD_DIR}/install/bin/examples/<binary>
+  # Scripts look for: ${YAWT_BUILD_DIR}/yawt-prefix/src/yawt-build/examples/<binary>
+  # (the ExternalProject build tree — no `make install` needed).
+  # Override with YAWT_EXAMPLES_DIR to test installed binaries instead.
   add_test(NAME h3_server_integration
     COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/integration/test_h3_server.py
   )

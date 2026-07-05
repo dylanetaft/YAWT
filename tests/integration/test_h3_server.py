@@ -30,10 +30,17 @@ def generate_certs(tmpdir):
 
 def main():
     build_dir = os.environ.get("YAWT_BUILD_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "build"))
-    server_bin = os.path.join(build_dir, "install", "bin", "examples", "h3_server")
+    # Default: run from the ExternalProject build tree (no `make install` needed).
+    # Override with YAWT_EXAMPLES_DIR to test installed binaries instead.
+    examples_dir = os.environ.get(
+        "YAWT_EXAMPLES_DIR",
+        os.path.join(build_dir, "yawt-prefix", "src", "yawt-build", "examples"),
+    )
+    server_bin = os.path.join(examples_dir, "h3_server")
 
     if not os.path.isfile(server_bin):
         print(f"FAIL: h3_server not found at {server_bin}", file=sys.stderr)
+        print(f"      hint: run `make -C build` first, or set YAWT_EXAMPLES_DIR", file=sys.stderr)
         return 1
 
     port = find_free_port()

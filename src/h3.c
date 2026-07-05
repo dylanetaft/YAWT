@@ -700,14 +700,21 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
         }
         // f->hdr_size, f->type, f->payload_len are now populated.
 
-        // Buffering decision: only SETTINGS and HEADERS must be held whole
-        // for decode. DATA and unknown frames stream through without buffering —
+        // Buffer SETTINGS and HEADERS whole so they can be decoded in one
+        // shot. DATA and unknown frames stream through without buffering —
         // the frame header (type + length) is still parsed, but payload
-        // flows directly to the app via _handle_rx_stream_frame() in the caller.
-        // This avoids copying large request/response bodies.
+        // flows directly to the app via _handle_rx_stream_frame() in the
+        // caller. This avoids copying large request/response bodies.
         bool must_buffer = (f->type == YAWT_H3_FRAME_SETTINGS ||
                             f->type == YAWT_H3_FRAME_HEADERS);
-        if (must_buffer && f->payload_len > 0) {
+        if (must_buffer) {
+          // Zero-length buffer-needed frame: nothing to accumulate;
+          // mark parsed so _dispatch_buffered_frame fires immediately.
+          if (f->payload_len == 0) {
+            f->parsed = true;
+            return YAWT_H3_OK;
+          }
+          // Security-policy checks before allocating.
           const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
           if (f->type == YAWT_H3_FRAME_HEADERS &&
               sec->max_field_section_size &&
@@ -726,35 +733,19 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
             return YAWT_H3_ERR_TOO_LARGE;
           }
           f->payload_blob = ANB_blob_create(f->payload_len);
-          YAWT_LOG(YAWT_LOG_DEBUG, "h3: buffering frame type 0x%lx, payload_len=%lu, stream_id=%lu (v2)",
+          YAWT_LOG(YAWT_LOG_DEBUG, "h3: buffering frame type 0x%lx, payload_len=%lu, stream_id=%lu",
                    f->type, f->payload_len, stream->id);
         }
+      }
 
-        if (must_buffer) {
-          if (f->payload_len == 0) {
-            // Zero-length buffer-needed frame: nothing to accumulate, dispatch
-            // immediately so _dispatch_buffered_frame fires on the next loop
-            // iteration.
-            f->parsed = true;
-          } else if (f->payload_blob) {
-            // First chunk of a buffered frame — push payload data.
-            size_t avail = chunk->data_len - *cursor;
-            uint64_t need = f->payload_len - f->accumulated;
-            size_t n = (need < avail) ? (size_t)need : avail;
-            ANB_blob_push(f->payload_blob, chunk->data + *cursor, n);
-            f->accumulated += n;
-            *cursor += n;
-            if (f->accumulated < f->payload_len) {
-              return YAWT_H3_ERR_INCOMPLETE;
-            }
-            f->parsed = true;
-          }
-        }
-      } else if (f->payload_blob) {
-        // Header was parsed in a prior call: we're mid-accumulation of a
-        // buffered frame (SETTINGS/HEADERS). Continue pushing payload data.
-        // Non-buffered frames have payload_blob == NULL and fall through to
-        // the caller, which routes the payload via _handle_rx_stream_frame.
+      // Accumulate payload into the buffered frame's blob.  Shared by the
+      // "just parsed header" path above and the continuation path below:
+      // on the first chunk payload_blob is freshly allocated with
+      // accumulated == 0; on later chunks it was set by a prior call.
+      // Non-buffered frames (DATA, unknown) have payload_blob == NULL
+      // and fall through to the caller, which routes the payload via
+      // _handle_rx_stream_frame.
+      if (f->payload_blob) {
         size_t avail = chunk->data_len - *cursor;
         uint64_t need = f->payload_len - f->accumulated;
         size_t n = (need < avail) ? (size_t)need : avail;

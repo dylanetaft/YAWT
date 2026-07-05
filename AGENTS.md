@@ -25,17 +25,25 @@ cmake -S . -B build -DUSER_INSTALL_PREFIX=/custom/path && make -C build
 
 ## Test
 
+Tests run against the **build tree** (`yawt-prefix/src/yawt-build/`) — no `make install` step required. If you forgot to rebuild, you'll get a "not found" error rather than silently passing against a stale install.
+
 ```bash
 ctest --test-dir build/yawt-prefix/src/yawt-build --output-on-failure
 ```
 
-## Run servers
-
-From the install prefix (adjust if you set a custom USER_INSTALL_PREFIX):
+To test installed binaries instead, set `YAWT_EXAMPLES_DIR`:
 
 ```bash
-timeout 30 ./build/install/bin/examples/h3_server > /tmp/h3.log &
-timeout 30 ./build/install/bin/examples/h3_client > /tmp/h3.log &
+YAWT_EXAMPLES_DIR=build/install/bin/examples ctest --test-dir build/yawt-prefix/src/yawt-build --output-on-failure
+```
+
+## Run servers
+
+From the build tree (no install needed):
+
+```bash
+timeout 30 ./build/yawt-prefix/src/yawt-build/examples/h3_server > /tmp/h3.log &
+timeout 30 ./build/yawt-prefix/src/yawt-build/examples/h3_client > /tmp/h3.log &
 ```
 
 The servers run in the foreground, they don't exit, it is not a hang.
