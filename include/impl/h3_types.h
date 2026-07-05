@@ -11,6 +11,7 @@
 
 #pragma once
 #include <allocnbuffer/slab.h>
+#include <allocnbuffer/blob.h>
 #include "../h3_types.h"
 #include "../quic_connection.h"
 
@@ -34,6 +35,7 @@ struct YAWT_H3_Stream_t {
   // UNASSIGNED is the "prefix not yet read" signal. Unused once type is set.
   uint8_t  hdr[H3_STREAM_TYPE_MAX_BYTES];
   uint64_t accumulated;
+  ANB_Blob_t *hdr_buffer;  /* NEW: stream-type accumulate buffer (replaces hdr[]+accumulated) */
   // Header pointers — NULL until parsed
   YAWT_H3_HeaderFields_t *request_headers;
   YAWT_H3_HeaderFields_t *response_headers;
