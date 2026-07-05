@@ -157,6 +157,31 @@ static void _wt_emit_event(YAWT_WT_Context_t *ctx, YAWT_WT_Session_t *session,
 }
 
 
+static YAWT_Err_t _wt_gather_hdr(uint8_t *data, size_t len, uint64_t *o_signal, uint64_t *o_session, size_t *o_hdr_len) {
+
+    YAWT_Q_ReadCursor_t rc = {
+      .data = data,
+      .len = len,
+      .cursor = 0,
+      .err = YAWT_Q_OK,
+    };
+    //the first varint is the signal
+    uint64_t signal = 0;
+    uint64_t session = 0;
+    YAWT_q_varint_decode(&rc, &signal);
+    if (rc.err != YAWT_Q_OK) return rc.err;
+    if (signal != YAWT_WT_STREAM_WIRE_WT_UNI && signal != YAWT_WT_STREAM_WIRE_WT_BIDI) {
+      YAWT_LOG(YAWT_LOG_INFO, "wt: stream header signal is not WT, signal=0x%lx", signal);
+      return YAWT_Q_ERR_INVALID_PARAM; //not a WT stream
+    }
+    YAWT_q_varint_decode(&rc, &session);
+    if (rc.err != YAWT_Q_OK) return rc.err;
+    *o_hdr_len = rc.cursor;
+    *o_signal = signal;
+    *o_session = session;
+    return YAWT_Q_OK;
+}
+
 // Never before seen stream
 // parse the header and see if it is ours to process
 // Happens in parallel to processing in H3
@@ -175,7 +200,7 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
   YAWT_H3_Stream_t *h3_stream = sud->user_data[YAWT_UD_H3];
   // we can only h3 fast path the ignore case
   // so we can deliver to the app offset
-  if (h3_stream) {
+  if (h3_stream) { //fast h3 check
     YAWT_H3_StreamType_t h3_type = h3_stream->type;
     // If the stream is not a WT stream, we can ignore it
     if (h3_type != YAWT_H3_STREAM_UNASSIGNED && h3_type != YAWT_H3_STREAM_WT) {
@@ -187,42 +212,35 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
 
   //fast path                                           
   if (wt_stream == NULL) { //try to oneshot without buffering
-    YAWT_Q_ReadCursor_t rc = {
-      .data = chunk->data,
-      .len = chunk->data_len,
-      .cursor = 0,
-      .err = YAWT_Q_OK,
-    };
-    //the first varint is the signal
+
     uint64_t signal = 0;
     uint64_t session = 0;
-    YAWT_q_varint_decode(&rc, &signal);
-    if (rc.err != YAWT_Q_OK) goto NEEDBUFFER;
-    YAWT_q_varint_decode(&rc, &session);
-    if (rc.err != YAWT_Q_OK) goto NEEDBUFFER;
-    //we have a complete header, store it in the stream metadata...if it's ours
-    if (signal != YAWT_WT_STREAM_WIRE_WT_UNI && signal != YAWT_WT_STREAM_WIRE_WT_BIDI) {
+    size_t hdr_len = 0;
+    YAWT_Err_t err = _wt_gather_hdr(chunk->data, chunk->data_len, &signal, &session, &hdr_len);
+    if (err == YAWT_Q_ERR_SHORT_BUFFER) goto NEEDBUFFER; //need more data to complete header
+    else if (err != YAWT_Q_OK) {
+      YAWT_LOG(YAWT_LOG_INFO, "wt: stream %lu marking as unused", chunk->stream_id);
       sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
-      YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu ignored", chunk->stream_id);
       return YAWT_WT_OK; //not a WT stream, ignore
-    }
+    } 
 
     wt_stream = calloc(1, sizeof(YAWT_WT_Stream_t));
     if (!wt_stream) abort(); //OOM, abort
+    sud->user_data[YAWT_UD_WT] = wt_stream;
     wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
     wt_stream->session_id = session;
     wt_stream->hdr_complete = true; //we have a complete header, no need to buffer
     YAWT_WT_Session_t *fast_session = _wt_session_find_or_create(wt_ctx, session);
     if (!fast_session) {
-      free(wt_stream);
-      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused;
+      _wt_sud_destroy(sud); //free the stream metadata and mark as unused
+      YAWT_LOG(YAWT_LOG_ERROR, "wt: no free session slots for stream %lu session %lu, marking stream as unused",
+               chunk->stream_id, session);
       return YAWT_WT_ERR_NO_SESSION;
     }
     wt_stream->session = fast_session; //draft-15 §2.2: session_id == CONNECT stream ID
     YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header parsed in fast path, session %lu",
              chunk->stream_id, session);
-    *out_offset = rc.cursor; //return how many bytes we consumed from this chunk
-    sud->user_data[YAWT_UD_WT] = wt_stream; 
+    *out_offset = hdr_len; //return how many bytes we consumed from this chunk
     return YAWT_WT_OK;
   }
   NEEDBUFFER:
@@ -233,43 +251,28 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
     sud->user_data[YAWT_UD_WT] = wt_stream;
     wt_stream->hdr_buffer = ANB_blob_create(16);
   }
+  size_t gathered = ANB_blob_data_len(wt_stream->hdr_buffer);
   //8 bytes is the max varint wire size, we need to decode two varints (signal and session)
   size_t max_take = 16 - ANB_blob_data_len(wt_stream->hdr_buffer);
   size_t take = chunk->data_len < max_take ? chunk->data_len : max_take;
   ANB_blob_push(wt_stream->hdr_buffer, chunk->data, take);
-  YAWT_Q_ReadCursor_t rc = {
-    .data = ANB_blob_data(wt_stream->hdr_buffer),
-    .len = ANB_blob_data_len(wt_stream->hdr_buffer),
-    .cursor = 0,
-    .err = YAWT_Q_OK,
-  };
   uint64_t signal = 0;
   uint64_t session = 0;
-  if (wt_stream->type == YAWT_WT_STREAM_WIRE_UNDEFINED) {
-    YAWT_q_varint_decode(&rc, &signal);
-    if (rc.err == YAWT_Q_ERR_SHORT_BUFFER) return YAWT_WT_ERR_INCOMPLETE; //need more data to complete header
-    if (rc.err != YAWT_Q_OK)  {
-      YAWT_LOG(YAWT_LOG_INFO, "wt: stream signal is gibberish, marking as unused");
-      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
-      return YAWT_WT_OK; //not a WT stream, ignore
-    }
-    if (signal != YAWT_WT_STREAM_WIRE_WT_UNI && signal != YAWT_WT_STREAM_WIRE_WT_BIDI) {
-      YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu ignored", chunk->stream_id);
-      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
-      return YAWT_WT_OK; //not a WT stream, ignore
-    }
-    wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
+  size_t hdr_len = 0;
+  YAWT_Err_t err = _wt_gather_hdr(ANB_blob_data(wt_stream->hdr_buffer), ANB_blob_data_len(wt_stream->hdr_buffer), &signal, &session, &hdr_len);
+  if (err == YAWT_Q_ERR_SHORT_BUFFER) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header incomplete, buffering", chunk->stream_id);
+    return YAWT_WT_ERR_INCOMPLETE; //need more data to complete header
   }
-  YAWT_q_varint_decode(&rc, &session);
-  if (rc.err == YAWT_Q_ERR_SHORT_BUFFER) return YAWT_WT_ERR_INCOMPLETE; //need more data to complete header
-  if (rc.err != YAWT_Q_OK) {
-    YAWT_LOG(YAWT_LOG_INFO, "wt: stream session is gibberish, even though signal was valid, marking as unused");
-    sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+  else if (err != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_INFO, "wt: stream %lu marking as unused", chunk->stream_id);
+    _wt_sud_destroy(sud); //free the stream metadata and mark as unused
     return YAWT_WT_OK; //not a WT stream, ignore
   }
+  wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
   wt_stream->session_id = session;
   wt_stream->hdr_complete = true;
-  *out_offset = rc.cursor; //return how many bytes we consumed from this chunk 
+  *out_offset = hdr_len - gathered; //return how many bytes we consumed from this chunk
   YAWT_WT_Session_t *wt_session = _wt_session_find_or_create(wt_ctx, wt_stream->session_id);
   if (!wt_session) {
     YAWT_LOG(YAWT_LOG_ERROR, "wt: no free session slots for stream %lu session %lu, marking stream as unused",
