@@ -54,6 +54,20 @@ YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
 
 /**
  * @ingroup WebTransport
+ * @brief Claim a WT session slot for the given session ID.
+ *
+ * The session_id is equal to the CONNECT stream ID (draft-15 §2.2).  Call
+ * this when the server sends a 2xx ACCEPT on a WT CONNECT stream so that
+ * subsequent WT stream data can be correctly routed to the session.
+ *
+ * @param ctx        The WT context.
+ * @param session_id The session ID (= CONNECT stream ID).
+ * @return YAWT_WT_OK on success, or an error code.
+ */
+YAWT_WT_Error_t YAWT_wt_session_accept(YAWT_WT_Context_t *ctx, uint64_t session_id);
+
+/**
+ * @ingroup WebTransport
  * @brief Set the event handler for a WT context.
  * @param ctx The WT context.
  * @param handler The event handler callback.

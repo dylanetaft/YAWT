@@ -23,25 +23,52 @@
 //TODO base this off security module, move to Slab
 #define WT_MAX_SESSIONS 16
 
+// The address of this sentinel value is used to indicate that a stream slot is unused.
+static const uint8_t _wt_sentinal_stream_unused = 0xff;
+
 YAWT_WT_Context_t *_wt_conn_create(YAWT_Q_Context_t *qcon) {
   YAWT_WT_Context_t *ctx = calloc(1, sizeof(YAWT_WT_Context_t));
   if (!ctx) {
     YAWT_LOG(YAWT_LOG_ERROR, "wt: OOM allocating context");
-    return NULL;
+    abort();
   }
   ctx->qcon = qcon;
-  ctx->h3con = YAWT_q_con_get_user_data(qcon, YAWT_UD_H3);
   ctx->nsessions = WT_MAX_SESSIONS;
   ctx->sessions = calloc(ctx->nsessions, sizeof(YAWT_WT_Session_t));
   if (!ctx->sessions) {
     YAWT_LOG(YAWT_LOG_ERROR, "wt: OOM allocating session pool");
-    free(ctx);
-    return NULL;
+    abort();
   }
   YAWT_LOG(YAWT_LOG_INFO, "wt: context created");
   return ctx;
 }
 
+inline static bool _wt_stream_defined(YAWT_Q_StreamUserData_t *sud) {
+  if (!sud) abort(); // should never be called with null, abort on bug
+  return sud->user_data[YAWT_UD_WT] != NULL && sud->user_data[YAWT_UD_WT] != &_wt_sentinal_stream_unused;
+}
+
+inline static bool _wt_stream_unused(YAWT_Q_StreamUserData_t *sud) {
+  if (!sud) abort(); // should never be called with null, abort on bug
+  return sud->user_data[YAWT_UD_WT] == &_wt_sentinal_stream_unused;
+}
+
+//frees any memory we allocated for the stream metadata, and sets the slot to the sentinel value
+static void _wt_sud_destroy(YAWT_Q_StreamUserData_t *sud) {
+  if (!sud) return;
+  YAWT_WT_Stream_t *wt_stream = sud->user_data[YAWT_UD_WT];
+  if (_wt_stream_defined(sud)) {
+    if (wt_stream->hdr_buffer != NULL) {
+      ANB_blob_destroy(wt_stream->hdr_buffer);
+      wt_stream->hdr_buffer = NULL;
+    }
+    free(wt_stream);
+    // note, this function is also used if we're out of sessions 
+    // so null the the ptr in conn_destroy if needed, not here
+    // TODO might be a todo, there might be a max sessions we're supposed to close quic conn if too many opened
+    sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; 
+  }
+}
 static void _wt_conn_destroy(YAWT_WT_Context_t *ctx) {
   if (!ctx) return;
   YAWT_Q_Context_t *con = ctx->qcon;
@@ -54,10 +81,10 @@ static void _wt_conn_destroy(YAWT_WT_Context_t *ctx) {
       uint8_t *item;
       while ((item = ANB_slab_peek_item_iter(slab, &iter, &item_size)) != NULL) {
         YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
-        if (sud->user_data[YAWT_UD_WT]) { //free WT stream metadata we are responsible for
+        if (_wt_stream_defined(sud)) { //free WT stream metadata we are responsible for
           free(sud->user_data[YAWT_UD_WT]);
-          sud->user_data[YAWT_UD_WT] = NULL;
         }
+        sud->user_data[YAWT_UD_WT] = NULL; //null out any set to sentinal
       }
     }
   }
@@ -90,14 +117,12 @@ static YAWT_WT_Session_t *_wt_session_find(YAWT_WT_Context_t *ctx, uint64_t sess
   return NULL;
 }
 
-static YAWT_WT_Session_t *_wt_session_create(YAWT_WT_Context_t *ctx, uint64_t session_id) {
+static YAWT_WT_Session_t *_wt_session_find_or_create(YAWT_WT_Context_t *ctx, uint64_t session_id) {
   if (!ctx) return NULL;
   // Check if session already exists
   YAWT_WT_Session_t *existing = _wt_session_find(ctx, session_id);
-  if (existing) {
-    YAWT_LOG(YAWT_LOG_WARN, "wt: session %lu already exists", session_id);
-    return existing;
-  }
+  if (existing) return existing; 
+  
   // Find free slot
   for (uint64_t i = 0; i < ctx->nsessions; i++) {
     if (!ctx->sessions[i].in_use) {
@@ -112,6 +137,18 @@ static YAWT_WT_Session_t *_wt_session_create(YAWT_WT_Context_t *ctx, uint64_t se
   return NULL;
 }
 
+YAWT_WT_Error_t YAWT_wt_session_accept(YAWT_WT_Context_t *ctx, uint64_t session_id) {
+  if (!ctx) return YAWT_WT_ERR_INVALID_PARAM;
+  YAWT_WT_Session_t *session = _wt_session_find_or_create(ctx, session_id);
+  if (!session) {
+    YAWT_LOG(YAWT_LOG_ERROR, "wt: session_accept: no free slot for session %lu", session_id);
+    return YAWT_WT_ERR_NO_SESSION;
+  }
+  YAWT_LOG(YAWT_LOG_INFO, "wt: session %lu accepted (connect_stream=%lu)",
+           session_id, session_id);
+  return YAWT_WT_OK;
+}
+
 static void _wt_emit_event(YAWT_WT_Context_t *ctx, YAWT_WT_Session_t *session,
                             YAWT_WT_EventType_t event, YAWT_WT_EventParam_t param) {
   if (ctx && ctx->app_handler) {
@@ -119,64 +156,121 @@ static void _wt_emit_event(YAWT_WT_Context_t *ctx, YAWT_WT_Session_t *session,
   }
 }
 
-static YAWT_WT_Stream_t *_wt_stream_get_or_create(
-    YAWT_Q_StreamUserData_t *sud,
-    uint64_t stream_id) {
-  
-  YAWT_WT_Stream_t *wt_stream = sud->user_data[YAWT_UD_WT];
-  if (!wt_stream) {
-    wt_stream = calloc(1, sizeof(YAWT_WT_Stream_t));
-    if (!wt_stream) {
-      YAWT_LOG(YAWT_LOG_ERROR, "wt: OOM allocating stream metadata");
-      return NULL;
-    }
-    wt_stream->stream_id = stream_id;
-    sud->user_data[YAWT_UD_WT] = wt_stream;
-  }
-  return wt_stream;
-}
 
-static YAWT_WT_Error_t _wt_buffer_session_id(
-    YAWT_WT_Stream_t *wt_stream,
-    const YAWT_Q_Frame_Stream_t *chunk,
-    size_t *cursor) {
-  
-  size_t start = *cursor;
-  
-  // Skip signal byte on first chunk
-  if (wt_stream->stream_offset == 0 && start < chunk->data_len) {
-    start++;  // Skip 0x41 or 0x54
+// Never before seen stream
+// parse the header and see if it is ours to process
+// Happens in parallel to processing in H3
+// It's a bit easier to do this way for unit testing and troubleshooting
+// Less indirection, negligibly less performant
+static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_StreamUserData_t *sud, const YAWT_Q_Frame_Stream_t *chunk, size_t *out_offset) {
+  if (out_offset == NULL) abort(); // should never be called with null, abort on bug
+  if (ctx == NULL) abort(); // should never be called with null, abort on bug
+  if (sud == NULL || chunk == NULL) abort(); // should never be called with null, abort on bug
+  *out_offset = 0; // zero early so i dont forget
+  YAWT_WT_Stream_t *wt_stream = sud->user_data[YAWT_UD_WT];
+  if (wt_stream != NULL && wt_stream->hdr_complete) abort(); // should never be called with a complete stream, abort on bug
+  YAWT_WT_Context_t *wt_ctx = YAWT_q_con_get_user_data(ctx, YAWT_UD_WT);
+  if (!wt_ctx) abort(); //this is created in conn create, never null, abort on bug  
+  // If the h3 parser already handled this, we can take some shortcuts for performance
+  YAWT_H3_Stream_t *h3_stream = sud->user_data[YAWT_UD_H3];
+  // we can only h3 fast path the ignore case
+  // so we can deliver to the app offset
+  if (h3_stream) {
+    YAWT_H3_StreamType_t h3_type = h3_stream->type;
+    // If the stream is not a WT stream, we can ignore it
+    if (h3_type != YAWT_H3_STREAM_UNASSIGNED && h3_type != YAWT_H3_STREAM_WT) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu owned by h3, ignore", chunk->stream_id);
+      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+      return YAWT_WT_OK; //not a WT stream, ignore
+    }
   }
-  
-  size_t avail = chunk->data_len - start;
-  if (avail == 0) {
-    *cursor = chunk->data_len;
-    wt_stream->stream_offset += chunk->data_len;
+
+  //fast path                                           
+  if (wt_stream == NULL) { //try to oneshot without buffering
+    YAWT_Q_ReadCursor_t rc = {
+      .data = chunk->data,
+      .len = chunk->data_len,
+      .cursor = 0,
+      .err = YAWT_Q_OK,
+    };
+    //the first varint is the signal
+    uint64_t signal = 0;
+    uint64_t session = 0;
+    YAWT_q_varint_decode(&rc, &signal);
+    if (rc.err != YAWT_Q_OK) goto NEEDBUFFER;
+    YAWT_q_varint_decode(&rc, &session);
+    if (rc.err != YAWT_Q_OK) goto NEEDBUFFER;
+    //we have a complete header, store it in the stream metadata...if it's ours
+    if (signal != YAWT_WT_STREAM_WIRE_WT_UNI && signal != YAWT_WT_STREAM_WIRE_WT_BIDI) {
+      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+      YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu ignored", chunk->stream_id);
+      return YAWT_WT_OK; //not a WT stream, ignore
+    }
+
+    wt_stream = calloc(1, sizeof(YAWT_WT_Stream_t));
+    if (!wt_stream) abort(); //OOM, abort
+    wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
+    wt_stream->session_id = session;
+    wt_stream->hdr_complete = true; //we have a complete header, no need to buffer
+    YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header parsed in fast path", chunk->stream_id);
+    *out_offset = rc.cursor; //return how many bytes we consumed from this chunk
+    sud->user_data[YAWT_UD_WT] = wt_stream; 
     return YAWT_WT_OK;
   }
-  
-  // Accumulate bytes
-  size_t take = avail;
-  if (take > sizeof(wt_stream->hdr) - wt_stream->hdr_accumulated) {
-    take = sizeof(wt_stream->hdr) - wt_stream->hdr_accumulated;
+  NEEDBUFFER:
+  //we need to buffer the stream data until we have a complete header
+  if (wt_stream == NULL) {
+    wt_stream = calloc(1, sizeof(YAWT_WT_Stream_t));
+    if (!wt_stream) abort(); //OOM, abort
+    sud->user_data[YAWT_UD_WT] = wt_stream;
+    wt_stream->hdr_buffer = ANB_blob_create(16);
   }
-  memcpy(wt_stream->hdr + wt_stream->hdr_accumulated, chunk->data + start, take);
-  wt_stream->hdr_accumulated += take;
-  wt_stream->stream_offset += chunk->data_len;
-  
-  // Try to decode varint
+  //8 bytes is the max varint wire size, we need to decode two varints (signal and session)
+  size_t max_take = 16 - ANB_blob_data_len(wt_stream->hdr_buffer);
+  size_t take = chunk->data_len < max_take ? chunk->data_len : max_take;
+  ANB_blob_push(wt_stream->hdr_buffer, chunk->data, take);
   YAWT_Q_ReadCursor_t rc = {
-    .data = wt_stream->hdr,
-    .len = wt_stream->hdr_accumulated,
+    .data = ANB_blob_data(wt_stream->hdr_buffer),
+    .len = ANB_blob_data_len(wt_stream->hdr_buffer),
     .cursor = 0,
     .err = YAWT_Q_OK,
   };
-  YAWT_q_varint_decode(&rc, &wt_stream->session_id);
-  if (rc.err == YAWT_Q_OK) {
-    wt_stream->session_id_complete = true;
+  uint64_t signal = 0;
+  uint64_t session = 0;
+  if (wt_stream->type == YAWT_WT_STREAM_WIRE_UNDEFINED) {
+    YAWT_q_varint_decode(&rc, &signal);
+    if (rc.err == YAWT_Q_ERR_SHORT_BUFFER) return YAWT_WT_ERR_INCOMPLETE; //need more data to complete header
+    if (rc.err != YAWT_Q_OK)  {
+      YAWT_LOG(YAWT_LOG_INFO, "wt: stream signal is gibberish, marking as unused");
+      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+      return YAWT_WT_OK; //not a WT stream, ignore
+    }
+    if (signal != YAWT_WT_STREAM_WIRE_WT_UNI && signal != YAWT_WT_STREAM_WIRE_WT_BIDI) {
+      YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu ignored", chunk->stream_id);
+      sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+      return YAWT_WT_OK; //not a WT stream, ignore
+    }
+    wt_stream->type = (YAWT_WT_WireStreamType_t)signal;
   }
-  
-  *cursor = chunk->data_len;
+  YAWT_q_varint_decode(&rc, &session);
+  if (rc.err == YAWT_Q_ERR_SHORT_BUFFER) return YAWT_WT_ERR_INCOMPLETE; //need more data to complete header
+  if (rc.err != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_INFO, "wt: stream session is gibberish, even though signal was valid, marking as unused");
+    sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
+    return YAWT_WT_OK; //not a WT stream, ignore
+  }
+  wt_stream->session_id = session;
+  wt_stream->hdr_complete = true;
+  *out_offset = rc.cursor; //return how many bytes we consumed from this chunk 
+  //TODO we didn't ask the user, a session is just created as data arrived, which I believe is valid to RFC
+  YAWT_WT_Session_t *wt_session = _wt_session_find_or_create(wt_ctx, wt_stream->session_id);
+  if (!session) {
+    YAWT_LOG(YAWT_LOG_ERROR, "wt: no free session slots for stream %lu session %lu, marking stream as unused",
+             chunk->stream_id, wt_stream->session_id);
+    _wt_sud_destroy(sud); //free the stream metadata and mark as unused
+    return YAWT_WT_ERR_NO_SESSION;
+  }
+
   return YAWT_WT_OK;
 }
 
@@ -187,7 +281,6 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
 
   if (event == YAWT_Q_EVT_CONNECTED) {
     YAWT_WT_Context_t *ctx = _wt_conn_create(con);
-    if (!ctx) return YAWT_WT_ERR_INVALID_PARAM;
     YAWT_q_con_set_user_data(con, YAWT_UD_WT, ctx);
     return YAWT_WT_OK;
   }
@@ -197,7 +290,6 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
   if (event == YAWT_Q_EVT_CLOSE) {
     if (ctx) {
       _wt_conn_destroy(ctx);
-      YAWT_q_con_set_user_data(con, YAWT_UD_WT, NULL);
     }
     return YAWT_WT_OK;
   }
@@ -206,57 +298,42 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
 
   switch (event) {
     case YAWT_Q_EVT_STREAM: {
-      const YAWT_Q_Frame_Stream_t *chunk = param.P_EVT_STREAM.frame;
-      if (!chunk) return YAWT_WT_ERR_INVALID_PARAM;
-
       YAWT_Q_StreamUserData_t *sud = param.P_EVT_STREAM.stream_ud;
-      if (!sud) {
-        YAWT_LOG(YAWT_LOG_WARN, "wt: EVT_STREAM with NULL stream_ud");
+      const YAWT_Q_Frame_Stream_t *chunk = param.P_EVT_STREAM.frame;
+      if (chunk == NULL || sud == NULL) abort(); //this would be a bug
+      if (_wt_stream_unused(sud)) { //exit early if stream is marked unused, performance
+        YAWT_LOG(YAWT_LOG_DEBUG, "wt: EVT_STREAM stream_id=%lu marked unused, ignoring", chunk->stream_id);
         return YAWT_WT_OK;
       }
-      YAWT_H3_Stream_t *h3_stream = sud->user_data[YAWT_UD_H3];
-      if (!h3_stream) {
-        return YAWT_WT_OK;
-      }
-
-      switch (h3_stream->type) {
-        case YAWT_H3_STREAM_WT: {
-          YAWT_WT_Stream_t *wt_stream = _wt_stream_get_or_create(sud, chunk->stream_id);
-          if (!wt_stream) return YAWT_WT_ERR_INVALID_PARAM;
-
-          size_t cursor = 0;
-          _wt_buffer_session_id(wt_stream, chunk, &cursor);
-
-          if (wt_stream->session_id_complete && !wt_stream->session) {
-            if ((wt_stream->session_id & 0x03) != 0x00) {
-              YAWT_LOG(YAWT_LOG_ERROR, "wt: session_id %lu is not a client-initiated bidi stream",
-                       wt_stream->session_id);
-              YAWT_q_con_close(con, YAWT_ERR_H3_ID_ERROR);
-              return YAWT_WT_ERR_INVALID_PARAM;
-            }
-
-            YAWT_WT_Session_t *session = _wt_session_find(ctx, wt_stream->session_id);
-            if (session) {
-              wt_stream->session = session;
-            }
-          }
-
-          if (wt_stream->session && cursor < chunk->data_len) {
-            _wt_emit_event(ctx, wt_stream->session, YAWT_WT_EVT_STREAM_DATA, (YAWT_WT_EventParam_t){
-              .P_EVT_STREAM_DATA = {
-                .session_id = wt_stream->session_id,
-                .stream_id = chunk->stream_id,
-                .data = chunk->data + cursor,
-                .len = chunk->data_len - cursor,
-                .fin = chunk->fin,
-              }
-            });
-          }
+      size_t read_offset = 0;
+      YAWT_WT_Stream_t *wt_stream = sud->user_data[YAWT_UD_WT];
+      if (wt_stream == NULL || !wt_stream->hdr_complete) {
+        YAWT_WT_Error_t rc = _wt_gated_stream_create(con, sud, chunk, &read_offset);
+        if (rc == YAWT_WT_ERR_INCOMPLETE) {
+          YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu header incomplete, buffering", chunk->stream_id);
           return YAWT_WT_OK;
         }
-        default:
-          return YAWT_WT_OK;
+        if (rc != YAWT_WT_OK) { //stream was marked unused by _wt_buffer_hdr
+          return rc;
+        }
+
       }
+      //after reading headers, stream could be unused, early exit for performance
+      if (_wt_stream_unused(sud)) { //exit early if stream is marked unused, performance
+        YAWT_LOG(YAWT_LOG_DEBUG, "wt: EVT_STREAM stream_id=%lu marked unused after buffering, ignoring", chunk->stream_id);
+        return YAWT_WT_OK;
+      }
+      //the above acts as a gate, no need for further checks
+      wt_stream = sud->user_data[YAWT_UD_WT];
+      _wt_emit_event(ctx, wt_stream->session, YAWT_WT_EVT_STREAM_DATA, (YAWT_WT_EventParam_t){
+        .P_EVT_STREAM_DATA = {
+          .session_id = wt_stream->session_id,
+          .stream_id = chunk->stream_id,
+          .data = chunk->data + read_offset,
+          .len = chunk->data_len - read_offset,
+          .fin = chunk->fin,
+        }
+        });
     }
     case YAWT_Q_EVT_DATAGRAM: {
       return YAWT_WT_OK;
@@ -266,64 +343,6 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
   }
 }
 
-YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
-                                      YAWT_H3_EventType_t event,
-                                      YAWT_H3_EventParam_t param) {
-  if (!h3con) return YAWT_WT_ERR_INVALID_PARAM;
-
-  YAWT_Q_Context_t *qcon = YAWT_h3_get_qcon(h3con);
-  if (!qcon) return YAWT_WT_ERR_INVALID_PARAM;
-
-  YAWT_WT_Context_t *ctx = YAWT_q_con_get_user_data(qcon, YAWT_UD_WT);
-  if (!ctx) return YAWT_WT_OK;
-
-  switch (event) {
-    case YAWT_H3_EVT_DATA: {
-      uint64_t stream_id = param.P_EVT_DATA.stream_id;
-      const uint8_t *data = param.P_EVT_DATA.data;
-      size_t len = param.P_EVT_DATA.len;
-
-      YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(qcon, stream_id);
-      YAWT_H3_Stream_t *h3_stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
-      if (!h3_stream || h3_stream->type != YAWT_H3_STREAM_WT_CONNECT) {
-        return YAWT_WT_OK;
-      }
-
-      YAWT_WT_Stream_t *wt_stream = _wt_stream_get_or_create(sud, stream_id);
-      if (!wt_stream) return YAWT_WT_ERR_INVALID_PARAM;
-
-      if (!wt_stream->session_id_complete) {
-        wt_stream->session_id = stream_id;
-        wt_stream->session_id_complete = true;
-        wt_stream->session = _wt_session_find(ctx, stream_id);
-      }
-
-      YAWT_WT_Session_t *session = wt_stream->session;
-      if (!session) return YAWT_WT_OK;
-
-      YAWT_WT_CapsuleType_t type;
-      YAWT_WT_Capsule_t capsule;
-      int rc = YAWT_wt_parse_capsule(&wt_stream->capsule_parser, data, len, &type, &capsule);
-      if (rc == YAWT_CAPSULE_OK) {
-        _wt_emit_event(ctx, session, YAWT_WT_EVT_CAPSULE_RECEIVED, (YAWT_WT_EventParam_t){
-          .P_EVT_CAPSULE_RECEIVED = {
-            .session_id = wt_stream->session_id,
-            .stream_id = stream_id,
-            .type = type,
-            .capsule = capsule,
-          }
-        });
-      }
-      return YAWT_WT_OK;
-    }
-    case YAWT_H3_EVT_DATAGRAM: {
-      // QUIC DATAGRAM forwarded by H3 layer — parse Quarter Stream ID and dispatch
-      return YAWT_wt_on_datagram(ctx, param.P_EVT_DATAGRAM.data, param.P_EVT_DATAGRAM.len);
-    }
-    default:
-      return YAWT_WT_OK;
-  }
-}
 
 YAWT_WT_Error_t YAWT_wt_on_datagram(YAWT_WT_Context_t *ctx,
                                      const uint8_t *data, size_t len) {

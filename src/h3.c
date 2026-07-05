@@ -86,6 +86,8 @@ static int _h3_setting_wire_to_idx(uint64_t wire_id, YAWT_H3_SettingIdx_t *out) 
 }
 
 static YAWT_H3_WT_Version_t _h3_detect_wt_version(const YAWT_H3_Settings_t *peer) {
+  if (YAWT_h3_setting_isset(peer, YAWT_H3_IDX_WT_ENABLED))
+    return YAWT_H3_WT_VERSION_DEFAULT;   /* draft-15+ */
   if (YAWT_h3_setting_isset(peer, YAWT_H3_IDX_WT_ENABLED_DRAFT02))
     return YAWT_H3_WT_VERSION_DRAFT02;
   return YAWT_H3_WT_VERSION_DEFAULT;
@@ -534,8 +536,8 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Context_t *h3con,
   // Dispatch by resolved stream type
   switch (stream->type) {
     case YAWT_H3_STREAM_FRAME:
-    case YAWT_H3_STREAM_CONTROL:
-    case YAWT_H3_STREAM_WT_CONNECT: {
+    case YAWT_H3_STREAM_CONTROL: 
+    case YAWT_H3_STREAM_WT_CONNECT: { //Capsules, I think - normal h3 frames
       // Parse frame header (Type + Length varints)
       YAWT_H3_Frame_t *f = &stream->frame;
       if (f->hdr_size == 0) {
@@ -664,6 +666,12 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event
 
     const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
     if (wt_pol->max_sessions > 0) {
+      /* RFC 9220: Extended CONNECT protocol is required for WebTransport sessions */
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_ENABLE_CONNECT_PROTOCOL, 1);
+      /* draft-15 §3.1: SETTINGS_WT_ENABLED (0x2c7cf000) */
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED, 1);
+      YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_MAX_SESSIONS, wt_pol->max_sessions);
+      /* Legacy draft-02 codepoints kept for backward compat */
       YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_WT_ENABLED_DRAFT02, 1);
       YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM_DRAFT04, 1);
       YAWT_h3_setting_set(h3->local_settings, YAWT_H3_IDX_H3_DATAGRAM, 1);

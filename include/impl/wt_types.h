@@ -10,6 +10,7 @@
 #include "../quic_connection.h"
 #include "../h3_types.h"
 #include "../capsule.h"
+#include <allocnbuffer/blob.h>
 
 typedef struct YAWT_WT_Stream_t YAWT_WT_Stream_t;
 
@@ -51,20 +52,15 @@ struct YAWT_WT_Session_t {
  *       Buffers the session_id varint which may span multiple QUIC chunks.
  */
 struct YAWT_WT_Stream_t {
-  bool     in_use;
-  uint64_t stream_id;              /**< QUIC stream ID */
+
+  YAWT_WT_WireStreamType_t type;    //undefined, bidi or uni (draft-15 §4.2/4.3) */
+  uint64_t session_id;              /**< QUIC stream ID */
+  YAWT_WT_Session_t *session;        /**< NULL until session_id is resolved to a slot */
+  bool hdr_complete; //session ID and type are determined
   
   // Session ID buffering (draft-15 §4.3)
-  uint8_t  hdr[8];                 /**< Buffer for session_id varint */
-  uint8_t  hdr_accumulated;        /**< Bytes of session_id buffered */
-  uint64_t session_id;             /**< Decoded session_id (0 until complete) */
-  bool     session_id_complete;    /**< True once varint decoded */
-  
-  uint64_t stream_offset;          /**< Total bytes seen on this stream */
-  
-  YAWT_WT_Session_t *session;      /**< NULL until session exists */
-  
-  YAWT_Capsule_Parser_t capsule_parser;  /**< For WT_CONNECT streams */
+  ANB_Blob_t *hdr_buffer;
+  YAWT_Capsule_Parser_t *capsule_parser;  /**< For WT_CONNECT streams */
 };
 
 /**
@@ -75,7 +71,6 @@ struct YAWT_WT_Stream_t {
  */
 struct YAWT_WT_Context_t {
   YAWT_Q_Context_t *qcon;           /**< Back-reference to the QUIC layer */
-  YAWT_H3_Context_t *h3con;         /**< Back-reference to the H3 layer */
   YAWT_WT_EventHandler_t app_handler;  /**< App-level event callback */
   uint64_t nsessions;                  /**< Slot pool size */
   YAWT_WT_Session_t *sessions;         /**< Preallocated slot pool, linear-scan by session_id */

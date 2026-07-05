@@ -19,6 +19,20 @@ typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 typedef struct YAWT_WT_Context_t YAWT_WT_Context_t;
 typedef struct YAWT_WT_Session_t YAWT_WT_Session_t;
 
+
+
+/**
+ * @internal
+ * @ingroup WebTransport_Internal 
+ * @brief Wire format stream types.
+ * IETF Webtransport over HTTP3 draft 15
+ */
+typedef enum {
+  YAWT_WT_STREAM_WIRE_UNDEFINED    = 0x00, /**< Not yet determined */
+  YAWT_WT_STREAM_WIRE_WT_UNI       = 0x54, /**< WebTransport uni stream (draft-15 §4.2) */
+  YAWT_WT_STREAM_WIRE_WT_BIDI      = 0x41, /**< WebTransport bidi stream (draft-15 §4.3) */
+} YAWT_WT_WireStreamType_t;
+
 /**
  * @ingroup WebTransport
  * @brief WebTransport wire error codes (draft-15 §9.5).
