@@ -46,9 +46,12 @@ def main():
     with tempfile.TemporaryDirectory(prefix="yawt_test_") as tmpdir:
         cert, key = generate_certs(tmpdir)
 
+        # Route server output to a file, not an in-memory PIPE, so verbose
+        # debug logging can't fill an undrained 64KB pipe and block the server.
+        server_log = open(os.path.join(tmpdir, "server.log"), "w+")
         server_proc = subprocess.Popen(
             [server_bin, cert, key, str(port)],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            stdout=server_log, stderr=subprocess.STDOUT,
         )
 
         try:

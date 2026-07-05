@@ -33,8 +33,8 @@
  * @brief HTTP/3 protocol types, enums, frames, streams, and settings.
  */
 
-typedef struct YAWT_Q_Connection_t YAWT_Q_Connection_t;
-typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
+typedef struct YAWT_Q_Context_t YAWT_Q_Context_t;
+typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 
 #define H3_FRAME_MAX_HEADER_BYTES 16  /**< Max varint size for Type + Length */
 #define H3_STREAM_TYPE_MAX_BYTES   8  /**< Uni stream-type prefix is one varint (<=8 bytes) */
@@ -82,7 +82,8 @@ typedef enum {
   YAWT_H3_STREAM_WIRE_PUSH         = 0x01, /**< Push stream (RFC 9114 §6.2.2) */
   YAWT_H3_STREAM_WIRE_QPACK_ENCODER = 0x02, /**< QPACK encoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_WIRE_QPACK_DECODER = 0x03, /**< QPACK decoder stream (RFC 9204 §4.2) */
-  YAWT_H3_STREAM_WIRE_WEBTRANSPORT  = 0x54, /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_WIRE_WT_UNI       = 0x54, /**< WebTransport uni stream (draft-15 §4.2) */
+  YAWT_H3_STREAM_WIRE_WT_BIDI      = 0x41, /**< WebTransport bidi stream (draft-15 §4.3) */
 } YAWT_H3_WireStreamType_t;
 
 /**
@@ -96,7 +97,9 @@ typedef enum {
   YAWT_H3_STREAM_CONTROL,    /**< Control stream (RFC 9114 §6.2.1) */
   YAWT_H3_STREAM_QPACK_ENCODER, /**< QPACK encoder stream (RFC 9204 §4.2) */
   YAWT_H3_STREAM_QPACK_DECODER, /**< QPACK decoder stream (RFC 9204 §4.2) */
-  YAWT_H3_STREAM_WEBTRANSPORT, /**< WebTransport stream (draft-15) */
+  YAWT_H3_STREAM_WT,         /**< WebTransport stream (0x41 bidi or 0x54 uni, draft-15 §4.2/4.3) */
+  YAWT_H3_STREAM_WT_CONNECT, /**< Upgraded CONNECT stream (capsules in DATA, draft-15 §3.2) */
+  YAWT_H3_STREAM_WT_CONNECT_PENDING, /**< CONNECT awaiting 2xx response (draft-15 §3.2) */
   YAWT_H3_STREAM_UNKNOWN     /**< Unknown/GREASE stream type (RFC 9114 §6.2.3, RFC 9287) */
 } YAWT_H3_StreamType_t;
 
@@ -144,7 +147,9 @@ typedef enum {
   YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_UNI  = 7,
   YAWT_H3_IDX_WT_INITIAL_MAX_STREAMS_BIDI = 8,
   YAWT_H3_IDX_WT_INITIAL_MAX_DATA         = 9,
-  YAWT_H3_NUM_SETTINGS = 10
+  YAWT_H3_IDX_WT_ENABLED_DRAFT02          = 10,
+  YAWT_H3_IDX_H3_DATAGRAM_DRAFT04         = 11,
+  YAWT_H3_NUM_SETTINGS = 12
 } YAWT_H3_SettingIdx_t;
 
 /**
@@ -160,6 +165,7 @@ typedef enum {
   YAWT_H3_ERR_MALFORMED,        /**< Structurally invalid (e.g. odd SETTINGS pairs) */
   YAWT_H3_ERR_TOO_LARGE,        /**< Frame exceeds the H3 buffer cap (security policy) */
   YAWT_H3_ERR_INVALID_PARAM,    /**< Invalid parameter */
+  YAWT_H3_ERR_INVALID_STATE,    /**< Stream/connection in invalid state for operation */
   YAWT_H3_ERR_NO_APP_HANDLER,   /**< App handler not set via YAWT_h3_set_event_handler() */
   YAWT_H3_IGNORED,              /**< Event was not handled (e.g. DATAGRAM, unknown QUIC event) */
 } YAWT_H3_Error_t;
@@ -178,6 +184,7 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
     case YAWT_H3_ERR_MALFORMED:     return "MALFORMED";
     case YAWT_H3_ERR_TOO_LARGE:     return "TOO_LARGE";
     case YAWT_H3_ERR_INVALID_PARAM: return "INVALID_PARAM";
+    case YAWT_H3_ERR_INVALID_STATE: return "INVALID_STATE";
     case YAWT_H3_ERR_NO_APP_HANDLER:return "NO_APP_HANDLER";
     case YAWT_H3_IGNORED:           return "IGNORED";
     default:                        return "UNKNOWN";
@@ -188,14 +195,15 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
 /**
  * @ingroup H3_Types
  * @brief The one H3 frame currently in flight on a stream.
- * @note Holds both the decoded result (type, payload_len, payload) and the
- *       byte-level decode scratch (hdr/hdr_size/accumulated). Only one frame
- *       parses at a time per stream, so a single embedded instance serves.
+ * @note Holds both the decoded result (type, payload_len, payload_blob) and the
+ *       blob-backed accumulation state. Only one frame parses at a time per stream,
+ *       so a single embedded instance serves.
  *
- *       Lifecycle: This struct is wiped (memset to 0) between frames when
- *       `parsed` is set — see YAWT_h3_parse_frame(). The wipe resets only
- *       the per-frame state (header scratch, payload blob, accumulated count).
- *       It does NOT touch the stream type (`stream->type`) or the stream-type
+ *       Lifecycle: Between frames, payload accumulation state is reset (hdr_buffer
+ *       and payload_blob are cleared, hdr_size zeroed) when `parsed` is set —
+ *       see YAWT_h3_parse_frame2(). Blob allocations persist across frames to
+ *       avoid malloc/free churn (only freed in _h3_stream_destroy). The wipe
+ *       does NOT touch the stream type (`stream->type`) or the stream-type
  *       accumulation buffer — those live in YAWT_H3_Stream_t and persist for
  *       the stream's entire lifetime (RFC 9114 §6.2: the stream-type varint
  *       is sent once at the start of a uni stream and never repeated).
@@ -204,19 +212,22 @@ static inline const char *YAWT_h3_err_str(YAWT_H3_Error_t err) {
  *       _handle_rx_stream_frame() directly to the app without buffering.
  *       Only SETTINGS and HEADERS require whole-frame buffering for decode.
  *
- * @warning READ-ONLY / NOT retained when handed to the app: `payload` points
- *          into transient stream bytes, and the whole struct is reset and reused
- *          for the next frame, so anything kept beyond the delivering call must be copied.
+ * @warning READ-ONLY / NOT retained when handed to the app: the blob backing
+ *          payload_blob is reused for the next frame, so anything kept beyond
+ *          the delivering call must be copied.
  */
 typedef struct {
   uint64_t type;          // decoded frame type (raw varint; unknown types survive)
   uint64_t payload_len;   // decoded Length
-  ANB_Blob_t *payload_blob; // Buffered payload (SETTINGS/HEADERS); NULL for DATA/unknown frames
 
-  uint8_t  hdr[H3_FRAME_MAX_HEADER_BYTES]; // header (type+len) decode scratch; dead once decoded
-  uint8_t  hdr_size;      // bytes of header consumed; 0 == header not yet read
-  uint64_t accumulated;   // raw stream bytes accumulated for the current frame (INCOMPLETE)
-  bool     parsed;        // set after frame complete; triggers reset on next parse
+  // Header tracking: hdr_buffer accumulates frame-header bytes across chunks
+  // (blob-backed, lazy-allocated). hdr_size is 0 until header is complete.
+  ANB_Blob_t *hdr_buffer;  // frame-header accumulation buffer
+  uint8_t  hdr_size;       // bytes of header decoded; 0 == header not yet read
+  uint64_t accumulated;    // payload bytes accumulated for the current frame
+
+  ANB_Blob_t *payload_blob; // Buffered payload blob (SETTINGS/HEADERS); NULL otherwise
+  bool     parsed;          // set after frame complete; triggers reset on next parse
 } YAWT_H3_Frame_t;
 
 /**
@@ -270,8 +281,8 @@ typedef enum {
   YAWT_H3_EVT_DATA,           /**< DATA frame payload chunk; stream_id + data/len + fin */
   YAWT_H3_EVT_SETTINGS,       /**< SETTINGS frame decoded; param has stream_id + settings ptr */
   YAWT_H3_EVT_CLOSE,          /**< H3-level error/close; param has error_code + reason */
-  YAWT_H3_EVT_WT_UNI_STREAM,  /**< Data on a 0x54 uni stream; param has stream_id + data/len (draft-15 §4.2) */
   YAWT_H3_EVT_DATAGRAM,       /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
+  YAWT_H3_EVT_WT_UPGRADE      /**< WebTransport upgrade request or response */
 } YAWT_H3_EventType_t;
 
 /**
@@ -301,24 +312,22 @@ typedef union YAWT_H3_EventParam {
     uint64_t error_code;
     const char *reason;
   } P_EVT_CLOSE;
-  /** @brief Parameters for YAWT_H3_EVT_WT_UNI_STREAM. */
-  struct {
-    uint64_t stream_id;       /**< H3 uni stream ID (0x54 type already consumed) */
-    const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
-    size_t len;               /**< Length of remaining data after stream-type varint */
-  } P_EVT_WT_UNI_STREAM;
   /** @brief Parameters for YAWT_H3_EVT_DATAGRAM. */
   struct {
     const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
     size_t len;               /**< Length of datagram payload */
   } P_EVT_DATAGRAM;
+  /** @brief Parameters for YAWT_H3_EVT_WT_UPGRADE. */
+  struct {
+    uint64_t stream_id;       /**< The stream ID of the upgrade request/response */
+  } P_EVT_WT_UPGRADE;
 } YAWT_H3_EventParam_t;
 
 /**
  * @ingroup H3_Connection
  * @brief App-level event callback for H3.
  */
-typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
+typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Context_t *con,
                                         YAWT_H3_EventType_t event,
                                         YAWT_H3_EventParam_t param);
 /**
@@ -326,7 +335,7 @@ typedef void (*YAWT_H3_EventHandler_t)(YAWT_H3_Connection_t *con,
  * @brief H3 connection object.
  * @note Definition in impl/h3_types.h — include it to access fields directly.
  */
-typedef struct YAWT_H3_Connection_t YAWT_H3_Connection_t;
+typedef struct YAWT_H3_Context_t YAWT_H3_Context_t;
 
 
 /**
@@ -342,3 +351,14 @@ typedef enum {
     DUPLICATE,               /**< Duplicate entry (RFC 9204 §4.3.4) */
     UNKNOWN                  /**< Unknown instruction */
 } YAWT_H3_QPACK_EncoderInstructionType_t;
+
+/**
+ * @ingroup H3_Types
+ * @brief WebTransport draft version negotiated for this connection.
+ * @note Detected from peer SETTINGS: DRAFT02 if peer sent 0x2b603742 (draft-ietf-webtrans-http3-02),
+ *       DEFAULT otherwise (draft-15+). Affects :protocol value and draft version headers.
+ */
+typedef enum {
+  YAWT_H3_WT_VERSION_DEFAULT = 0,  /**< Current draft (draft-15+) — :protocol=webtransport-h3 */
+  YAWT_H3_WT_VERSION_DRAFT02,      /**< draft-ietf-webtrans-http3-02 — :protocol=webtransport */
+} YAWT_H3_WT_Version_t;

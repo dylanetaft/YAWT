@@ -56,7 +56,7 @@ static void udp_send(const uint8_t *buf, size_t len,
            nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
 }
 
-static void h3_app_handler(YAWT_H3_Connection_t *h3con,
+static void h3_app_handler(YAWT_H3_Context_t *h3con,
                             YAWT_H3_EventType_t event,
                             YAWT_H3_EventParam_t param) {
   switch (event) {
@@ -97,13 +97,13 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       ev_break(main_loop, EVBREAK_ALL);
       break;
-    case YAWT_H3_EVT_WT_UNI_STREAM:
+    // case YAWT_H3_EVT_WT_UNI_STREAM:
     case YAWT_H3_EVT_DATAGRAM:
       break;
   }
 }
 
-static void on_event(YAWT_Q_Connection_t *con,
+static void on_event(YAWT_Q_Context_t *con,
                       YAWT_Q_EventType_t event,
                       YAWT_Q_EventParam_t param) {
   switch (event) {
@@ -114,7 +114,7 @@ static void on_event(YAWT_Q_Connection_t *con,
     case YAWT_Q_EVT_CONNECTED: {
       YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
       if (rc != YAWT_H3_OK) break;
-      YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+      YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
       if (!h3) break;
       YAWT_h3_set_event_handler(h3, h3_app_handler);
 
@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
   main_loop = ev_default_loop(0);
   double now = ev_now(main_loop);
 
-  YAWT_Q_Connection_t *con = YAWT_q_con_connect(&info, now);
+  YAWT_Q_Context_t *con = YAWT_q_con_connect(&info, now);
   if (!con) {
     fprintf(stderr, "failed to initiate QUIC connection\n");
     freeaddrinfo(res);

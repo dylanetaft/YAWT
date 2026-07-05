@@ -28,7 +28,7 @@
  *       fields are mutated only on that thread, synchronously with con_rx / con_maintain.
  *       Most fields are QUIC-internal; `user_data[]` is the app's per-slot array.
  */
-struct YAWT_Q_Connection_t {
+struct YAWT_Q_Context_t {
   YAWT_Q_Cid_t cid;
   YAWT_Q_Cid_t peer_cid;
   YAWT_Q_Cid_t original_dcid;  // client's random DCID from first Initial (temporary index)
@@ -40,7 +40,7 @@ struct YAWT_Q_Connection_t {
   YAWT_Q_PeerAddr_t peer_addr;
   YAWT_Q_Crypto_t *crypto;
   ANB_Slab_t *stream_rx;            // out-of-order RX: YAWT_Q_Frame_BufferedStream_t items
-  ANB_Slab_t *stream_meta;          // YAWT_Q_StreamMeta_t per open stream
+  ANB_Slab_t *stream_userdata;      // YAWT_Q_StreamUserData_t per open stream
   YAWT_Q_FlowControl_t local_fc;    // our limits (what we advertise to peer)
   YAWT_Q_FlowControl_t peer_fc;     // peer's limits (what we respect when sending)
   bool data_blocked;              /* edge-trigger: connection-level DATA_BLOCKED sent */
@@ -56,7 +56,7 @@ struct YAWT_Q_Connection_t {
 /**
  * @internal
  * @ingroup QUIC_Internal
- * @brief Stream metadata — one per open stream, stored in the con->stream_meta slab.
+ * @brief Stream metadata — one per open stream, stored in the con->stream_userdata slab.
  * @note Tracks reassembly + flow-control position so EVT_STREAM can be delivered gap-free.
  *       RFC 9000 §3.1/3.2: TX and RX are independent state machines.
  *       If the metadata exists, both directions are active by default.
@@ -71,4 +71,17 @@ typedef struct {
   YAWT_Q_StreamStats_t stats;
   uint8_t state;  // bitwise OR of YAWT_Q_StreamState_t flags
 } YAWT_Q_StreamMeta_t;
+
+/**
+ * @internal
+ * @ingroup QUIC_Internal
+ * @brief Per-stream user data container — one per open stream, stored in the con->stream_userdata slab.
+ * @note Each protocol layer (QUIC, H3, WT, APP) mallocs its per-stream metadata and stores it in user_data[slot].
+ *       The QUIC layer mallocs YAWT_Q_StreamMeta_t and stores it in user_data[YAWT_UD_QUIC].
+ *       Upper layers malloc their own structs and store in their respective slots.
+ */
+struct YAWT_Q_StreamUserData_t {
+  uint64_t stream_id;
+  void *user_data[YAWT_UD_COUNT];
+};
 

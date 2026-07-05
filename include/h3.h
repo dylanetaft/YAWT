@@ -31,7 +31,7 @@
  * @brief Parse the next H3 frame header from a QUIC stream chunk.
  * @param h3con The H3 connection.
  * @param chunk The QUIC stream frame carrying the bytes.
- * @param out_stream Output: resolved stream metadata (set on YAWT_H3_OK).
+ * @param stream The stream to update (type resolved on first call, then frame state).
  * @param cursor In/out: position in chunk->data. Advanced as bytes are consumed.
  * @return YAWT_H3_OK if frame header parsed (type+length decoded, blob allocated if needed).
  *         YAWT_H3_ERR_INCOMPLETE if more data needed.
@@ -39,11 +39,13 @@
  *         Error codes for malformed data or policy violations.
  * @note This is the single gatekeeper: handles stream type resolution, frame header parsing,
  *       buffering decisions (SETTINGS/HEADERS get blobs), and security policy checks.
+ *       Blobs are lazy-allocated and cleared (not destroyed) between frames to avoid
+ *       malloc/free churn on the hot path.
  */
-YAWT_H3_Error_t YAWT_h3_parse_frame(YAWT_H3_Connection_t *h3con,
-                                    const YAWT_Q_Frame_Stream_t *chunk,
-                                    YAWT_H3_Stream_t **out_stream,
-                                    size_t *cursor);
+YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
+                                      const YAWT_Q_Frame_Stream_t *chunk,
+                                      YAWT_H3_Stream_t *stream,
+                                      size_t *cursor);
 
 /**
  * @internal
@@ -79,7 +81,7 @@ size_t YAWT_h3_frame_header_size(size_t payload_len);
  *       stream events. Ignores TX (the app's concern). Connection state is stored in the
  *       QUIC connection's YAWT_UD_H3 user_data slot.
  */
-YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Connection_t *con, YAWT_Q_EventType_t event,
+YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event,
                                    YAWT_Q_EventParam_t param);
 
 /**
@@ -150,7 +152,7 @@ bool YAWT_h3_setting_isset(const YAWT_H3_Settings_t *s, YAWT_H3_SettingIdx_t idx
  * @note The handler receives H3-level events (HEADERS decoded, DATA chunks, SETTINGS, errors).
  *       Passing NULL clears any previously installed handler.
  */
-void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
+void YAWT_h3_set_event_handler(YAWT_H3_Context_t *con,
                                 YAWT_H3_EventHandler_t handler);
 
 /**
@@ -159,7 +161,16 @@ void YAWT_h3_set_event_handler(YAWT_H3_Connection_t *con,
  * @param con The H3 connection.
  * @return Pointer to the underlying QUIC connection.
  */
-YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con);
+YAWT_Q_Context_t *YAWT_h3_get_qcon(const YAWT_H3_Context_t *con);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Returns the H3 stream type (e.g. YAWT_H3_STREAM_WT_CONNECT) for a given
+ *        stream ID, or YAWT_H3_STREAM_UNASSIGNED if the stream is unknown.
+ * @note Used by the application to identify the kind of stream DATA events
+ *       belong to, so that capsules can be dispatched to the WT layer.
+ */
+uint64_t YAWT_h3_stream_get_type(YAWT_H3_Context_t *con, uint64_t stream_id);
 
 /**
  * @ingroup H3_Connection
@@ -169,7 +180,7 @@ YAWT_Q_Connection_t *YAWT_h3_get_qcon(const YAWT_H3_Connection_t *con);
  * @note Must be called after the QUIC connection is established (typically from
  *       the EVT_CONNECTED handler). No-op if already opened.
  */
-YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3);
+YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Context_t *h3);
 
 /**
  * @ingroup H3_Connection
@@ -180,7 +191,7 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Connection_t *h3);
  *       Must be called after YAWT_h3_send_settings(). These are critical streams;
  *       closing them is a connection error (RFC 9204 §4.2).
  */
-YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3);
+YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Context_t *h3);
 
 /**
  * @ingroup H3_Connection
@@ -191,7 +202,7 @@ YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Connection_t *h3);
  * @return YAWT_H3_OK on success, YAWT_H3_ERR_INVALID_PARAM if already registered (duplicate).
  * @note Detects duplicate critical streams per RFC 9114 §6.2.1 and RFC 9204 §4.2.
  */
-YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Context_t *h3,
                                          YAWT_H3_Unique_Stream_Type_t type,
                                          uint64_t stream_id);
 
@@ -204,7 +215,7 @@ YAWT_H3_Error_t YAWT_h3_core_stream_set(YAWT_H3_Connection_t *h3,
  * @param fin If true, the QUIC stream is closed after this frame (no DATA follows).
  * @return YAWT_H3_OK on success, or an error code.
  */
-YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Context_t *h3,
                                        uint64_t stream_id,
                                        const YAWT_H3_HeaderFields_t *headers,
                                        int fin);
@@ -219,7 +230,50 @@ YAWT_H3_Error_t YAWT_h3_send_headers(YAWT_H3_Connection_t *h3,
  * @param fin If true, the QUIC stream is closed after this frame.
  * @return YAWT_H3_OK on success, or an error code.
  */
-YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Connection_t *h3,
+YAWT_H3_Error_t YAWT_h3_send_data(YAWT_H3_Context_t *h3,
                                     uint64_t stream_id,
                                     const uint8_t *data, size_t data_len,
                                     int fin);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Upgrade a request bidi stream to WebTransport (WT) mode.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to upgrade.
+ * @param scheme The URI scheme (e.g., "https").
+ * @param authority The authority (host:port).
+ * @param path The request path.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Client-side only: sends a CONNECT request with :method=CONNECT, :protocol=webtransport-h3.
+ *       After calling this, the stream enters WT_CONNECT_PENDING state until the server responds.
+ *       On 2xx response, stream transitions to WT_CONNECT. On non-2xx, reverts to FRAME.
+ *       HEADERS/DATA frames will cease to be interpreted as HTTP/3 once upgraded.
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3, uint64_t stream_id,
+                                          const char *scheme, const char *authority, const char *path);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Deny a request bidi stream from being upgraded to WebTransport (WT) mode.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to deny.
+ * @param status_code The HTTP status code to send (e.g., 403, 404, 503).
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Server-side only: sends a non-2xx response to reject the CONNECT request.
+ *       HEADERS/DATA frames will continue to be interpreted as HTTP/3.
+ *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Context_t *h3, uint64_t stream_id, uint16_t status_code);
+
+/**
+ * @ingroup H3_Connection
+ * @brief Accept a pending WebTransport (WT) CONNECT stream.
+ * @param h3 The H3 connection.
+ * @param stream_id The target bidi stream ID to accept.
+ * @return YAWT_H3_OK on success, or an error code.
+ * @note Server-side only: sends a 200 response to accept the CONNECT request.
+ *       Stream must be in WT_CONNECT_PENDING state (set by H3 layer on receiving CONNECT).
+ *       After calling this, stream transitions to WT_CONNECT and capsules can be exchanged.
+ *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ */
+YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_id);

@@ -2,6 +2,7 @@
 #include "quic.h"
 #include "quic_connection.h"
 #include "crypt.h"
+#include "corpus.h"
 #include "impl/quic_types.h"
 
 static uint8_t _encode_buf[YAWT_Q_MAX_PKT_SIZE];
@@ -476,6 +477,9 @@ static int _encode_pkt_1rtt(YAWT_Q_Packet_t *pkt, size_t *written) {
 
 void YAWT_q_parse_frame(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_Type_t pkt_type,
                          YAWT_Q_Frame_t *out) {
+  YAWT_corpus_emit(2,
+      rc->data + rc->cursor, rc->len - rc->cursor,
+      &pkt_type, sizeof(YAWT_Q_Packet_Type_t));
   memset(out, 0, sizeof(*out));
   out->pkt_type = pkt_type;
   if (rc->err != YAWT_Q_OK || rc->cursor >= rc->len) return;
@@ -736,7 +740,7 @@ YAWT_Err_t YAWT_q_encode_frame_stream(const YAWT_Q_IoVec_t *iov, int iov_count,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Context_t *con, uint8_t level,
                                              const YAWT_Q_Frame_Crypto_t *frame) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
@@ -774,7 +778,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_crypto(YAWT_Q_Connection_t *con, uint8_t level,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uint64_t largest_ack) {
+YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Context_t *con, uint8_t level, uint64_t largest_ack) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -810,7 +814,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Connection_t *con, uint8_t level, uin
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Context_t *con,
                                              const YAWT_Q_Frame_BufferedStream_t *frame) {
   ANB_Slab_t *queue = con->tx_buffer;
   const YAWT_Q_Frame_Stream_t *f_in = &frame->frame;
@@ -862,7 +866,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stream(YAWT_Q_Connection_t *con,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con) {
+YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Context_t *con) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -876,7 +880,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_ping(YAWT_Q_Connection_t *con) {
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8_t level,
+YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Context_t *con, uint8_t level,
                                                       uint64_t error_code, uint64_t frame_type) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
@@ -910,7 +914,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_connection_close(YAWT_Q_Connection_t *con, uint8
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const uint8_t *data) {
+YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Context_t *con, const uint8_t *data) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -926,7 +930,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_path_response(YAWT_Q_Connection_t *con, const ui
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Context_t *con,
                                                const uint8_t *data, size_t data_len) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
@@ -963,7 +967,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_datagram(YAWT_Q_Connection_t *con,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con) {
+YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Context_t *con) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -977,7 +981,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_handshake_done(YAWT_Q_Connection_t *con) {
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Context_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code,
                                                    uint64_t final_size) {
@@ -1013,7 +1017,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_reset_stream(YAWT_Q_Connection_t *con,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Context_t *con,
                                                    uint64_t stream_id,
                                                    uint64_t app_error_code) {
   ANB_Slab_t *queue = con->tx_buffer;
@@ -1044,7 +1048,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stop_sending(YAWT_Q_Connection_t *con,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t max_data) {
+YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Context_t *con, uint64_t max_data) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -1068,7 +1072,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_data_blocked(YAWT_Q_Connection_t *con, uint64_t 
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_data) {
+YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Context_t *con, uint64_t max_data) {
   ANB_Slab_t *queue = con->tx_buffer;
   YAWT_Q_WireFrame_t f;
   memset(&f, 0, sizeof(f));
@@ -1092,7 +1096,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_max_data(YAWT_Q_Connection_t *con, uint64_t max_
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Context_t *con,
                                                            uint64_t stream_id,
                                                            uint64_t max_stream_data) {
   ANB_Slab_t *queue = con->tx_buffer;
@@ -1122,7 +1126,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_stream_data_blocked(YAWT_Q_Connection_t *con,
   return YAWT_Q_OK;
 }
 
-YAWT_Err_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Connection_t *con,
+YAWT_Err_t YAWT_q_enqueue_frame_max_stream_data(YAWT_Q_Context_t *con,
                                                        uint64_t stream_id,
                                                        uint64_t max_stream_data) {
   ANB_Slab_t *queue = con->tx_buffer;
@@ -1193,6 +1197,8 @@ int YAWT_q_encode_packet(YAWT_Q_Packet_t *pkt,
 }
 
 void YAWT_q_parse_packet(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *out) {
+  YAWT_corpus_emit(1,
+      rc->data + rc->cursor, rc->len - rc->cursor);
   memset(out, 0, sizeof(*out));
 
   if (rc->cursor >= rc->len) {

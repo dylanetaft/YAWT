@@ -1,6 +1,6 @@
 #include "capsule.h"
 #include "quic.h"
-#include "security.h"
+#include "corpus.h"
 #include "logger.h"
 #include <stdlib.h>
 #include <string.h>
@@ -26,9 +26,6 @@ bool YAWT_capsule_should_buffer(uint64_t type) {
 
 void YAWT_capsule_parser_reset(YAWT_Capsule_Parser_t *p) {
   if (!p) return;
-  if (p->payload_blob) {
-    ANB_blob_destroy(p->payload_blob);
-  }
   memset(p, 0, sizeof(*p));
 }
 
@@ -67,15 +64,20 @@ size_t YAWT_capsule_encode(uint64_t type, const uint8_t *value, size_t value_len
   return hdr_size + value_len;
 }
 
-int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p,
-                             const uint8_t *data, size_t len,
-                             YAWT_Capsule_Callback_t cb, void *cb_ctx) {
-  if (!p || !data || !cb) return -1;
+int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p, const uint8_t *data, size_t len) {
+  if (!p || !data) return YAWT_CAPSULE_ERROR;
+  YAWT_corpus_emit(2,
+      p,    sizeof(*p),
+      data, len);
 
+  if (p->capsule_complete) {
+    memset(p, 0, sizeof(*p));
+  }
+
+  p->capsule_complete = false;
   size_t cursor = 0;
 
   while (cursor < len) {
-    // Header phase: accumulate bytes until Type + Length varints are decoded
     if (p->hdr_size == 0) {
       size_t remaining = len - cursor;
       size_t take = remaining;
@@ -93,7 +95,7 @@ int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p,
       if (rc.err != YAWT_Q_OK) {
         if (p->accumulated == sizeof(p->hdr)) {
           YAWT_LOG(YAWT_LOG_ERROR, "capsule: header exceeds max size");
-          return -1;
+          return YAWT_CAPSULE_ERROR;
         }
         cursor += take;
         continue;
@@ -103,7 +105,7 @@ int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p,
       if (rc.err != YAWT_Q_OK) {
         if (p->accumulated == sizeof(p->hdr)) {
           YAWT_LOG(YAWT_LOG_ERROR, "capsule: header exceeds max size");
-          return -1;
+          return YAWT_CAPSULE_ERROR;
         }
         cursor += take;
         continue;
@@ -113,71 +115,50 @@ int YAWT_capsule_parse_feed(YAWT_Capsule_Parser_t *p,
       cursor += (size_t)rc.cursor - p->accumulated;
       p->accumulated = 0;
 
-      // Decide buffering strategy based on capsule type
       p->stream_payload = !YAWT_capsule_should_buffer(p->type);
 
       YAWT_LOG(YAWT_LOG_DEBUG, "capsule: decoded header type=0x%lx len=%lu stream=%d",
                p->type, p->payload_len, p->stream_payload);
 
-      if (!p->stream_payload && p->payload_len > 0) {
-        const YAWT_H3_SecurityPolicy_t *sec = YAWT_h3_security_get();
-        if (sec->max_capsule_buffer_bytes &&
-            p->payload_len > sec->max_capsule_buffer_bytes) {
-          YAWT_LOG(YAWT_LOG_ERROR,
-                   "capsule: payload %lu exceeds buffer cap %lu, type=0x%lx",
-                   p->payload_len, sec->max_capsule_buffer_bytes, p->type);
-          return -1;
-        }
-        p->payload_blob = ANB_blob_create(p->payload_len);
-        if (!p->payload_blob) {
-          YAWT_LOG(YAWT_LOG_ERROR, "capsule: OOM buffering %lu-byte payload", p->payload_len);
-          return -1;
-        }
+      if (!p->stream_payload && p->payload_len > YAWT_CAPSULE_BUFFER_SIZE) {
+        YAWT_LOG(YAWT_LOG_ERROR,
+                 "capsule: payload %lu exceeds buffer size %d, type=0x%lx",
+                 p->payload_len, YAWT_CAPSULE_BUFFER_SIZE, p->type);
+        return YAWT_CAPSULE_ERROR;
       }
     }
 
-    // Payload phase
     uint64_t need = p->payload_len - p->accumulated;
     size_t avail = len - cursor;
     size_t n = (need < avail) ? (size_t)need : avail;
 
-    if (p->payload_blob) {
-      // Buffered capsule: copy into malloc'd buffer
-      ANB_blob_push(p->payload_blob, data + cursor, n);
-      p->accumulated += n;
-      cursor += n;
-    } else if (p->stream_payload && p->payload_len > 0) {
-      // Streamed capsule (DATAGRAM): deliver chunks directly to callback
-      cb(cb_ctx, p->type, data + cursor, n);
-      p->accumulated += n;
-      cursor += n;
-    } else {
-      // Unknown type being skipped, or zero-length payload
-      p->accumulated += n;
-      cursor += n;
+    if (!p->stream_payload && p->payload_len > 0) {
+      memcpy(p->payload_buf + p->accumulated, data + cursor, n);
     }
+    p->accumulated += n;
+    cursor += n;
 
-    // Check if capsule is complete
     if (p->accumulated >= p->payload_len) {
       YAWT_LOG(YAWT_LOG_DEBUG, "capsule: complete type=0x%lx len=%lu",
                p->type, p->payload_len);
 
-      // Deliver buffered capsule to callback
-      if (p->payload_blob) {
-        cb(cb_ctx, p->type, ANB_blob_data(p->payload_blob), ANB_blob_data_len(p->payload_blob));
-      } else if (p->payload_len == 0 && !p->stream_payload) {
-        // Zero-length buffered capsule (e.g., DRAIN_SESSION)
-        cb(cb_ctx, p->type, NULL, 0);
-      }
-      // Streamed capsules already delivered during payload phase
+      p->current_len = (size_t)p->payload_len;
+      p->capsule_complete = true;
 
-      // Reset for next capsule
-      if (p->payload_blob) {
-        ANB_blob_destroy(p->payload_blob);
-      }
-      memset(p, 0, sizeof(*p));
+      return YAWT_CAPSULE_OK;
     }
   }
 
-  return 0;
+  return YAWT_CAPSULE_INCOMPLETE;
+}
+
+int YAWT_capsule_get_current(YAWT_Capsule_Parser_t *p, uint64_t *type,
+                              const uint8_t **value, size_t *value_len) {
+  if (!p || !type || !value || !value_len) return YAWT_CAPSULE_ERROR;
+  if (!p->capsule_complete) return YAWT_CAPSULE_ERROR;
+
+  *type = p->type;
+  *value = p->payload_buf;
+  *value_len = p->current_len;
+  return YAWT_CAPSULE_OK;
 }

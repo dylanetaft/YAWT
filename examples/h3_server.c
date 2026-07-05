@@ -19,38 +19,75 @@ static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
 
-// Convert sockaddr_in to YAWT_Q_PeerAddr_t (IPv4-mapped IPv6)
-static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
+
+static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_storage *ss) {
   YAWT_Q_PeerAddr_t pa;
   memset(&pa, 0, sizeof(pa));
-  // ::ffff:x.x.x.x
-  pa.addr[10] = 0xff;
-  pa.addr[11] = 0xff;
-  memcpy(&pa.addr[12], &sa->sin_addr.s_addr, 4);
-  pa.port = sa->sin_port;
+  if (ss->ss_family == AF_INET) {
+    const struct sockaddr_in *sa = (const struct sockaddr_in *)ss;
+    pa.addr[10] = 0xff;
+    pa.addr[11] = 0xff;
+    memcpy(&pa.addr[12], &sa->sin_addr.s_addr, 4);
+    pa.port = sa->sin_port;
+  } else {
+    const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)ss;
+    memcpy(pa.addr, &sa6->sin6_addr, 16);
+    pa.port = sa6->sin6_port;
+  }
   return pa;
 }
 
-// Reconstruct sockaddr_in from YAWT_Q_PeerAddr_t
-static struct sockaddr_in _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa) {
-  struct sockaddr_in sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sin_family = AF_INET;
-  sa.sin_port = pa->port;
-  memcpy(&sa.sin_addr.s_addr, &pa->addr[12], 4);
-  return sa;
+static int _is_ipv4_mapped(const YAWT_Q_PeerAddr_t *pa) {
+  for (int i = 0; i < 10; i++) {
+    if (pa->addr[i] != 0) return 0;
+  }
+  return pa->addr[10] == 0xff && pa->addr[11] == 0xff;
 }
 
+
+static socklen_t _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa,
+                                    struct sockaddr_storage *ss) {
+  memset(ss, 0, sizeof(*ss));
+  if (_is_ipv4_mapped(pa)) {
+    struct sockaddr_in *sa = (struct sockaddr_in *)ss;
+    sa->sin_family = AF_INET;
+    sa->sin_port = pa->port;
+    memcpy(&sa->sin_addr.s_addr, &pa->addr[12], 4);
+    return sizeof(*sa);
+  } else {
+    struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)ss;
+    sa6->sin6_family = AF_INET6;
+    sa6->sin6_port = pa->port;
+    memcpy(&sa6->sin6_addr, pa->addr, 16);
+    return sizeof(*sa6);
+  }
+}
 static void udp_send(const uint8_t *buf, size_t len,
                        const YAWT_Q_PeerAddr_t *peer_addr) {
-  struct sockaddr_in sa = _peer_to_sockaddr(peer_addr);
+  struct sockaddr_storage ss;
+  socklen_t ss_len = _peer_to_sockaddr(peer_addr, &ss);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
-                         (struct sockaddr *)&sa, sizeof(sa));
+                         (struct sockaddr *)&ss, ss_len);
+  if (nsent < 0) {
+    perror("sendto");
+    return;
+  }
+  char addr_str[INET6_ADDRSTRLEN];
+  uint16_t port;
+  if (ss.ss_family == AF_INET) {
+    struct sockaddr_in *sa = (struct sockaddr_in *)&ss;
+    inet_ntop(AF_INET, &sa->sin_addr, addr_str, sizeof(addr_str));
+    port = ntohs(sa->sin_port);
+  } else {
+    struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)&ss;
+    inet_ntop(AF_INET6, &sa6->sin6_addr, addr_str, sizeof(addr_str));
+    port = ntohs(sa6->sin6_port);
+  }
   YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes to %s:%d\n",
-           nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
+           nsent, addr_str, port);
 }
 
-static void h3_app_handler(YAWT_H3_Connection_t *h3con,
+static void h3_app_handler(YAWT_H3_Context_t *h3con,
                              YAWT_H3_EventType_t event,
                              YAWT_H3_EventParam_t param) {
   switch (event) {
@@ -87,15 +124,18 @@ static void h3_app_handler(YAWT_H3_Connection_t *h3con,
       YAWT_LOG(YAWT_LOG_INFO, "h3 app: CLOSE (code=%lu, reason=%s)",
                param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       break;
-    case YAWT_H3_EVT_WT_UNI_STREAM:
+    // case YAWT_H3_EVT_WT_UNI_STREAM:
     case YAWT_H3_EVT_DATAGRAM:
+      break;
+    default:
+      YAWT_LOG(YAWT_LOG_INFO, "h3 app: unhandled event %d", event);
       break;
   }
 }
 
 // App's single event handler: owns transport glue (TX -> UDP write) and forwards
 // the application-facing events to the H3 layer.
-static void on_event(YAWT_Q_Connection_t *con,
+static void on_event(YAWT_Q_Context_t *con,
                        YAWT_Q_EventType_t event,
                        YAWT_Q_EventParam_t param) {
   switch (event) {
@@ -106,7 +146,7 @@ static void on_event(YAWT_Q_Connection_t *con,
     default: {
       YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
       if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
-        YAWT_H3_Connection_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+        YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
         if (h3) {
           YAWT_h3_set_event_handler(h3, h3_app_handler);
         }
@@ -125,7 +165,7 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
   (void)w;
   (void)revents;
 
-  struct sockaddr_in from_addr;
+  struct sockaddr_storage from_addr;
   socklen_t from_len = sizeof(from_addr);
   ssize_t nread = recvfrom(sockfd, recv_buf, sizeof(recv_buf), 0,
                            (struct sockaddr *)&from_addr, &from_len);
@@ -134,8 +174,18 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
     return;
   }
 
-  printf("recv %zd bytes from %s:%d\n",
-         nread, inet_ntoa(from_addr.sin_addr), ntohs(from_addr.sin_port));
+  char addr_str[INET6_ADDRSTRLEN];
+  uint16_t port;
+  if (from_addr.ss_family == AF_INET) {
+    struct sockaddr_in *sa = (struct sockaddr_in *)&from_addr;
+    inet_ntop(AF_INET, &sa->sin_addr, addr_str, sizeof(addr_str));
+    port = ntohs(sa->sin_port);
+  } else {
+    struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)&from_addr;
+    inet_ntop(AF_INET6, &sa6->sin6_addr, addr_str, sizeof(addr_str));
+    port = ntohs(sa6->sin6_port);
+  }
+  printf("recv %zd bytes from %s:%d\n", nread, addr_str, port);
 
   YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
   double now = ev_now(loop);
@@ -171,26 +221,40 @@ int main(int argc, char *argv[]) {
 
   server_cred = YAWT_q_crypto_cred_new(cert_file, key_file, NULL);
   if (!server_cred) {
-    fprintf(stderr, "failed to load cert %s / key %s\n", cert_file, key_file);
+    YAWT_LOG(YAWT_LOG_ERROR, "failed to load cert %s / key %s", cert_file, key_file);
     return 1;
+  }
+
+  if (YAWT_q_crypto_cert_validate(server_cred, "localhost") != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "certificate validation failed");
   }
 
   YAWT_q_con_set_event_handler(on_event);
 
   YAWT_LOG(YAWT_LOG_INFO, "Starting QUIC server...");
-  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+
+
+  sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
     perror("socket");
     return 1;
   }
 
   int reuse = 1;
-  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    perror("setsockopt SO_REUSEADDR");
+  }
 
-  struct sockaddr_in bind_addr = {
-    .sin_family = AF_INET,
-    .sin_port = htons(port),
-    .sin_addr.s_addr = INADDR_ANY,
+  int v6only = 0;
+  if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only)) < 0) {
+    perror("setsockopt IPV6_V6ONLY");
+  }
+
+  struct sockaddr_in6 bind_addr = {
+    .sin6_family = AF_INET6,
+    .sin6_port = htons(port),
+    .sin6_addr = in6addr_any,
   };
 
   if (bind(sockfd, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) < 0) {
@@ -199,7 +263,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  printf("listening on udp :%d\n", port);
+  printf("listening on udp [::]:%d\n", port);
 
   struct ev_loop *loop = ev_default_loop(0);
   ev_io udp_watcher;

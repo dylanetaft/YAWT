@@ -120,6 +120,8 @@ typedef struct {
   uint64_t initial_max_data;           /**< SETTINGS_WT_INITIAL_MAX_DATA (0x2b61):
                                         *    per-session data limit (bytes).
                                         *    0 = must use WT_MAX_DATA capsules. */
+
+  bool wt_enabled;                     /**< SETTINGS_WT_ENABLED (0x2c7cf000): */
 } YAWT_WT_SecurityPolicy_t;
 
 /**

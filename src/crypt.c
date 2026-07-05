@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include <gnutls/crypto.h>
+#include <gnutls/x509.h>
 #include "logger.h"
 
 
@@ -212,6 +214,56 @@ static int _on_alert(gnutls_session_t session,
   return 0;
 }
 
+static void _cert_sanity_check(gnutls_certificate_credentials_t cred) {
+  gnutls_x509_crt_t *crt_list = NULL;
+  unsigned int n = 0;
+  int ret = gnutls_certificate_get_x509_crt(cred, 0, &crt_list, &n);
+  if (ret < 0 || n == 0) {
+    YAWT_LOG(YAWT_LOG_WARN, "could not extract certificate for validation");
+    return;
+  }
+
+  gnutls_x509_crt_t crt = crt_list[0];
+
+  unsigned int pk_bits = 0;
+  int pk_algo = gnutls_x509_crt_get_pk_algorithm(crt, &pk_bits);
+  const char *pk_name = gnutls_pk_algorithm_get_name(pk_algo);
+  YAWT_LOG(YAWT_LOG_INFO, "certificate: %s %u-bit key", pk_name ? pk_name : "unknown", pk_bits);
+
+  time_t now = time(NULL);
+  time_t activation = gnutls_x509_crt_get_activation_time(crt);
+  time_t expiration = gnutls_x509_crt_get_expiration_time(crt);
+
+  if (now < activation) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate not yet valid (activates %ld)", (long)activation);
+  }
+  if (now > expiration) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate expired (expired %ld)", (long)expiration);
+  }
+
+  int has_san = 0;
+  for (unsigned int i = 0; ; i++) {
+    char san_buf[256];
+    size_t san_len = sizeof(san_buf);
+    unsigned int san_type;
+    ret = gnutls_x509_crt_get_subject_alt_name2(crt, i, san_buf, &san_len, &san_type, NULL);
+    if (ret < 0) break;
+    has_san = 1;
+    if (san_type == GNUTLS_SAN_DNSNAME) {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate SAN: DNS:%s", san_buf);
+    } else if (san_type == GNUTLS_SAN_IPADDRESS) {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate SAN: IP:%s", san_buf);
+    }
+  }
+
+  if (!has_san) {
+    YAWT_LOG(YAWT_LOG_WARN, "certificate has no Subject Alternative Name (SAN) - clients may reject");
+  }
+
+  gnutls_x509_crt_deinit(crt);
+  free(crt_list);
+}
+
 YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                                const char *key_file,
                                                const char *ca_file) {
@@ -229,6 +281,7 @@ YAWT_Q_Crypto_Cred_t *YAWT_q_crypto_cred_new(const char *cert_file,
                                                 cert_file, key_file,
                                                 GNUTLS_X509_FMT_PEM);
     if (ret < 0) goto fail;
+    _cert_sanity_check(cred->cred);
   }
 
   if (ca_file) {
@@ -254,6 +307,62 @@ void YAWT_q_crypto_cred_free(YAWT_Q_Crypto_Cred_t **cred) {
   gnutls_certificate_free_credentials((*cred)->cred);
   free(*cred);
   *cred = NULL;
+}
+
+YAWT_Err_t YAWT_q_crypto_cert_validate(YAWT_Q_Crypto_Cred_t *cred, const char *hostname) {
+  if (!cred || !cred->cred) return YAWT_Q_ERR_INVALID_PARAM;
+
+  gnutls_x509_crt_t *crt_list = NULL;
+  unsigned int n = 0;
+  int ret = gnutls_certificate_get_x509_crt(cred->cred, 0, &crt_list, &n);
+  if (ret < 0 || n == 0) {
+    YAWT_LOG(YAWT_LOG_ERROR, "could not extract certificate for validation");
+    return YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  gnutls_x509_crt_t crt = crt_list[0];
+  YAWT_Err_t result = YAWT_Q_OK;
+
+  time_t now = time(NULL);
+  time_t activation = gnutls_x509_crt_get_activation_time(crt);
+  time_t expiration = gnutls_x509_crt_get_expiration_time(crt);
+
+  if (now < activation) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate not yet valid");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+  if (now > expiration) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate expired");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  int has_san = 0;
+  for (unsigned int i = 0; ; i++) {
+    char san_buf[256];
+    size_t san_len = sizeof(san_buf);
+    unsigned int san_type;
+    ret = gnutls_x509_crt_get_subject_alt_name2(crt, i, san_buf, &san_len, &san_type, NULL);
+    if (ret < 0) break;
+    has_san = 1;
+  }
+
+  if (!has_san) {
+    YAWT_LOG(YAWT_LOG_ERROR, "certificate has no Subject Alternative Name (SAN)");
+    result = YAWT_Q_ERR_CERT_INVALID;
+  }
+
+  if (hostname && hostname[0]) {
+    if (!gnutls_x509_crt_check_hostname(crt, hostname)) {
+      YAWT_LOG(YAWT_LOG_ERROR, "certificate does not match hostname '%s'", hostname);
+      result = YAWT_Q_ERR_CERT_INVALID;
+    } else {
+      YAWT_LOG(YAWT_LOG_INFO, "certificate matches hostname '%s'", hostname);
+    }
+  }
+
+  gnutls_x509_crt_deinit(crt);
+  free(crt_list);
+  return result;
 }
 
 // QUIC transport parameters extension (RFC 9000 §18, extension type 0x0039)
@@ -359,6 +468,7 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
     { 0x08, lfc->max_streams_bidi },
     { 0x09, lfc->max_streams_uni },
     { 0x0e, 2 }, // active_connection_id_limit (RFC 9000 §18.2: MUST be >= 2)
+    { 0x20, lfc->max_datagram_frame_size },
   };
   for (size_t i = 0; i < sizeof(fc_params) / sizeof(fc_params[0]); i++) {
     uint8_t vbuf[8];
@@ -377,11 +487,12 @@ static int _tp_send(gnutls_session_t session, gnutls_buffer_t extdata) {
 
   // draft-ietf-webtrans-http3 §3.1: both sides send empty reset_stream_at (0x17f7586d2cb571)
   // if WebTransport is enabled. (draft-ietf-quic-reliable-stream-reset §3)
-  const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
-  if (wt_pol->max_sessions > 0) {
-    ret = _tp_append(extdata, 0x17f7586d2cb571, NULL, 0);
-    if (ret < 0) return ret;
-  }
+  // Disabled for now - Firefox/neqo may not support this TP yet
+  // const YAWT_WT_SecurityPolicy_t *wt_pol = YAWT_wt_security_get();
+  // if (wt_pol->max_sessions > 0) {
+  //   ret = _tp_append(extdata, 0x17f7586d2cb571, NULL, 0);
+  //   if (ret < 0) return ret;
+  // }
 
   return 0;
 }
@@ -543,21 +654,46 @@ static int _crypto_handshake_write(YAWT_Q_Crypto_t *crypto,
   return 0;
 }
 
-// Drain buffered out-of-order CRYPTO frames that are now contiguous
+// Drain buffered out-of-order CRYPTO frames that are now contiguous.
+//
+// Fragments can be buffered in any order (peers may fragment and reorder the
+// ClientHello arbitrarily), so a single forward pass over the FIFO is not
+// enough: the fragment that becomes contiguous next may sit earlier in the
+// queue than where the iterator currently is. We keep re-scanning until a full
+// pass makes no progress. Popping while iterating is safe (deleted items are
+// skipped), so matched items are popped inline.
 static int _drain_crypto_buf(YAWT_Q_Crypto_t *crypto) {
-  ANB_SlabIter_t iter = {0};
-  size_t item_size;
-  uint8_t *item;
-  while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
-    YAWT_Q_Frame_t *buffered = (YAWT_Q_Frame_t *)item;
-    YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->pkt_type);
+  int progress = 1;
+  while (progress) {
+    progress = 0;
+    ANB_SlabIter_t iter = {0};
+    size_t item_size;
+    uint8_t *item;
+    while ((item = ANB_slab_peek_item_iter(crypto->rx_crypto_buf, &iter, &item_size)) != NULL) {
+      YAWT_Q_Frame_BufferedCrypto_t *buffered = (YAWT_Q_Frame_BufferedCrypto_t *)item;
+      YAWT_Q_Encryption_Level_t lvl = YAWT_q_pkt_type_to_level(buffered->frame.pkt_type);
 
-    if (buffered->crypto.offset == crypto->rx_crypto_next_offset[lvl]) {
-      int ret = _crypto_handshake_write(crypto, lvl,
-                                         buffered->crypto.data, buffered->crypto.len);
-      if (ret < 0) return ret;
-      crypto->rx_crypto_next_offset[lvl] += buffered->crypto.len;
-      ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+      uint64_t off = buffered->frame.crypto.offset;
+      uint64_t len = buffered->frame.crypto.len;
+      uint64_t end = off + len;
+
+      // Fully duplicate data already consumed — drop it.
+      if (end <= crypto->rx_crypto_next_offset[lvl]) {
+        ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+        progress = 1;
+        continue;
+      }
+
+      // Contiguous (possibly with an already-consumed prefix) — feed the tail.
+      if (off <= crypto->rx_crypto_next_offset[lvl]) {
+        uint64_t skip = crypto->rx_crypto_next_offset[lvl] - off;
+        int ret = _crypto_handshake_write(crypto, lvl,
+                                           buffered->data + skip, len - skip);
+        if (ret < 0) return ret;
+        crypto->rx_crypto_next_offset[lvl] = end;
+        ANB_slab_pop_item(crypto->rx_crypto_buf, &iter);
+        progress = 1;
+      }
     }
   }
   return 0;
@@ -567,7 +703,14 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
                                     const YAWT_Q_Frame_t *frame) {
   YAWT_Q_Encryption_Level_t level = YAWT_q_pkt_type_to_level(frame->pkt_type);
 
-  // Reject CRYPTO frames at levels that are no longer active
+  // A CRYPTO frame at a level whose keys are already retired (DONE) is a
+  // benign retransmission: the peer hasn't yet seen our ACK / key discard.
+  // RFC 9000 §12.4 — silently ignore rather than treat as a protocol error.
+  if (crypto->level_keys[level].state == YAWT_Q_KEY_STATE_DONE) {
+    YAWT_LOG(YAWT_LOG_DEBUG, "Ignoring CRYPTO frame at retired level %d", level);
+    return YAWT_Q_OK;
+  }
+  // Reject CRYPTO frames at levels that were never activated.
   if (crypto->level_keys[level].state != YAWT_Q_KEY_STATE_ACTIVE) {
     YAWT_LOG(YAWT_LOG_WARN, "Rejecting CRYPTO frame at level %d (state=%d)",
               level, crypto->level_keys[level].state);
@@ -580,10 +723,14 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   // Skip fully duplicate data
   if (end <= crypto->rx_crypto_next_offset[level]) return YAWT_Q_OK;
 
-  // In-order: feed directly to TLS
-  if (offset == crypto->rx_crypto_next_offset[level]) {
+  // In-order (possibly with a partially-duplicate prefix): feed the new tail
+  // directly to TLS. Peers may fragment/overlap CRYPTO ranges, so accept any
+  // frame whose start is at or before the next expected offset.
+  if (offset <= crypto->rx_crypto_next_offset[level]) {
+    uint64_t skip = crypto->rx_crypto_next_offset[level] - offset;
     int ret = _crypto_handshake_write(crypto, level,
-                                       frame->crypto.data, frame->crypto.len);
+                                       frame->crypto.data + skip,
+                                       frame->crypto.len - skip);
     if (ret < 0) {
       // Check if this was caused by a TLS alert
       if (crypto->last_tls_alert != 0) {
@@ -613,7 +760,31 @@ YAWT_Err_t YAWT_q_crypto_feed(YAWT_Q_Crypto_t *crypto,
   }
   YAWT_LOG(YAWT_LOG_DEBUG, "CRYPTO gap at level %d: expected %lu, got offset %lu — buffering",
             level, crypto->rx_crypto_next_offset[level], offset);
-  ANB_slab_push_item(crypto->rx_crypto_buf, (const uint8_t *)frame, sizeof(*frame));
+  
+  uint8_t *slot = ANB_slab_alloc_item(crypto->rx_crypto_buf, sizeof(YAWT_Q_Frame_BufferedCrypto_t));
+  if (!slot) {
+    YAWT_LOG(YAWT_LOG_ERROR, "Failed to allocate CRYPTO buffer");
+    return YAWT_Q_ERR_SHORT_BUFFER;
+  }
+  
+  YAWT_Q_Frame_BufferedCrypto_t *buf = (YAWT_Q_Frame_BufferedCrypto_t *)slot;
+  buf->frame = *frame;
+  memcpy(buf->data, frame->crypto.data, frame->crypto.len);
+  buf->frame.crypto.data = buf->data;
+
+  // The frame we just buffered may itself bridge a gap (or another buffered
+  // fragment might now be contiguous), so re-attempt the drain. Without this,
+  // a chain-completing fragment that arrives in an all-out-of-order packet
+  // would sit in the buffer forever because drain only runs after an in-order
+  // write.
+  int drain_ret = _drain_crypto_buf(crypto);
+  if (drain_ret < 0) {
+    if (crypto->last_tls_alert != 0) {
+      return YAWT_Q_ERR_TLS_ALERT;
+    }
+    return YAWT_Q_ERR_INVALID_PACKET;
+  }
+
   return YAWT_Q_OK;
 }
 

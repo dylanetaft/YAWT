@@ -9,6 +9,10 @@
 #include "../wt_types.h"
 #include "../quic_connection.h"
 #include "../h3_types.h"
+#include "../capsule.h"
+#include <allocnbuffer/blob.h>
+
+typedef struct YAWT_WT_Stream_t YAWT_WT_Stream_t;
 
 /**
  * @ingroup WebTransport
@@ -38,17 +42,35 @@ struct YAWT_WT_Session_t {
 
   bool     draining;           /**< WT_DRAIN_SESSION sent/received */
   bool     closed;             /**< Session terminated */
+  YAWT_Capsule_Parser_t capsule_parser; /**< Per-session capsule parser for CONNECT stream DATA */
+};
+
+/**
+ * @ingroup WebTransport
+ * @brief Per-stream WT state.
+ * @note Hung off the QUIC stream's YAWT_Q_StreamUserData_t[YAWT_UD_WT] slot.
+ *       Allocated by WT layer when it first sees a WT signal (0x41/0x54).
+ *       Buffers the session_id varint which may span multiple QUIC chunks.
+ */
+struct YAWT_WT_Stream_t {
+
+  YAWT_WT_WireStreamType_t type;    //undefined, bidi or uni (draft-15 §4.2/4.3) */
+  uint64_t session_id;              /**< QUIC stream ID */
+  YAWT_WT_Session_t *session;        /**< NULL until session_id is resolved to a slot */
+  bool hdr_complete; //session ID and type are determined
+  
+  // Session ID buffering (draft-15 §4.3)
+  ANB_Blob_t *hdr_buffer;
 };
 
 /**
  * @ingroup WebTransport
  * @brief Per-H3-connection WT manager.
- * @note Hung off the QUIC connection's YAWT_UD_WT slot. Allocated by the app
- *       after H3 SETTINGS confirm WT support, freed on connection close.
+ * @note Hung off the QUIC connection's YAWT_UD_WT slot. Allocated by WT layer
+ *       on EVT_CONNECTED, freed on EVT_CLOSE.
  */
 struct YAWT_WT_Context_t {
-  YAWT_Q_Connection_t *qcon;           /**< Back-reference to the QUIC layer */
-  YAWT_H3_Connection_t *h3con;         /**< Back-reference to the H3 layer */
+  YAWT_Q_Context_t *qcon;           /**< Back-reference to the QUIC layer */
   YAWT_WT_EventHandler_t app_handler;  /**< App-level event callback */
   uint64_t nsessions;                  /**< Slot pool size */
   YAWT_WT_Session_t *sessions;         /**< Preallocated slot pool, linear-scan by session_id */

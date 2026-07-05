@@ -23,6 +23,13 @@
 struct YAWT_Q_PeerAddr;
 typedef struct YAWT_Q_PeerAddr_t YAWT_Q_PeerAddr_t;
 
+/**
+ * @ingroup QUIC_Internal
+ * @brief Forward declaration for per-stream user data container.
+ * @note Full definition in impl/quic_types.h.
+ */
+typedef struct YAWT_Q_StreamUserData_t YAWT_Q_StreamUserData_t;
+
 #define YAWT_Q_MAX_PKT_SIZE 1350  /**< Maximum QUIC packet size */
 #define YAWT_Q_CID_LEN 20  /**< Maximum Connection ID length */
 
@@ -548,15 +555,29 @@ typedef struct {
 } YAWT_Q_Frame_t;
 
 /**
+ * @ingroup QUIC_FRAME_TYPES
+ * @brief A CRYPTO frame plus the storage its .frame.crypto.data points at.
+ * @note Used when a frame must outlive the input datagram (out-of-order RX buffering).
+ * bf->data is the OWNED inline copy. bf->frame.crypto.data is the borrowed pointer, set to
+ * point at bf->data when buffered.
+ */
+typedef struct YAWT_Q_Frame_BufferedCrypto_t {
+  YAWT_Q_Frame_t frame;  // full frame; access pkt_type via frame.pkt_type, crypto via frame.crypto
+  uint8_t data[YAWT_Q_MAX_PKT_SIZE];  // owned copy; frame.crypto.data points here when buffered
+} YAWT_Q_Frame_BufferedCrypto_t;
+
+/**
  * @ingroup QUIC
  * @brief User data slot identifiers for YAWT_q_con_{set,get}_user_data.
  * @note Each protocol layer uses its own slot to avoid collisions. The QUIC
  *       layer never dereferences any slot — storage is opaque void*.
+ *       Per-stream slots mirror this pattern in YAWT_Q_StreamUserData_t.
  */
 typedef enum {
-  YAWT_UD_APP = 0,  /**< Application-specific data */
-  YAWT_UD_H3  = 1,  /**< HTTP/3 connection (YAWT_H3_Connection_t*) */
-  YAWT_UD_WT  = 2,  /**< WebTransport context (YAWT_WT_Context_t*) */
+  YAWT_UD_APP  = 0,  /**< Application-specific data */
+  YAWT_UD_QUIC = 1,  /**< QUIC stream metadata (YAWT_Q_StreamMeta_t*, per-stream only) */
+  YAWT_UD_H3   = 2,  /**< HTTP/3 stream (YAWT_H3_Stream_t*, per-stream) or connection (YAWT_H3_Context_t*, per-connection) */
+  YAWT_UD_WT   = 3,  /**< WebTransport context (YAWT_WT_Context_t*) */
   YAWT_UD_COUNT     /**< Number of user data slots (array size sentinel) */
 } YAWT_Q_UserDataSlot_t;
 
@@ -678,6 +699,7 @@ typedef union {
 
   struct {
     const YAWT_Q_Frame_Stream_t *frame;
+    YAWT_Q_StreamUserData_t *stream_ud;
   } P_EVT_STREAM;
 
   struct {
@@ -700,14 +722,17 @@ typedef union {
     uint64_t stream_id;
     uint64_t app_error_code;
     uint64_t final_size;
+    YAWT_Q_StreamUserData_t *stream_ud;   // NULL if stream already freed
   } P_EVT_STREAM_RESET;
 
   struct {
     uint64_t stream_id;
     uint64_t app_error_code;
+    YAWT_Q_StreamUserData_t *stream_ud;
   } P_EVT_STREAM_STOP_SENDING;
 
   struct {
     const YAWT_Q_FlowControlInfo_t *info;
+    YAWT_Q_StreamUserData_t *stream_ud;   // NULL for connection-level FC events
   } P_EVT_FLOW_CONTROL;
 } YAWT_Q_EventParam_t;

@@ -15,17 +15,24 @@
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-static YAWT_H3_Connection_t *alloc_minimal_h3_conn(void) {
-    //we'll just reuse a static connection for simplicity, since we don't need to test multiple connections in parallel
-    static YAWT_H3_Connection_t h3 = {0};
-    h3.nstreams = 16;
-    h3.streams = realloc(h3.streams, sizeof(YAWT_H3_Stream_t) * h3.nstreams);
-    memset(h3.streams, 0, sizeof(YAWT_H3_Stream_t) * h3.nstreams);
-    h3.local_settings = realloc(h3.local_settings, sizeof(YAWT_H3_Settings_t));
-    memset(h3.local_settings, 0, sizeof(YAWT_H3_Settings_t));
-    memset(h3.core_stream_status, 0, sizeof(h3.core_stream_status));
+static YAWT_H3_Context_t *alloc_minimal_h3_conn(void) {
+    YAWT_H3_Context_t *h3 = calloc(1, sizeof(YAWT_H3_Context_t));
+    h3->local_settings = calloc(1, sizeof(YAWT_H3_Settings_t));
+    return h3;
+}
 
-    return &h3;
+static YAWT_Q_StreamUserData_t *test_create_stream_ud(uint64_t stream_id) {
+    YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)malloc(sizeof(YAWT_Q_StreamUserData_t));
+    memset(sud, 0, sizeof(*sud));
+    sud->stream_id = stream_id;
+    
+    YAWT_H3_Stream_t *h3_stream = (YAWT_H3_Stream_t *)malloc(sizeof(YAWT_H3_Stream_t));
+    memset(h3_stream, 0, sizeof(*h3_stream));
+    h3_stream->id = stream_id;
+    h3_stream->type = YAWT_H3_STREAM_UNASSIGNED;
+    sud->user_data[YAWT_UD_H3] = h3_stream;
+    
+    return sud;
 }
 
 
@@ -34,7 +41,7 @@ static YAWT_H3_Connection_t *alloc_minimal_h3_conn(void) {
 /* ------------------------------------------------------------------ */
 
 static void test_settings_frame_on_bidi_stream(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings = {0};
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE, 1000);
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 2000);
@@ -60,8 +67,10 @@ static void test_settings_frame_on_bidi_stream(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(stream_id);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+  TEST_ASSERT_NOT_NULL(stream);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_NOT_NULL(stream);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_FRAME, stream->type);
@@ -87,7 +96,7 @@ static void test_settings_frame_on_bidi_stream(void) {
 /* ------------------------------------------------------------------ */
 
 static void test_settings_out_of_order_chunks(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings_a = {0};
   YAWT_h3_setting_set(&settings_a, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 500);
   YAWT_H3_Settings_t settings_b = {0};
@@ -118,9 +127,10 @@ static void test_settings_out_of_order_chunks(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(4);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
 
@@ -136,7 +146,7 @@ YAWT_Q_ReadCursor_t dec = {0};
    TEST_ASSERT_EQUAL(1500, out_settings.vals[YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]);
    TEST_ASSERT_EQUAL(0, out_settings.vals[YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]);
 
-   h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+   h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
    TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
    dec.data = ANB_blob_data(stream->frame.payload_blob);
    dec.len = stream->frame.payload_len;
@@ -154,7 +164,7 @@ YAWT_Q_ReadCursor_t dec = {0};
 /* ------------------------------------------------------------------ */
 
 static void test_settings_frame_header_only(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
   size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, 0, frame_hdr);
@@ -172,8 +182,9 @@ static void test_settings_frame_header_only(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
-h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(stream_id);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
+h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
    TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
    TEST_ASSERT_NOT_NULL(stream);
    TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
@@ -222,13 +233,14 @@ static void test_single_chunk_multiple_frames(void) {
   err = YAWT_q_encode_frame_stream(iov_a,sizeof(iov_a)/sizeof(iov_a[0]),0,1000,stream_id,0,0,&bf, &out_iov_offset);
   TEST_ASSERT_EQUAL(YAWT_Q_OK, err);
   YAWT_H3_Error_t h3_err;
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(stream_id);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
   YAWT_H3_Settings_t out_settings_a = {0};
   cursor = 0;
   //parse combined frame
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor); 
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor); 
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_NOT_NULL(stream);
   YAWT_LOG(YAWT_LOG_INFO, "parsed len: %zu", stream->frame.payload_len);
@@ -244,7 +256,7 @@ static void test_single_chunk_multiple_frames(void) {
   TEST_ASSERT_EQUAL(200, out_settings_a.vals[YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY]);
   YAWT_H3_Settings_t out_settings_b = {0};
   //advances to the next frame with cursor
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor); 
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor); 
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   dec.data = ANB_blob_data(stream->frame.payload_blob);
   dec.len = stream->frame.payload_len;
@@ -262,7 +274,7 @@ static void test_single_chunk_multiple_frames(void) {
 /* ------------------------------------------------------------------ */
 
 static void test_frame_split_across_two_chunks(void) {
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
   YAWT_H3_Settings_t settings = {0};
   YAWT_h3_setting_set(&settings, YAWT_H3_IDX_QPACK_MAX_TABLE_CAPACITY, 777);
 
@@ -302,17 +314,18 @@ static void test_frame_split_across_two_chunks(void) {
   /* Parse chunk 1: frame header is complete but payload is truncated */
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(8);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
   cursor = 0;
-  h3_err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf1.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INCOMPLETE, h3_err);
   TEST_ASSERT_NOT_NULL(stream);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
 
   /* Parse chunk 2: completes the frame */
   cursor = 0;
-  h3_err = YAWT_h3_parse_frame(h3, &bf2.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf2.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(payload_len, stream->frame.payload_len);
   TEST_ASSERT_NOT_NULL(stream->frame.payload_blob);
@@ -335,7 +348,7 @@ static void test_frame_split_across_two_chunks(void) {
 
 static void test_incomplete_frame_state(void) {
   /* A truncated frame header should return INCOMPLETE, not parse a frame. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload[256];
   size_t payload_len = 0;
@@ -361,9 +374,10 @@ static void test_incomplete_frame_state(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(8);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INCOMPLETE, h3_err);
   TEST_ASSERT_NOT_NULL(stream);
 
@@ -379,7 +393,7 @@ static void test_data_frame_no_buffering(void) {
   /* DATA frames should not allocate a payload blob — they are passed through
    * directly. The frame type should be DATA and the payload should be available
    * from the chunk data itself. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t data[] = "Hello, HTTP/3!";
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
@@ -397,9 +411,10 @@ static void test_data_frame_no_buffering(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(12);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_DATA, stream->frame.type);
   TEST_ASSERT_EQUAL(sizeof(data) - 1, stream->frame.payload_len);
@@ -415,7 +430,7 @@ static void test_data_frame_fragmented_chunks(void) {
   /* A HEADERS frame split across multiple QUIC chunks should be correctly
     * reassembled. HEADERS frames require buffering since payload_len must
     * be known before allocating the blob. */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t data[] = "This is a fragmented HEADERS frame test payload";
    size_t data_len = sizeof(data) - 1;
@@ -456,18 +471,19 @@ static void test_data_frame_fragmented_chunks(void) {
 
    YAWT_H3_Error_t h3_err;
    size_t cursor = 0;
-   YAWT_H3_Stream_t *stream = NULL;
+   YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(0);
+   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
    /* First chunk: incomplete because payload is truncated */
    cursor = 0;
-   h3_err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
+   h3_err = YAWT_h3_parse_frame2(h3, &bf1.frame, stream, &cursor);
    TEST_ASSERT_EQUAL(YAWT_H3_ERR_INCOMPLETE, h3_err);
    TEST_ASSERT_NOT_NULL(stream);
    TEST_ASSERT_EQUAL(YAWT_H3_FRAME_HEADERS, stream->frame.type);
 
    /* Second chunk: completes the frame */
    cursor = 0;
-   h3_err = YAWT_h3_parse_frame(h3, &bf2.frame, &stream, &cursor);
+   h3_err = YAWT_h3_parse_frame2(h3, &bf2.frame, stream, &cursor);
    TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
    TEST_ASSERT_EQUAL(YAWT_H3_FRAME_HEADERS, stream->frame.type);
    TEST_ASSERT_EQUAL(data_len, stream->frame.payload_len);
@@ -482,7 +498,7 @@ static void test_data_frame_fragmented_chunks(void) {
 static void test_stream_type_bidi(void) {
   /* Bidirectional streams have no stream-type prefix and should resolve
    * immediately to STREAM_FRAME. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload[] = "bidi stream data";
   uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
@@ -500,9 +516,10 @@ static void test_stream_type_bidi(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(16);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_FRAME, stream->type);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_DATA, stream->frame.type);
@@ -514,7 +531,7 @@ static void test_stream_type_bidi(void) {
 
 static void test_stream_type_control_uni(void) {
   /* Unidirectional stream with 0x00 prefix should resolve to STREAM_CONTROL. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -537,9 +554,10 @@ static void test_stream_type_control_uni(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(19);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_CONTROL, stream->type);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
@@ -552,7 +570,7 @@ static void test_stream_type_control_uni(void) {
 static void test_stream_type_qpack_encoder(void) {
   /* Unidirectional stream with 0x02 prefix should resolve to QPACK_ENCODER.
    * stream_id=19 is server-initiated uni (19%4=3), valid for QPACK streams. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -570,9 +588,10 @@ static void test_stream_type_qpack_encoder(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(19);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_IGNORED, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_QPACK_ENCODER, stream->type);
 }
@@ -580,7 +599,7 @@ static void test_stream_type_qpack_encoder(void) {
 static void test_stream_type_qpack_decoder(void) {
   /* Unidirectional stream with 0x03 prefix should resolve to QPACK_DECODER.
    * stream_id=23 is server-initiated uni (23%4=3), valid for QPACK streams. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t stream_type_buf[8];
   size_t stream_type_len = 0;
@@ -597,9 +616,10 @@ static void test_stream_type_qpack_decoder(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(23);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_IGNORED, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_QPACK_DECODER, stream->type);
 }
@@ -611,7 +631,7 @@ static void test_stream_type_qpack_decoder(void) {
 static void test_stream_type_uni_split_chunks(void) {
   /* A uni stream type varint (0x00) can be split across chunks. The parser
     * should accumulate the bytes until the varint is fully decoded. */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t stream_type_buf[8];
    size_t stream_type_len = 0;
@@ -633,9 +653,10 @@ static void test_stream_type_uni_split_chunks(void) {
 
    YAWT_H3_Error_t h3_err;
    size_t cursor = 0;
-   YAWT_H3_Stream_t *stream = NULL;
+   YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(27);
+   YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-   h3_err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
+   h3_err = YAWT_h3_parse_frame2(h3, &bf1.frame, stream, &cursor);
    TEST_ASSERT_EQUAL(YAWT_H3_IGNORED, h3_err);
    TEST_ASSERT_EQUAL(YAWT_H3_STREAM_QPACK_DECODER, stream->type);
 }
@@ -649,18 +670,18 @@ static void test_h3_parse_frame_null_params(void) {
   YAWT_H3_Error_t h3_err;
   YAWT_Q_Frame_Stream_t dummy_frame = {0};
 
-  h3_err = YAWT_h3_parse_frame(NULL, &dummy_frame, NULL, NULL);
+  h3_err = YAWT_h3_parse_frame2(NULL, &dummy_frame, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
 
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
-  h3_err = YAWT_h3_parse_frame(h3, NULL, NULL, NULL);
+  h3_err = YAWT_h3_parse_frame2(h3, NULL, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
 
-  h3_err = YAWT_h3_parse_frame(h3, &dummy_frame, NULL, NULL);
+  h3_err = YAWT_h3_parse_frame2(h3, &dummy_frame, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
 
-  h3_err = YAWT_h3_parse_frame(h3, &dummy_frame, NULL, NULL);
+  h3_err = YAWT_h3_parse_frame2(h3, &dummy_frame, NULL, NULL);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INVALID_PARAM, h3_err);
 }
 
@@ -672,7 +693,7 @@ static void test_headers_frame_with_payload(void) {
   /* A HEADERS frame should allocate a payload blob and parse correctly.
    * The payload contains QPACK-encoded data, but we're only testing the
    * frame parsing layer, not QPACK decoding. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   /* Simulate QPACK-encoded header section (raw bytes, not actually valid QPACK) */
   uint8_t headers_data[] = { 0x00, 0x01, 0x80, 0x00, 0xFF };
@@ -692,9 +713,10 @@ static void test_headers_frame_with_payload(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(24);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_HEADERS, stream->frame.type);
   TEST_ASSERT_EQUAL(sizeof(headers_data), stream->frame.payload_len);
@@ -711,7 +733,7 @@ static void test_headers_frame_out_of_order_chunks(void) {
   /* A HEADERS frame split across two chunks should be correctly
    * reassembled. The parser should accumulate bytes and only dispatch
    * the frame when all data arrives. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t headers_data[] = { 0x00, 0x01, 0x82, 0x00, 0x7F, 0xFF, 0xAA, 0xBB };
   size_t headers_len = sizeof(headers_data);
@@ -745,16 +767,17 @@ static void test_headers_frame_out_of_order_chunks(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(28);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
   /* First chunk: incomplete (payload truncated) */
   cursor = 0;
-  h3_err = YAWT_h3_parse_frame(h3, &bf1.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf1.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INCOMPLETE, h3_err);
 
   /* Second chunk: completes the HEADERS frame */
   cursor = 0;
-  h3_err = YAWT_h3_parse_frame(h3, &bf2.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf2.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_HEADERS, stream->frame.type);
   TEST_ASSERT_EQUAL(headers_len, stream->frame.payload_len);
@@ -768,7 +791,7 @@ static void test_headers_frame_out_of_order_chunks(void) {
 static void test_oversized_headers_frame(void) {
   /* A HEADERS frame exceeding the max_field_section_size security limit
    * should be rejected with TOO_LARGE. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   /* Set a small max_field_section_size to trigger rejection */
   YAWT_H3_SecurityPolicy_t policy = {0};
@@ -794,9 +817,10 @@ static void test_oversized_headers_frame(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(0);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_TOO_LARGE, h3_err);
 
   /* Restore default policy */
@@ -812,7 +836,7 @@ static void test_oversized_headers_frame(void) {
 static void test_cursor_advancement(void) {
   /* The cursor should advance past each fully-parsed frame so the next
    * parse call picks up the next frame in the stream. */
-  YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+  YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
   uint8_t payload_a[256], payload_b[256];
   size_t payload_a_len = 0, payload_b_len = 0;
@@ -844,17 +868,18 @@ static void test_cursor_advancement(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(32);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
   /* First parse: should consume frame A entirely, cursor should advance */
   cursor = 0;
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   size_t after_first = cursor;
   TEST_ASSERT_GREATER_THAN(0, after_first);
 
   /* Second parse: should pick up frame B at the cursor position */
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_SETTINGS, stream->frame.type);
   TEST_ASSERT_EQUAL(payload_b_len, stream->frame.payload_len);
@@ -871,7 +896,7 @@ static void test_cursor_advancement(void) {
   TEST_ASSERT_EQUAL(200, out_settings.vals[YAWT_H3_IDX_MAX_FIELD_SECTION_SIZE]);
 
   /* Third parse: should return INCOMPLETE since all frames consumed */
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_ERR_INCOMPLETE, h3_err);
 }
 
@@ -882,7 +907,7 @@ static void test_cursor_advancement(void) {
 static void test_stream_type_server_bidi(void) {
   /* Server-initiated bidirectional streams also have no prefix and resolve
      * to STREAM_FRAME. Server bidi stream IDs are odd (stream_id % 4 == 1). */
-   YAWT_H3_Connection_t *h3 = alloc_minimal_h3_conn();
+   YAWT_H3_Context_t *h3 = alloc_minimal_h3_conn();
 
    uint8_t payload[] = "server bidi response";
    uint8_t frame_hdr[H3_FRAME_MAX_HEADER_BYTES];
@@ -902,9 +927,10 @@ static void test_stream_type_server_bidi(void) {
 
   YAWT_H3_Error_t h3_err;
   size_t cursor = 0;
-  YAWT_H3_Stream_t *stream = NULL;
+  YAWT_Q_StreamUserData_t *sud = test_create_stream_ud(server_bidi_stream_id);
+  YAWT_H3_Stream_t *stream = sud->user_data[YAWT_UD_H3];
 
-  h3_err = YAWT_h3_parse_frame(h3, &bf.frame, &stream, &cursor);
+  h3_err = YAWT_h3_parse_frame2(h3, &bf.frame, stream, &cursor);
   TEST_ASSERT_EQUAL(YAWT_H3_OK, h3_err);
   TEST_ASSERT_EQUAL(YAWT_H3_STREAM_FRAME, stream->type);
   TEST_ASSERT_EQUAL(YAWT_H3_FRAME_DATA, stream->frame.type);
