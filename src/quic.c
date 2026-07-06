@@ -809,7 +809,7 @@ YAWT_Err_t YAWT_q_enqueue_frame_ack(YAWT_Q_Context_t *con, uint8_t level, uint64
   f.type = YAWT_Q_FRAME_ACK;
   f.level = level;
   f.wire_len = cursor;
-
+  YAWT_LOG(YAWT_LOG_DEBUG, "Enqueue ACK frame: level:%i largest_ack=%llu", level, (unsigned long long)largest_ack);
   ANB_slab_push_item(queue, (const uint8_t *)&f, sizeof(f));
   return YAWT_Q_OK;
 }

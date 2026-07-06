@@ -329,23 +329,30 @@ static inline YAWT_H3_Error_t _gate_h3_stream_type2(
 
   *consumed = 0;
 
-  // Fast path: try decoding directly from the chunk (no buffering needed)
+  // Fast path: try decoding directly from the chunk (no buffering needed).
+  // Only valid when nothing has been stashed from a previous partial chunk —
+  // otherwise the prefix bytes live in hdr_buffer and decoding from the fresh
+  // chunk data alone would read the wrong bytes and desync the stream.
+  bool has_buffered = (stream->hdr_buffer != NULL &&
+                       ANB_blob_data_len(stream->hdr_buffer) > 0);
   uint64_t wire = 0;
   size_t wire_len = 0;
-  YAWT_H3_Error_t err = _gather_h3_stream_type2(chunk->data, chunk->data_len, &wire, &wire_len);
-  if (err == YAWT_H3_OK) {
-    bool is_bidi = (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI);
-    YAWT_H3_Error_t cerr = _h3_classify_stream_type(wire, stream, is_bidi);
-    if (cerr != YAWT_H3_OK) return cerr;
-    // Normal H3 bidi streams have no stream-type prefix: we peeked at the
-    // first byte to detect WT, but it is the start of the first frame.
-    // Do not consume it (the peeked byte is frame data, not a stream-type prefix).
-    if (is_bidi && stream->type != YAWT_H3_STREAM_WT) {
-      *consumed = 0;
-    } else {
-      *consumed = wire_len;
+  if (!has_buffered) {
+    YAWT_H3_Error_t err = _gather_h3_stream_type2(chunk->data, chunk->data_len, &wire, &wire_len);
+    if (err == YAWT_H3_OK) {
+      bool is_bidi = (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI);
+      YAWT_H3_Error_t cerr = _h3_classify_stream_type(wire, stream, is_bidi);
+      if (cerr != YAWT_H3_OK) return cerr;
+      // Normal H3 bidi streams have no stream-type prefix: we peeked at the
+      // first byte to detect WT, but it is the start of the first frame.
+      // Do not consume it (the peeked byte is frame data, not a stream-type prefix).
+      if (is_bidi && stream->type != YAWT_H3_STREAM_WT) {
+        *consumed = 0;
+      } else {
+        *consumed = wire_len;
+      }
+      return YAWT_H3_OK;
     }
-    return YAWT_H3_OK;
   }
 
   // Slow path: accumulate into hdr_buffer
@@ -362,7 +369,7 @@ static inline YAWT_H3_Error_t _gate_h3_stream_type2(
   size_t take = (chunk->data_len < max_take) ? chunk->data_len : max_take;
   ANB_blob_push(stream->hdr_buffer, chunk->data, take);
 
-  err = _gather_h3_stream_type2(ANB_blob_data(stream->hdr_buffer), ANB_blob_data_len(stream->hdr_buffer), &wire, &wire_len);
+  YAWT_H3_Error_t err = _gather_h3_stream_type2(ANB_blob_data(stream->hdr_buffer), ANB_blob_data_len(stream->hdr_buffer), &wire, &wire_len);
   if (err != YAWT_H3_OK) {
     return YAWT_H3_ERR_INCOMPLETE;
   }
@@ -401,17 +408,26 @@ static inline YAWT_H3_Error_t _gate_h3_frame_head2(
   size_t remaining = len - *io_cursor;
   uint8_t *base = data + *io_cursor;
 
-  // Fast path: try decoding directly from the remaining chunk data
   uint64_t frame_type = 0;
   uint64_t payload_len = 0;
   size_t hdr_len = 0;
-  YAWT_H3_Error_t err = _gather_h3_frame_hdr2(base, remaining, &frame_type, &payload_len, &hdr_len);
-  if (err == YAWT_H3_OK) {
-    stream->frame.type = frame_type;
-    stream->frame.payload_len = payload_len;
-    stream->frame.hdr_size = (uint8_t)hdr_len;
-    *io_cursor += hdr_len;
-    return YAWT_H3_OK;
+
+  // Fast path: try decoding directly from the remaining chunk data.
+  // Only valid when nothing has been stashed from a previous partial chunk —
+  // otherwise the header's leading bytes live in hdr_buffer and decoding from
+  // the fresh chunk data alone would misread the type/length and desync every
+  // subsequent frame on this stream.
+  bool has_buffered = (stream->frame.hdr_buffer != NULL &&
+                       ANB_blob_data_len(stream->frame.hdr_buffer) > 0);
+  if (!has_buffered) {
+    YAWT_H3_Error_t err = _gather_h3_frame_hdr2(base, remaining, &frame_type, &payload_len, &hdr_len);
+    if (err == YAWT_H3_OK) {
+      stream->frame.type = frame_type;
+      stream->frame.payload_len = payload_len;
+      stream->frame.hdr_size = (uint8_t)hdr_len;
+      *io_cursor += hdr_len;
+      return YAWT_H3_OK;
+    }
   }
 
   // Slow path: accumulate into hdr_buffer
@@ -428,7 +444,7 @@ static inline YAWT_H3_Error_t _gate_h3_frame_head2(
   size_t take = (remaining < max_take) ? remaining : max_take;
   ANB_blob_push(stream->frame.hdr_buffer, base, take);
 
-  err = _gather_h3_frame_hdr2(ANB_blob_data(stream->frame.hdr_buffer), ANB_blob_data_len(stream->frame.hdr_buffer), &frame_type, &payload_len, &hdr_len);
+  YAWT_H3_Error_t err = _gather_h3_frame_hdr2(ANB_blob_data(stream->frame.hdr_buffer), ANB_blob_data_len(stream->frame.hdr_buffer), &frame_type, &payload_len, &hdr_len);
   if (err != YAWT_H3_OK) {
     // consumed all remaining bytes into buffer, advance cursor
     *io_cursor += take;
