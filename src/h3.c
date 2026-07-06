@@ -217,7 +217,7 @@ static YAWT_H3_Stream_t *_h3_stream_get_or_create(YAWT_Q_StreamUserData_t *sud) 
 // from a raw buffer (no chunk accumulation). Mirrors _wt_gather_hdr in wt.c.
 // Returns YAWT_H3_OK if the varint was fully decoded; YAWT_H3_ERR_INCOMPLETE
 // if more bytes are needed.
-static inline YAWT_H3_Error_t _gather_h3_stream_type2(
+static inline YAWT_H3_Error_t _gather_h3_stream_type(
     uint8_t *data,
     size_t len,
     uint64_t *o_wire_type,
@@ -246,7 +246,7 @@ static inline YAWT_H3_Error_t _gather_h3_stream_type2(
 // in wt.c (two varints decoded, output via pointers).
 // Returns YAWT_H3_OK if both varints were fully decoded; YAWT_H3_ERR_INCOMPLETE
 // if more bytes are needed.
-static inline YAWT_H3_Error_t _gather_h3_frame_hdr2(
+static inline YAWT_H3_Error_t _gather_h3_frame_hdr(
     uint8_t *data,
     size_t len,
     uint64_t *o_frame_type,
@@ -319,10 +319,10 @@ static inline YAWT_H3_Error_t _h3_classify_stream_type(
 }
 
 // Gate: resolve stream type by buffering into stream->hdr_buffer, then
-// decoding via _gather_h3_stream_type2. Mirrors the WT layer's pattern:
+// decoding via _gather_h3_stream_type. Mirrors the WT layer's pattern:
 // fast-path tries the raw chunk first; if short, falls back to blob accumulation.
 // On success sets stream->type and *consumed, destroys hdr_buffer.
-static inline YAWT_H3_Error_t _gate_h3_stream_type2(
+static inline YAWT_H3_Error_t _gate_h3_stream_type(
     YAWT_H3_Stream_t *stream,
     const YAWT_Q_Frame_Stream_t *chunk,
     size_t *consumed) {
@@ -338,7 +338,7 @@ static inline YAWT_H3_Error_t _gate_h3_stream_type2(
   uint64_t wire = 0;
   size_t wire_len = 0;
   if (!has_buffered) {
-    YAWT_H3_Error_t err = _gather_h3_stream_type2(chunk->data, chunk->data_len, &wire, &wire_len);
+    YAWT_H3_Error_t err = _gather_h3_stream_type(chunk->data, chunk->data_len, &wire, &wire_len);
     if (err == YAWT_H3_OK) {
       bool is_bidi = (chunk->stream_type == YAWT_Q_C_BIDI || chunk->stream_type == YAWT_Q_S_BIDI);
       YAWT_H3_Error_t cerr = _h3_classify_stream_type(wire, stream, is_bidi);
@@ -369,7 +369,7 @@ static inline YAWT_H3_Error_t _gate_h3_stream_type2(
   size_t take = (chunk->data_len < max_take) ? chunk->data_len : max_take;
   ANB_blob_push(stream->hdr_buffer, chunk->data, take);
 
-  YAWT_H3_Error_t err = _gather_h3_stream_type2(ANB_blob_data(stream->hdr_buffer), ANB_blob_data_len(stream->hdr_buffer), &wire, &wire_len);
+  YAWT_H3_Error_t err = _gather_h3_stream_type(ANB_blob_data(stream->hdr_buffer), ANB_blob_data_len(stream->hdr_buffer), &wire, &wire_len);
   if (err != YAWT_H3_OK) {
     return YAWT_H3_ERR_INCOMPLETE;
   }
@@ -441,7 +441,7 @@ static bool _h3_is_critical_stream(
 // if short, falls back to blob accumulation.
 // On success sets stream->frame.type, stream->frame.payload_len,
 // stream->frame.hdr_size, destroys hdr_buffer, advances *io_cursor.
-static inline YAWT_H3_Error_t _gate_h3_frame_head2(
+static inline YAWT_H3_Error_t _gate_h3_frame_head(
     YAWT_H3_Stream_t *stream,
     uint8_t *data,
     size_t len,
@@ -462,7 +462,7 @@ static inline YAWT_H3_Error_t _gate_h3_frame_head2(
   bool has_buffered = (stream->frame.hdr_buffer != NULL &&
                        ANB_blob_data_len(stream->frame.hdr_buffer) > 0);
   if (!has_buffered) {
-    YAWT_H3_Error_t err = _gather_h3_frame_hdr2(base, remaining, &frame_type, &payload_len, &hdr_len);
+    YAWT_H3_Error_t err = _gather_h3_frame_hdr(base, remaining, &frame_type, &payload_len, &hdr_len);
     if (err == YAWT_H3_OK) {
       stream->frame.type = frame_type;
       stream->frame.payload_len = payload_len;
@@ -486,7 +486,7 @@ static inline YAWT_H3_Error_t _gate_h3_frame_head2(
   size_t take = (remaining < max_take) ? remaining : max_take;
   ANB_blob_push(stream->frame.hdr_buffer, base, take);
 
-  YAWT_H3_Error_t err = _gather_h3_frame_hdr2(ANB_blob_data(stream->frame.hdr_buffer), ANB_blob_data_len(stream->frame.hdr_buffer), &frame_type, &payload_len, &hdr_len);
+  YAWT_H3_Error_t err = _gather_h3_frame_hdr(ANB_blob_data(stream->frame.hdr_buffer), ANB_blob_data_len(stream->frame.hdr_buffer), &frame_type, &payload_len, &hdr_len);
   if (err != YAWT_H3_OK) {
     // consumed all remaining bytes into buffer, advance cursor
     *io_cursor += take;
@@ -665,9 +665,9 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
 }
 
 // H3 frame parser. Uses blob-backed accumulation
-// (_gate_h3_stream_type2 / _gate_h3_frame_head2) with lazy allocation.
+// (_gate_h3_stream_type / _gate_h3_frame_head) with lazy allocation.
 // Blobs are cleared (not destroyed) between frames to reuse allocations.
-YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
+YAWT_H3_Error_t YAWT_h3_parse_frame(const YAWT_Q_Frame_Stream_t *chunk,
                                       YAWT_H3_Stream_t *stream,
                                       size_t *cursor) {
   if (!chunk || !stream || !cursor) {
@@ -678,7 +678,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
   // means the previous frame was delivered to the app layer. Destroy the
   // payload blob (it was fully consumed by _dispatch_buffered_frame) and
   // reset per-frame state. Preserve hdr_buffer across frames to avoid
-  // malloc/free churn — it is cleared by _gate_h3_frame_head2 on each
+  // malloc/free churn — it is cleared by _gate_h3_frame_head on each
   // successful header parse and freed only in _h3_stream_destroy.
   // stream->type and its blob are per-stream, not per-frame — they persist
   // for the stream's entire lifetime.
@@ -695,11 +695,11 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
            chunk->stream_id, chunk->offset, chunk->data_len, chunk->fin);
 
   // Stream type resolution: runs exactly once per stream lifetime. The new
-  // _gate_h3_stream_type2 tries to decode directly from the chunk (fast path)
+  // _gate_h3_stream_type tries to decode directly from the chunk (fast path)
   // and falls back to blob accumulation on short data.
   if (stream->type == YAWT_H3_STREAM_UNASSIGNED) {
     size_t consumed = 0;
-    YAWT_H3_Error_t e = _gate_h3_stream_type2(stream, chunk, &consumed);
+    YAWT_H3_Error_t e = _gate_h3_stream_type(stream, chunk, &consumed);
     if (e == YAWT_H3_ERR_INCOMPLETE) {
       *cursor += consumed;
       return YAWT_H3_ERR_INCOMPLETE;
@@ -720,11 +720,11 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
     case YAWT_H3_STREAM_FRAME:
     case YAWT_H3_STREAM_CONTROL:
     case YAWT_H3_STREAM_WT_CONNECT: {
-      // Parse frame header (Type + Length varints) via _gate_h3_frame_head2,
+      // Parse frame header (Type + Length varints) via _gate_h3_frame_head,
       // which uses lazy blob-backed accumulation.
       YAWT_H3_Frame_t *f = &stream->frame;
       if (f->hdr_size == 0) {
-        YAWT_H3_Error_t herr = _gate_h3_frame_head2(stream, chunk->data, chunk->data_len, cursor);
+        YAWT_H3_Error_t herr = _gate_h3_frame_head(stream, chunk->data, chunk->data_len, cursor);
         if (herr == YAWT_H3_ERR_INCOMPLETE) {
           return YAWT_H3_ERR_INCOMPLETE;
         }
@@ -904,7 +904,7 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event
       while (cursor < chunk->data_len) {
         YAWT_H3_StreamType_t prev_type = stream->type;
 
-        YAWT_H3_Error_t err = YAWT_h3_parse_frame2(chunk, stream, &cursor);
+        YAWT_H3_Error_t err = YAWT_h3_parse_frame(chunk, stream, &cursor);
 
         // Compliance: if stream type just resolved, register core streams
         // and reject duplicates per RFC 9114 §6.2.1 / RFC 9204 §4.2.

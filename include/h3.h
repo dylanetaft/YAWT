@@ -44,7 +44,7 @@
  *       Blobs are lazy-allocated and destroyed after the buffered frame is
  *       dispatched; hdr_buffer is preserved across frames to avoid churn.
  */
-YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
+YAWT_H3_Error_t YAWT_h3_parse_frame(const YAWT_Q_Frame_Stream_t *chunk,
                                       YAWT_H3_Stream_t *stream,
                                       size_t *cursor);
 
