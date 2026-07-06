@@ -8,9 +8,9 @@ set(USER_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install"
 
 option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
-option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection at parse boundaries" ON)
+option(YAWT_ENABLE_FUZZ_CORPUS "Enable fuzz corpus collection at parse boundaries" OFF)
 option(BUILD_FUZZ "Build fuzz harness targets (requires clang with -fsanitize=fuzzer)" ON)
-option(YAWT_ENABLE_LOGGING "Enable debug logging" ON)
+option(YAWT_ENABLE_LOGGING "Enable debug logging" OFF)
 set(YAWT_LOG_LEVEL 0 CACHE STRING "Set log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)")
 
 set(MY_INSTALL_PREFIX ${USER_INSTALL_PREFIX})

@@ -8,6 +8,7 @@ endif()
 set(FUZZ_TARGETS
     fuzz_parse_frame
     fuzz_parse_packet
+    fuzz_h3_parse_frame
     fuzz_h3_settings
     fuzz_qpack
     fuzz_capsule

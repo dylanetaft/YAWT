@@ -674,6 +674,11 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(const YAWT_Q_Frame_Stream_t *chunk,
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
+  // Fuzz corpus: capture the raw wire bytes this parser scans. num_pairs=1
+  // matching the fuzz_h3_settings/qpack convention; no-op unless
+  // YAWT_ENABLE_FUZZ_CORPUS is defined. Replayed by fuzz/fuzz_h3_parse_frame.c.
+  YAWT_corpus_emit(1, chunk->data, chunk->data_len);
+
   // Frame lifecycle: the frame struct is reused across frames. parsed=true
   // means the previous frame was delivered to the app layer. Destroy the
   // payload blob (it was fully consumed by _dispatch_buffered_frame) and
