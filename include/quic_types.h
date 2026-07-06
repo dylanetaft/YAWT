@@ -319,18 +319,6 @@ typedef struct {
 /**
  * @internal
  * @ingroup QUIC_Internal
- * @brief Per-stream byte counters for flow control (RFC 9000 §4.1).
- * @note Parallel to YAWT_Q_ConnectionStats_t but per-stream.
- *       Tracks cumulative stream body bytes including out-of-order data.
- */
-typedef struct {
-  uint64_t tx_count_bytes;  // Cumulative TX stream body bytes for flow control
-  uint64_t rx_count_bytes;  // Cumulative RX stream body bytes for flow control
-} YAWT_Q_StreamStats_t;
-
-/**
- * @internal
- * @ingroup QUIC_Internal
  * @brief Per-stream flow control limits.
  */
 typedef struct {

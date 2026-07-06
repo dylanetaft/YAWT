@@ -171,12 +171,12 @@ static void _preemptive_fc_stream_rx_limit_check(YAWT_Q_Context_t *con, YAWT_Q_S
   uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
   if (SUD_META(sud)->fc.rx_max_data > 0 && pct > 0 && pct <= 100) {
     uint64_t threshold = SUD_META(sud)->fc.rx_max_data * pct / 100;
-    if (SUD_META(sud)->stats.rx_count_bytes >= threshold) {
+    if (SUD_META(sud)->rx_highest_offset >= threshold) {
       YAWT_Q_FlowControlInfo_t info = {
         .type = YAWT_Q_FC_STREAM_RX,
         .stream_id = SUD_META(sud)->stream_id,
         .current_limit = SUD_META(sud)->fc.rx_max_data,
-        .consumed = SUD_META(sud)->stats.rx_count_bytes
+        .consumed = SUD_META(sud)->rx_highest_offset
       };
       YAWT_Q_EventParam_t param;
       param.P_EVT_FLOW_CONTROL.info = &info;
@@ -212,12 +212,12 @@ static void _preemptive_fc_stream_tx_limit_check(YAWT_Q_Context_t *con, YAWT_Q_S
   uint64_t pct = YAWT_q_security_get()->fc_threshold_percent;
   if (SUD_META(sud)->fc.tx_max_data > 0 && pct > 0 && pct <= 100) {
     uint64_t threshold = SUD_META(sud)->fc.tx_max_data * pct / 100;
-    if (SUD_META(sud)->stats.tx_count_bytes >= threshold) {
+    if (SUD_META(sud)->tx_next_offset >= threshold) {
       YAWT_Q_FlowControlInfo_t info = {
         .type = YAWT_Q_FC_STREAM_TX,
         .stream_id = SUD_META(sud)->stream_id,
         .current_limit = SUD_META(sud)->fc.tx_max_data,
-        .consumed = SUD_META(sud)->stats.tx_count_bytes
+        .consumed = SUD_META(sud)->tx_next_offset
       };
       YAWT_Q_EventParam_t param;
       param.P_EVT_FLOW_CONTROL.info = &info;
@@ -867,15 +867,14 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
           uint64_t new_bytes = end - SUD_META(sud)->rx_highest_offset;
           SUD_META(sud)->rx_highest_offset = end;
           con->stats.rx_count_bytes += new_bytes;
-          SUD_META(sud)->stats.rx_count_bytes += new_bytes;
           _preemptive_fc_stream_rx_limit_check(con, sud);
           _preemptive_fc_conn_rx_limit_check(con);
         }
 
         // RFC 9000 §4.1: Hard enforcement - peer MUST NOT exceed advertised limits
-        if (SUD_META(sud)->stats.rx_count_bytes > SUD_META(sud)->fc.rx_max_data) {
+        if (SUD_META(sud)->rx_highest_offset > SUD_META(sud)->fc.rx_max_data) {
           YAWT_LOG(YAWT_LOG_ERROR, "FLOW_CONTROL_ERROR: stream %lu exceeded limit (%lu > %lu)",
-                   SUD_META(sud)->stream_id, SUD_META(sud)->stats.rx_count_bytes, SUD_META(sud)->fc.rx_max_data);
+                   SUD_META(sud)->stream_id, SUD_META(sud)->rx_highest_offset, SUD_META(sud)->fc.rx_max_data);
           _send_connection_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, YAWT_Q_FRAME_STREAM);
           _record_close(con, YAWT_Q_ERR_FLOW_CONTROL_ERROR, "stream flow control violation",
                         sizeof("stream flow control violation") - 1,
@@ -1103,7 +1102,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
         YAWT_LOG(YAWT_LOG_INFO, "STREAM_DATA_BLOCKED received: stream=%lu, max_stream_data=%lu",
                  frame.stream_data_blocked.stream_id, frame.stream_data_blocked.max_stream_data);
         YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, frame.stream_data_blocked.stream_id);
-        uint64_t consumed = sud ? SUD_META(sud)->stats.tx_count_bytes : 0;
+        uint64_t consumed = sud ? SUD_META(sud)->tx_next_offset : 0;
         YAWT_Q_FlowControlInfo_t info = {
           .type = YAWT_Q_FC_STREAM_TX,
           .stream_id = frame.stream_data_blocked.stream_id,
@@ -1399,7 +1398,7 @@ static void _drain_tx(YAWT_Q_Context_t *con, double now) {
             continue;
           }
           YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, f->stream_id);
-          if (sud && SUD_META(sud)->stats.tx_count_bytes >= SUD_META(sud)->fc.tx_max_data) {
+          if (sud && SUD_META(sud)->tx_next_offset > SUD_META(sud)->fc.tx_max_data) {
             if (_stream_state_allows_tx(SUD_META(sud)) && !(SUD_META(sud)->state & YAWT_Q_STREAM_TX_BLOCKED_SENT)) {
               SUD_META(sud)->state |= YAWT_Q_STREAM_TX_BLOCKED_SENT;
               YAWT_q_enqueue_frame_stream_data_blocked(con, f->stream_id, SUD_META(sud)->fc.tx_max_data);
@@ -1485,7 +1484,7 @@ static void _drain_tx(YAWT_Q_Context_t *con, double now) {
         if (f->type == YAWT_Q_FRAME_STREAM) {
           if (con->stats.tx_count_bytes > con->peer_fc.max_data) continue;
           YAWT_Q_StreamUserData_t *sud = _stream_meta_find(con->stream_userdata, f->stream_id);
-          if (sud && SUD_META(sud)->stats.tx_count_bytes >= SUD_META(sud)->fc.tx_max_data) continue;
+          if (sud && SUD_META(sud)->tx_next_offset > SUD_META(sud)->fc.tx_max_data) continue;
         }
 
         // Check if this frame fits in the remaining payload
@@ -1557,7 +1556,6 @@ YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
     size_t chunk = new_iov_pos - iov_pos;
     SUD_META(sud)->tx_next_offset += chunk;
     con->stats.tx_count_bytes += chunk;
-    SUD_META(sud)->stats.tx_count_bytes += chunk;
     _preemptive_fc_stream_tx_limit_check(con, sud);
     _preemptive_fc_conn_tx_limit_check(con);
     iov_pos = new_iov_pos;
