@@ -586,35 +586,53 @@ static YAWT_Err_t _drain_stream_rx(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_
     YAWT_Q_Frame_BufferedStream_t *bf = (YAWT_Q_Frame_BufferedStream_t *)item;
     YAWT_Q_Frame_Stream_t *f = &bf->frame;
     if (f->stream_id != SUD_META(sud)->stream_id) continue;
-    if (f->offset == SUD_META(sud)->rx_next_offset) {
-      // RFC 9000 §4.5: Validate buffered data against known final size
-      YAWT_Err_t fs_err = _check_final_size(sud, f->offset, f->data_len, f->fin);
-      if (fs_err != YAWT_Q_OK) return fs_err;
 
-      YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
-                SUD_META(sud)->stream_id, f->data_len, f->offset);
-      SUD_META(sud)->rx_next_offset += f->data_len;
+    uint64_t end = f->offset + f->data_len;
 
-      if (f->fin) {
-        SUD_META(sud)->state |= YAWT_Q_STREAM_FIN_RECEIVED;
-        YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: RX finalized (buffered FIN drained at offset %lu)",
-                 SUD_META(sud)->stream_id, f->offset + f->data_len);
-      }
+    // Real gap: chunk starts beyond the cursor — leave buffered, scan forward.
+    if (f->offset > SUD_META(sud)->rx_next_offset) continue;
 
-      YAWT_Q_EventParam_t param;
-      param.P_EVT_STREAM.frame = f;
-      param.P_EVT_STREAM.stream_ud = sud;
-      f->data = bf->data; //points at slab copy
-      _event_handler(con, YAWT_Q_EVT_STREAM, param);
-
+    // Pure duplicate: entirely already delivered — discard so it can't linger.
+    if (end <= SUD_META(sud)->rx_next_offset) {
       ANB_slab_pop_item(con->stream_rx, &iter);
-
-      // peek_item_iter is forward-only, but buffered frames are in arrival
-      // (not offset) order. Delivering this chunk advanced rx_next_offset, so
-      // the next contiguous chunk may sit *behind* the current cursor. Restart
-      // the scan from the front so it is found in this same drain pass.
       iter = (ANB_SlabIter_t){0};
+      continue;
     }
+
+    // Straddle or exact (f->offset <= rx_next_offset < end): an overlapping
+    // retransmit may cover the cursor. Trim the already-received prefix so
+    // delivery begins exactly at rx_next_offset. (skip == 0 for the exact case.)
+    uint64_t skip = SUD_META(sud)->rx_next_offset - f->offset;
+    f->data      = bf->data + skip; // point past consumed prefix into slab copy
+    f->data_len -= skip;
+    f->offset    = SUD_META(sud)->rx_next_offset;
+
+    // RFC 9000 §4.5: Validate buffered data against known final size
+    YAWT_Err_t fs_err = _check_final_size(sud, f->offset, f->data_len, f->fin);
+    if (fs_err != YAWT_Q_OK) return fs_err;
+
+    YAWT_LOG(YAWT_LOG_DEBUG, "Stream %lu: delivered %lu bytes at offset %lu",
+              SUD_META(sud)->stream_id, f->data_len, f->offset);
+    SUD_META(sud)->rx_next_offset += f->data_len;
+
+    if (f->fin) {
+      SUD_META(sud)->state |= YAWT_Q_STREAM_FIN_RECEIVED;
+      YAWT_LOG(YAWT_LOG_INFO, "Stream %lu: RX finalized (buffered FIN drained at offset %lu)",
+               SUD_META(sud)->stream_id, f->offset + f->data_len);
+    }
+
+    YAWT_Q_EventParam_t param;
+    param.P_EVT_STREAM.frame = f;
+    param.P_EVT_STREAM.stream_ud = sud;
+    _event_handler(con, YAWT_Q_EVT_STREAM, param);
+
+    ANB_slab_pop_item(con->stream_rx, &iter);
+
+    // peek_item_iter is forward-only, but buffered frames are in arrival
+    // (not offset) order. Delivering this chunk advanced rx_next_offset, so
+    // the next contiguous chunk may sit *behind* the current cursor. Restart
+    // the scan from the front so it is found in this same drain pass.
+    iter = (ANB_SlabIter_t){0};
   }
 
   return YAWT_Q_OK;
@@ -863,6 +881,18 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
                         sizeof("connection flow control violation") - 1,
                         YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           break;
+        }
+
+        // RFC 9000 §2.2: an overlapping retransmit may re-frame data so the frame
+        // straddles the delivery cursor (offset < rx_next_offset < end). Trim the
+        // already-received prefix so the new suffix starts exactly at rx_next_offset,
+        // letting the in-order fast path below deliver it. (end <= rx_next_offset was
+        // already discarded above, so skip < data_len here.)
+        if (frame.stream.offset < SUD_META(sud)->rx_next_offset) {
+          uint64_t skip = SUD_META(sud)->rx_next_offset - frame.stream.offset;
+          frame.stream.data     += skip;
+          frame.stream.data_len -= skip;
+          frame.stream.offset    = SUD_META(sud)->rx_next_offset;
         }
 
         if (frame.stream.offset == SUD_META(sud)->rx_next_offset) {
