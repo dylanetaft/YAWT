@@ -8,6 +8,7 @@ add_executable(yawt_tests
     test_qpack_literal_literal.c
     test_huffman.c
     test_h3.c
+    test_pn_window.c
 )
 
 target_link_libraries(yawt_tests PRIVATE unity::framework yawt)

@@ -1284,29 +1284,25 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     uint64_t full_pn = pkt.packet_num;
 
 
-    // TODO reconsider this logic, quic frames are imdepotent by mandate
-    // Not reprocessing old PNs is for extra security
-    // It may be worth keeping a small buffer or bitmap of recent PNs allowing better efficiency for
-    // packets arriving out of order - no need for remote side to resent
-    // WARNING this would impact quic STREAM buffering that occurs as streams are delivered in order to the app layer
-    // This can have implications for ACK too - we send largest frame ACK, see 13.2.3
-    // Unsure what would happen if we allow for PNs out of order and acknowledge a higher PN yet a lower PN has not been
-    // processd - the code currently mandates PNs are in order, if a PN is higher than expected it won't be processed
-    // until lower PN received
-    //
     // RFC 9000 §12.3: "A receiver MUST discard a newly unprotected packet unless it is
     // certain that it has not processed another packet with the same packet number."
-    // We only track the high-water mark, so any full_pn < the next expected PN is
-    // discarded.  Because we skip frame processing and ACK enqueuing below, the
-    // sender's loss detector will not receive an ACK and will retransmit any
-    // ack-eliciting frames (e.g. reliable stream data) in a new packet.
-    if (full_pn < con->stats.next_pkt_num_rx[level]) {
-      YAWT_LOG(YAWT_LOG_INFO, "discarding duplicate/old PN %lu < %lu at level %d",
-               full_pn, con->stats.next_pkt_num_rx[level], level);
+    // A 128-PN sliding-window bitmap (_chk_pkt_received) tracks recently-seen PNs, so a
+    // reordered PN we have not processed is accepted (and gets its own single-PN ACK below,
+    // sparing the peer a retransmit) while true duplicates and PNs below the window are
+    // discarded. QUIC frames are idempotent by mandate, and stream data is reassembled by
+    // offset, so processing PNs out of order is safe. Our ACKs cover exactly one PN each
+    // (ACK Range Count 0), so no false contiguous range is ever claimed.
+    if (YAWT_q_pn_duplicate_window_check(&con->stats.rx_pn_win_a[level],
+                               &con->stats.rx_pn_win_b[level],
+                               &con->stats.rx_pn_win_base[level], full_pn)) {
+      YAWT_LOG(YAWT_LOG_INFO, "discarding duplicate/old PN %lu (win base %lu) at level %d",
+               full_pn, con->stats.rx_pn_win_base[level], level);
       continue;
     }
-    
-    con->stats.next_pkt_num_rx[level] = full_pn + 1;
+
+    // Keep the high-water mark for PN reconstruction (RFC 9000 App. A); only advances.
+    if (full_pn >= con->stats.next_pkt_num_rx[level])
+      con->stats.next_pkt_num_rx[level] = full_pn + 1;
 
 
    YAWT_LOG(YAWT_LOG_DEBUG, "rx pkt type: %u len:%i payload: %s",pkt.type,(int)pkt.payload_len,

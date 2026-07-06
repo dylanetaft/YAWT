@@ -87,6 +87,40 @@ uint64_t YAWT_q_decode_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn
   return candidate;
 }
 
+bool YAWT_q_pn_duplicate_window_check(uint64_t *win_a, uint64_t *win_b, uint64_t *win_base, uint64_t pn) {
+  // Too old: below the window, cannot prove un-processed — treat as received.
+  if (pn < *win_base) return true;
+
+  // Ahead of the window: slide forward so `pn` falls within [base, base+127].
+  if (pn > *win_base + 127) {
+    if (pn >= *win_base + 192) {
+      // Large jump: both words are stale. Re-anchor with backward room so genuinely
+      // reordered late arrivals just below `pn` can still be accepted (pn lands at B bit0).
+      *win_a = 0;
+      *win_b = 0;
+      *win_base = pn - 64;
+    } else {
+      // Roll the double buffer: B shifts into A, B clears, base advances by 64. Repeat
+      // (at most twice) until pn fits. This is the "MSB of B is the reset point" roll.
+      while (pn > *win_base + 127) {
+        *win_a = *win_b;
+        *win_b = 0;
+        *win_base += 64;
+      }
+    }
+  }
+
+  // Now pn is within [base, base+127]. Select word and bit.
+  uint64_t off = pn - *win_base;
+  uint64_t *word = (off < 64) ? win_a : win_b;
+  uint64_t bit = (off < 64) ? off : off - 64;
+  uint64_t mask = (uint64_t)1 << bit;
+
+  if (*word & mask) return true;  // duplicate
+  *word |= mask;                  // record fresh
+  return false;
+}
+
 // Parse the shared long header fields directly into a flat YAWT_Q_Packet_t.
 // Advances rc->cursor past consumed bytes. Does NOT parse byte 0's lower 4 bits.
 static void _parse_long_header(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {

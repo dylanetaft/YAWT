@@ -129,7 +129,13 @@ typedef struct {
   uint64_t rx_count_bytes;  // Pre-validation: cumulative payload bytes for anti-amplification (RFC 9000 §8.1). Post-validation: cumulative stream body bytes for connection flow control (RFC 9000 §4.1). Zeroed on address validation.
   // RFC 9000 Section 12.3 - Counters for each space, indexed by YAWT_Q_Encryption_Level_t
   uint64_t next_pkt_num_tx[4];   // per encryption level: next TX packet number to send
-  uint64_t next_pkt_num_rx[4];   // per encryption level: next expected RX packet number
+  uint64_t next_pkt_num_rx[4];   // per encryption level: high-water RX PN + 1 (drives PN reconstruction, RFC 9000 App. A); monotonic
+  // RFC 9000 §12.3 anti-replay / reorder window per space: a 128-PN bitmap across two words,
+  // anchored at rx_pn_win_base[level] (the PN of bit0 of rx_pn_win_a). A reordered PN within
+  // the window is accepted once; duplicates and PNs below the window are discarded.
+  uint64_t rx_pn_win_a[4];       // bitmap for PNs [base .. base+63]
+  uint64_t rx_pn_win_b[4];       // bitmap for PNs [base+64 .. base+127]
+  uint64_t rx_pn_win_base[4];    // PN represented by bit0 of rx_pn_win_a[level]
   uint64_t cid_seq_num;     // highest NEW_CONNECTION_ID seq_num seen
   double last_rx;           // ev_now() timestamp of last packet received
   double last_tx;           // ev_now() timestamp of last packet sent
@@ -391,6 +397,20 @@ YAWT_Err_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
  * @return The reconstructed full packet number.
  */
 uint64_t YAWT_q_decode_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen);
+
+/**
+ * @ingroup QUIC_Wire
+ * @brief RFC 9000 §12.3 anti-replay / reorder check against a 128-PN sliding window.
+ * @param win_a  Bitmap word for PNs [base .. base+63]; bit i ↔ PN base+i.
+ * @param win_b  Bitmap word for PNs [base+64 .. base+127]; bit i ↔ PN base+64+i.
+ * @param win_base PN represented by bit0 of win_a (anchor). Advanced as the window slides.
+ * @param pn The full (reconstructed) packet number to test.
+ * @return true if pn was already received (duplicate) or is below the window (too old to
+ *         verify) — the caller must discard. false if pn is fresh; it is recorded in the
+ *         window as a side effect. Zero-initialized state (all args 0) starts a window at
+ *         [0,127], so no explicit init is needed.
+ */
+bool YAWT_q_pn_duplicate_window_check(uint64_t *win_a, uint64_t *win_b, uint64_t *win_base, uint64_t pn);
 
 /**
  * @ingroup QUIC_Wire
