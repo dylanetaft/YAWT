@@ -243,10 +243,13 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
  * @brief Unprotect header + decrypt payload of a parsed packet in-place.
  * @param pkt The packet to unprotect.
  * @param crypto The crypto object.
+ * @param largest_pn Largest PN received in this packet's PN space, used to reconstruct
+ *                   the full packet number (RFC 9000 Appendix A) before building the nonce.
  * @return 0 on success, negative on error.
  * @note After this call, the packet's PN and payload contain true values.
  */
-int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto);
+int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto,
+                                   uint64_t largest_pn);
 
 /**
  * @internal

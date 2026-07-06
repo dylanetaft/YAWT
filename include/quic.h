@@ -384,6 +384,16 @@ YAWT_Err_t YAWT_q_varint_encode(uint64_t val, uint8_t *buf, size_t len,
 
 /**
  * @ingroup QUIC_Wire
+ * @brief Reconstruct the full packet number from a truncated on-wire value (RFC 9000 Appendix A).
+ * @param largest_pn Largest packet number successfully received in this PN space.
+ * @param truncated_pn The truncated packet number read from the wire.
+ * @param pn_bytelen Length in bytes of the truncated packet number (1-4).
+ * @return The reconstructed full packet number.
+ */
+uint64_t YAWT_q_decode_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen);
+
+/**
+ * @ingroup QUIC_Wire
  * @brief Get the number of bytes needed to encode val as a QUIC varint.
  * @param val The value to check.
  * @return Number of bytes needed, or 0 if val exceeds 62 bits.

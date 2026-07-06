@@ -74,23 +74,6 @@ static void _record_close(YAWT_Q_Context_t *con, uint64_t code,
   con->closing_rx_count = 0;
 }
 
-// RFC 9000 Appendix A: reconstruct full PN from truncated value
-static uint64_t _reconstruct_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen) {
-  uint64_t expected_pn = largest_pn + 1;
-  uint8_t pn_nbits = pn_bytelen * 8;
-  uint64_t pn_win = 1ULL << pn_nbits;   // size of the PN encoding window (e.g. 256 for 1-byte)
-  uint64_t pn_hwin = pn_win / 2;        // half-window: how far candidate can drift from expected
-  uint64_t pn_mask = pn_win - 1;        // bitmask for the truncated portion of the PN
-  uint64_t candidate = (expected_pn & ~pn_mask) | truncated_pn;
-  if (candidate + pn_hwin <= expected_pn && candidate + pn_win < (1ULL << 62)) {
-    return candidate + pn_win;
-  }
-  if (candidate > expected_pn + pn_hwin && candidate >= pn_win) {
-    return candidate - pn_win;
-  }
-  return candidate;
-}
-
 // Check if a packet number falls within any range acknowledged by an ACK frame.
 // Walks the first range then the gap/range pairs from ack->ranges.
 static int _pn_is_acked(uint64_t pn, const YAWT_Q_Frame_ACK_t *ack) {
@@ -625,6 +608,12 @@ static YAWT_Err_t _drain_stream_rx(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_
       _event_handler(con, YAWT_Q_EVT_STREAM, param);
 
       ANB_slab_pop_item(con->stream_rx, &iter);
+
+      // peek_item_iter is forward-only, but buffered frames are in arrival
+      // (not offset) order. Delivering this chunk advanced rx_next_offset, so
+      // the next contiguous chunk may sit *behind* the current cursor. Restart
+      // the scan from the front so it is found in this same drain pass.
+      iter = (ANB_SlabIter_t){0};
     }
   }
 
@@ -1230,7 +1219,11 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       continue;
     }
 
-    int ret = YAWT_q_crypto_unprotect_packet(&pkt, con->crypto);
+    // Largest PN received so far in this space — needed to reconstruct the full
+    // packet number (RFC 9000 Appendix A) that the AEAD nonce is built from.
+    uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
+
+    int ret = YAWT_q_crypto_unprotect_packet(&pkt, con->crypto, largest_pn);
     if (ret < 0) {
       printf("  error: unprotect/decrypt failed: %d\n", ret);
       continue;
@@ -1247,11 +1240,9 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
       con->stats.rx_count_bytes += pkt.payload_len;
     }
 
-    // Reconstruct full packet number from truncated value
-    uint64_t largest_pn = con->stats.next_pkt_num_rx[level] > 0 ? con->stats.next_pkt_num_rx[level] - 1 : 0;
-    uint64_t full_pn = _reconstruct_pn(largest_pn, pkt.packet_num, pkt.packet_number_length);
-    pkt.packet_num = full_pn;
-     
+    // pkt.packet_num already holds the full reconstructed PN (done in unprotect).
+    uint64_t full_pn = pkt.packet_num;
+
 
     // TODO reconsider this logic, quic frames are imdepotent by mandate
     // Not reprocessing old PNs is for extra security

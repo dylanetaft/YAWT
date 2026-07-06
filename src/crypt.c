@@ -991,7 +991,8 @@ int YAWT_q_crypto_decrypt_payload(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto)
 // 2. Re-reads the true PN from the now-unmasked bytes
 // 3. AEAD decrypts payload in-place (plaintext replaces ciphertext)
 // 4. Updates common struct fields (packet_num, payload_len)
-int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto) {
+int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto,
+                                   uint64_t largest_pn) {
 
   if (!pkt || !crypto) return -1;
 
@@ -1001,15 +1002,18 @@ int YAWT_q_crypto_unprotect_packet(YAWT_Q_Packet_t *pkt, YAWT_Q_Crypto_t *crypto
   uint8_t *packet = pkt->raw;
 
   // Step 1: Header unprotection
-  int ret = YAWT_q_crypto_unprotect_header(pkt, crypto); 
+  int ret = YAWT_q_crypto_unprotect_header(pkt, crypto);
   if (ret < 0) return ret;
 
-  // Step 2: Re-read true PN length and PN value from unmasked bytes
+  // Step 2: Re-read true PN length and truncated PN from unmasked bytes, then
+  // reconstruct the full packet number (RFC 9000 Appendix A). The AEAD nonce is
+  // built from the FULL PN, so this must happen before decrypt.
   pkt->packet_number_length = (packet[0] & 0x03) + 1;
-  pkt->packet_num = 0;
+  uint32_t truncated_pn = 0;
   for (uint8_t i = 0; i < pkt->packet_number_length; i++) {
-    pkt->packet_num = (pkt->packet_num << 8) | packet[pkt->pn_offset + i];
+    truncated_pn = (truncated_pn << 8) | packet[pkt->pn_offset + i];
   }
+  pkt->packet_num = YAWT_q_decode_pn(largest_pn, truncated_pn, pkt->packet_number_length);
 
   // Step 3: AEAD decrypt
   ret = YAWT_q_crypto_decrypt_payload(pkt, crypto);

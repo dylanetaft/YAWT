@@ -70,6 +70,23 @@ size_t YAWT_q_varint_size(uint64_t val) {
   return 0;
 }
 
+// RFC 9000 Appendix A: reconstruct full PN from truncated value
+uint64_t YAWT_q_decode_pn(uint64_t largest_pn, uint32_t truncated_pn, uint8_t pn_bytelen) {
+  uint64_t expected_pn = largest_pn + 1;
+  uint8_t pn_nbits = pn_bytelen * 8;
+  uint64_t pn_win = 1ULL << pn_nbits;   // size of the PN encoding window (e.g. 256 for 1-byte)
+  uint64_t pn_hwin = pn_win / 2;        // half-window: how far candidate can drift from expected
+  uint64_t pn_mask = pn_win - 1;        // bitmask for the truncated portion of the PN
+  uint64_t candidate = (expected_pn & ~pn_mask) | truncated_pn;
+  if (candidate + pn_hwin <= expected_pn && candidate + pn_win < (1ULL << 62)) {
+    return candidate + pn_win;
+  }
+  if (candidate > expected_pn + pn_hwin && candidate >= pn_win) {
+    return candidate - pn_win;
+  }
+  return candidate;
+}
+
 // Parse the shared long header fields directly into a flat YAWT_Q_Packet_t.
 // Advances rc->cursor past consumed bytes. Does NOT parse byte 0's lower 4 bits.
 static void _parse_long_header(YAWT_Q_ReadCursor_t *rc, YAWT_Q_Packet_t *pkt) {
