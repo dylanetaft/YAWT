@@ -593,9 +593,10 @@ static YAWT_Err_t _drain_stream_rx(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_
     if (f->offset > SUD_META(sud)->rx_next_offset) continue;
 
     // Pure duplicate: entirely already delivered — discard so it can't linger.
+    // No iterator reset: rx_next_offset is unchanged, so nothing behind the
+    // cursor becomes deliverable; the forward scan continues past the popped slot.
     if (end <= SUD_META(sud)->rx_next_offset) {
       ANB_slab_pop_item(con->stream_rx, &iter);
-      iter = (ANB_SlabIter_t){0};
       continue;
     }
 
@@ -856,11 +857,20 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
 
         // Skip fully duplicate data
         if (end <= SUD_META(sud)->rx_next_offset) break;
-        //count all bytes towards FC regardless of order, per RFC 9000 §4.5
-        con->stats.rx_count_bytes += frame.stream.data_len;
-        SUD_META(sud)->stats.rx_count_bytes += frame.stream.data_len;
-        _preemptive_fc_stream_rx_limit_check(con, sud);
-        _preemptive_fc_conn_rx_limit_check(con);
+
+        // RFC 9000 §4.5: flow-control credit is metered by the largest offset
+        // received, counting each offset once — retransmitted/overlapping bytes
+        // consume no new credit (the sender meters by largest offset sent too).
+        // Count only the amount by which this frame extends the highest offset
+        // ever seen; gaps still count, per the buffering commitment they imply.
+        if (end > SUD_META(sud)->rx_highest_offset) {
+          uint64_t new_bytes = end - SUD_META(sud)->rx_highest_offset;
+          SUD_META(sud)->rx_highest_offset = end;
+          con->stats.rx_count_bytes += new_bytes;
+          SUD_META(sud)->stats.rx_count_bytes += new_bytes;
+          _preemptive_fc_stream_rx_limit_check(con, sud);
+          _preemptive_fc_conn_rx_limit_check(con);
+        }
 
         // RFC 9000 §4.1: Hard enforcement - peer MUST NOT exceed advertised limits
         if (SUD_META(sud)->stats.rx_count_bytes > SUD_META(sud)->fc.rx_max_data) {

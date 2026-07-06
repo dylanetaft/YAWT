@@ -65,6 +65,7 @@ struct YAWT_Q_Context_t {
 typedef struct {
   uint64_t stream_id;
   uint64_t rx_next_offset;
+  uint64_t rx_highest_offset;  // RFC 9000 §4.5: largest offset+len ever received; flow-control credit is metered by this, counting each offset once (retransmits/overlaps consume no new credit)
   uint64_t tx_next_offset;
   uint64_t rx_final_size;  // RFC 9000 §4.5: final size once known (FIN or RESET_STREAM)
   YAWT_Q_StreamFC_t fc;
