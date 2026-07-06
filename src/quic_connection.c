@@ -597,7 +597,9 @@ static YAWT_Err_t _drain_stream_rx(YAWT_Q_Context_t *con, YAWT_Q_StreamUserData_
   ANB_SlabIter_t iter = {0};
   size_t item_size;
   uint8_t *item;
-  while ((item = ANB_slab_peek_item_iter(con->stream_rx, &iter, &item_size)) != NULL) {
+  for (;;) {
+    item = ANB_slab_peek_item_iter(con->stream_rx, &iter, &item_size);
+    if (item == NULL) break;
     YAWT_Q_Frame_BufferedStream_t *bf = (YAWT_Q_Frame_BufferedStream_t *)item;
     YAWT_Q_Frame_Stream_t *f = &bf->frame;
     if (f->stream_id != SUD_META(sud)->stream_id) continue;
@@ -889,14 +891,7 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
           param.P_EVT_STREAM.frame = &frame.stream;
           param.P_EVT_STREAM.stream_ud = sud;
           _event_handler(con, YAWT_Q_EVT_STREAM, param);
-
-          YAWT_Err_t drain_err = _drain_stream_rx(con, sud);
-          if (drain_err == YAWT_Q_ERR_FINAL_SIZE_ERROR) {
-            _send_connection_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
-            _record_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, "final size error in buffered data",
-                          sizeof("final size error in buffered data") - 1,
-                          YAWT_Q_STATE_SELF_CLOSE_CLOSING);
-          }
+          goto RXDRAIN; //drain any buffered frames now that gap is filled
 
         } else {
           // RFC 9000 §21.7: stream fragmentation attack mitigation.
@@ -927,6 +922,17 @@ static YAWT_Q_FrameHandler_Res_t _handle_frames(YAWT_Q_Context_t *con,
 
             buf->frame = frame.stream;
             memcpy(buf->data, frame.stream.data, frame.stream.data_len);
+            goto RXDRAIN; 
+          }
+        }
+        RXDRAIN:
+        {
+          YAWT_Err_t drain_err = _drain_stream_rx(con, sud);
+          if (drain_err == YAWT_Q_ERR_FINAL_SIZE_ERROR) {
+            _send_connection_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, YAWT_Q_FRAME_STREAM);
+            _record_close(con, YAWT_Q_ERR_FINAL_SIZE_ERROR, "final size error in buffered data",
+                          sizeof("final size error in buffered data") - 1,
+                          YAWT_Q_STATE_SELF_CLOSE_CLOSING);
           }
         }
         break;
@@ -1272,7 +1278,7 @@ void YAWT_q_con_rx(uint8_t *data, size_t len, YAWT_Q_Crypto_Cred_t *cred,
     con->stats.next_pkt_num_rx[level] = full_pn + 1;
 
 
-   YAWT_LOG(YAWT_LOG_DEBUG, "pkt type: %u rx pkt payload: %s",pkt.type,
+   YAWT_LOG(YAWT_LOG_DEBUG, "rx pkt type: %u len:%i payload: %s",pkt.type,(int)pkt.payload_len,
     YAWT_q_blob_to_hex(pkt.payload, pkt.payload_len));
 
     // Parse frames from decrypted payload

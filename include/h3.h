@@ -29,7 +29,6 @@
  * @internal
  * @ingroup H3_Internal
  * @brief Parse the next H3 frame header from a QUIC stream chunk.
- * @param h3con The H3 connection.
  * @param chunk The QUIC stream frame carrying the bytes.
  * @param stream The stream to update (type resolved on first call, then frame state).
  * @param cursor In/out: position in chunk->data. Advanced as bytes are consumed.
@@ -37,13 +36,15 @@
  *         YAWT_H3_ERR_INCOMPLETE if more data needed.
  *         YAWT_H3_IGNORED if stream type doesn't carry H3 frames (QPACK/WT/unknown).
  *         Error codes for malformed data or policy violations.
- * @note This is the single gatekeeper: handles stream type resolution, frame header parsing,
+ * @note Connection-agnostic: handles stream type resolution, frame header parsing,
  *       buffering decisions (SETTINGS/HEADERS get blobs), and security policy checks.
+ *       Connection-state-dependent compliance (core stream registration, connection
+ *       close) is handled by the caller via _h3_compliance_check_stream().
+ *       This separation enables unit testing and fuzzing without a full connection.
  *       Blobs are lazy-allocated and destroyed after the buffered frame is
  *       dispatched; hdr_buffer is preserved across frames to avoid churn.
  */
-YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
-                                      const YAWT_Q_Frame_Stream_t *chunk,
+YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
                                       YAWT_H3_Stream_t *stream,
                                       size_t *cursor);
 

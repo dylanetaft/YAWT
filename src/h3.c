@@ -393,6 +393,48 @@ static inline YAWT_H3_Error_t _gate_h3_stream_type2(
   return YAWT_H3_OK;
 }
 
+// ---------------------------------------------------------------------------
+// Compliance checks — connection-state-dependent policy enforcement.
+// Separated from the pure parser (YAWT_h3_parse_frame2) so the parser can
+// be tested/fuzzed without constructing a full connection.
+// ---------------------------------------------------------------------------
+
+// Core stream duplicate registration: tracks peer control/QPACK stream IDs
+// and rejects duplicates per RFC 9114 §6.2.1 and RFC 9204 §4.2.
+// Called by YAWT_h3_on_event after the parser resolves the stream type.
+static YAWT_H3_Error_t _h3_compliance_check_stream(
+    YAWT_H3_Context_t *h3con,
+    uint64_t stream_id,
+    YAWT_H3_StreamType_t stream_type) {
+
+  switch (stream_type) {
+    case YAWT_H3_STREAM_CONTROL:
+      return YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_CONTROL, stream_id);
+    case YAWT_H3_STREAM_QPACK_ENCODER:
+      return YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_ENCODER, stream_id);
+    case YAWT_H3_STREAM_QPACK_DECODER:
+      return YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_DECODER, stream_id);
+    default:
+      return YAWT_H3_OK;
+  }
+}
+
+// Check if a stream ID belongs to a registered critical stream (control/QPACK).
+// Per RFC 9114 §6.2.1 and RFC 9204 §4.2, closing a critical stream is a
+// connection error (H3_CLOSED_CRITICAL_STREAM).
+static bool _h3_is_critical_stream(
+    const YAWT_H3_Context_t *h3con,
+    uint64_t stream_id) {
+
+  for (int i = 0; i < YAWT_H3_UNIQUE_STREAM_COUNT; i++) {
+    if (h3con->core_stream_status[i].available &&
+        h3con->core_stream_status[i].stream_id == stream_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Gate: parse frame header (type + length) by buffering into
 // stream->frame.hdr_buffer, then decoding via _gather_h3_frame_hdr2.
 // Mirrors the WT layer's pattern: fast-path tries remaining chunk data;
@@ -625,11 +667,10 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
 // H3 frame parser. Uses blob-backed accumulation
 // (_gate_h3_stream_type2 / _gate_h3_frame_head2) with lazy allocation.
 // Blobs are cleared (not destroyed) between frames to reuse allocations.
-YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
-                                      const YAWT_Q_Frame_Stream_t *chunk,
+YAWT_H3_Error_t YAWT_h3_parse_frame2(const YAWT_Q_Frame_Stream_t *chunk,
                                       YAWT_H3_Stream_t *stream,
                                       size_t *cursor) {
-  if (!h3con || !chunk || !stream || !cursor) {
+  if (!chunk || !stream || !cursor) {
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
@@ -670,32 +711,8 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
 
     YAWT_LOG(YAWT_LOG_INFO, "h3: stream %lu resolved type %d (v2)", chunk->stream_id, stream->type);
 
-    // Duplicate detection and peer stream ID tracking for critical streams
-    if (stream->type == YAWT_H3_STREAM_CONTROL) {
-      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_CONTROL, chunk->stream_id);
-      if (err != YAWT_H3_OK) {
-        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate control stream, stream_id=%lu", chunk->stream_id);
-        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
-        return YAWT_H3_ERR_MALFORMED;
-      }
-      YAWT_LOG(YAWT_LOG_INFO, "h3: peer control stream %lu", chunk->stream_id);
-    } else if (stream->type == YAWT_H3_STREAM_QPACK_ENCODER) {
-      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_ENCODER, chunk->stream_id);
-      if (err != YAWT_H3_OK) {
-        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate QPACK encoder stream, stream_id=%lu", chunk->stream_id);
-        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
-        return YAWT_H3_ERR_MALFORMED;
-      }
-      YAWT_LOG(YAWT_LOG_INFO, "h3: peer QPACK encoder stream %lu", chunk->stream_id);
-    } else if (stream->type == YAWT_H3_STREAM_QPACK_DECODER) {
-      YAWT_H3_Error_t err = YAWT_h3_core_stream_set(h3con, YAWT_H3_UNIQUE_STREAM_PEER_QPACK_DECODER, chunk->stream_id);
-      if (err != YAWT_H3_OK) {
-        YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate QPACK decoder stream, stream_id=%lu", chunk->stream_id);
-        YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
-        return YAWT_H3_ERR_MALFORMED;
-      }
-      YAWT_LOG(YAWT_LOG_INFO, "h3: peer QPACK decoder stream %lu", chunk->stream_id);
-    }
+    // Core stream duplicate detection moved to _h3_compliance_check_stream()
+    // in the caller (YAWT_h3_on_event) — parser is connection-agnostic.
   }
 
   // Dispatch by resolved stream type
@@ -738,7 +755,6 @@ YAWT_H3_Error_t YAWT_h3_parse_frame2(YAWT_H3_Context_t *h3con,
             YAWT_LOG(YAWT_LOG_ERROR,
                      "h3: HEADERS frame %lu exceeds max_field_section_size %lu, stream_id=%lu",
                      f->payload_len, sec->max_field_section_size, stream->id);
-            YAWT_q_con_close(h3con->qcon, YAWT_ERR_H3_EXCESSIVE_LOAD);
             return YAWT_H3_ERR_TOO_LARGE;
           }
           if (sec->max_frame_buffer_bytes &&
@@ -886,27 +902,39 @@ YAWT_H3_Error_t YAWT_h3_on_event(YAWT_Q_Context_t *con, YAWT_Q_EventType_t event
       }
 
       while (cursor < chunk->data_len) {
-        YAWT_H3_Error_t err = YAWT_h3_parse_frame2(h3, chunk, stream, &cursor);
+        YAWT_H3_StreamType_t prev_type = stream->type;
 
-        if (chunk->fin && stream) {
-          bool is_core = false;
-          for (int i = 0; i < YAWT_H3_UNIQUE_STREAM_COUNT; i++) {
-            if (h3->core_stream_status[i].available && h3->core_stream_status[i].stream_id == chunk->stream_id) {
-              is_core = true;
-              break;
-            }
+        YAWT_H3_Error_t err = YAWT_h3_parse_frame2(chunk, stream, &cursor);
+
+        // Compliance: if stream type just resolved, register core streams
+        // and reject duplicates per RFC 9114 §6.2.1 / RFC 9204 §4.2.
+        if (prev_type == YAWT_H3_STREAM_UNASSIGNED &&
+            stream->type != YAWT_H3_STREAM_UNASSIGNED) {
+          YAWT_H3_Error_t cerr = _h3_compliance_check_stream(h3, chunk->stream_id, stream->type);
+          if (cerr != YAWT_H3_OK) {
+            YAWT_LOG(YAWT_LOG_ERROR, "h3: duplicate critical stream (type=%d), stream_id=%lu",
+                     stream->type, chunk->stream_id);
+            YAWT_q_con_close(h3->qcon, YAWT_ERR_H3_STREAM_CREATION_ERROR);
+            return cerr;
           }
-          if (is_core) {
-            YAWT_LOG(YAWT_LOG_ERROR, "h3: critical stream %lu closed (type=%d)",
-                     chunk->stream_id, stream->type);
-            YAWT_q_con_close(h3->qcon, YAWT_ERR_H3_CLOSED_CRITICAL_STREAM);
-            return YAWT_H3_ERR_MALFORMED;
-          }
+        }
+
+        // Critical stream close check per RFC 9114 §6.2.1 / RFC 9204 §4.2
+        if (chunk->fin && _h3_is_critical_stream(h3, chunk->stream_id)) {
+          YAWT_LOG(YAWT_LOG_ERROR, "h3: critical stream %lu closed (type=%d)",
+                   chunk->stream_id, stream->type);
+          YAWT_q_con_close(h3->qcon, YAWT_ERR_H3_CLOSED_CRITICAL_STREAM);
+          return YAWT_H3_ERR_MALFORMED;
         }
 
         if (err == YAWT_H3_IGNORED) continue;
         if (err == YAWT_H3_ERR_INCOMPLETE) return YAWT_H3_OK;
         if (err != YAWT_H3_OK) {
+          // HEADERS exceeding max_field_section_size is a connection error
+          if (err == YAWT_H3_ERR_TOO_LARGE &&
+              stream->frame.type == YAWT_H3_FRAME_HEADERS) {
+            YAWT_q_con_close(h3->qcon, YAWT_ERR_H3_EXCESSIVE_LOAD);
+          }
           YAWT_LOG(YAWT_LOG_ERROR, "h3: parse error on stream %lu: %s",
                    chunk->stream_id, YAWT_h3_err_str(err));
           return err;
