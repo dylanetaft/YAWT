@@ -17,12 +17,16 @@
 #include "crypt.h"
 
 /**
- * @ingroup QUIC_Connection 
- * @brief Peer address — always stored as IPv6 (IPv4 mapped to ::ffff:x.x.x.x).
+ * @ingroup QUIC_Connection
+ * @brief Opaque peer address — the app's own native sockaddr (in/in6/storage).
+ * @note QUIC copies the bytes on connect and hands them back verbatim in EVT_TX;
+ *       it never inspects them (routing is by CID). In a connection, `addr` is
+ *       owned (dup'd in con_create, freed in con_free). As a con_rx / Create_Info
+ *       input it is borrowed — con_create makes its own copy.
  */
 typedef struct YAWT_Q_PeerAddr_t {
-  uint8_t  addr[16];
-  uint16_t port;
+  void  *addr;   // opaque native sockaddr
+  size_t len;
 } YAWT_Q_PeerAddr_t;
 
 /**

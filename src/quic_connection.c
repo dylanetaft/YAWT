@@ -242,7 +242,11 @@ YAWT_Q_Context_t *YAWT_q_con_create(YAWT_Q_Con_Create_Info_t *info) {
   con->tx_buffer = ANB_slab_create(4096);
   con->stream_rx = ANB_slab_create(4096);
   con->stream_userdata = ANB_slab_create(4096);
-  con->peer_addr = info->peer_addr;
+  if (info->peer_addr.addr && info->peer_addr.len) {
+    con->peer_addr.addr = malloc(info->peer_addr.len);
+    memcpy(con->peer_addr.addr, info->peer_addr.addr, info->peer_addr.len);
+    con->peer_addr.len = info->peer_addr.len;
+  }   // else {NULL,0} — con is calloc'd
   con->local_fc = info->local_fc ? *info->local_fc : *YAWT_q_security_get_default_fc();
   con->crypto = YAWT_q_crypto_init(info->is_server ? YAWT_Q_ROLE_SERVER : YAWT_Q_ROLE_CLIENT,
                                     info->cred,
@@ -377,6 +381,7 @@ void YAWT_q_con_free(YAWT_Q_Context_t **con) {
     if (sud->user_data[YAWT_UD_APP] != NULL) free(sud->user_data[YAWT_UD_APP]);
   }
   ANB_slab_destroy(c->stream_userdata);
+  free(c->peer_addr.addr);
   free(c);
   *con = NULL;
 }

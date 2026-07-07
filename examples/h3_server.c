@@ -20,68 +20,25 @@ static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
 
 
-static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_storage *ss) {
-  YAWT_Q_PeerAddr_t pa;
-  memset(&pa, 0, sizeof(pa));
-  if (ss->ss_family == AF_INET) {
-    const struct sockaddr_in *sa = (const struct sockaddr_in *)ss;
-    pa.addr[10] = 0xff;
-    pa.addr[11] = 0xff;
-    memcpy(&pa.addr[12], &sa->sin_addr.s_addr, 4);
-    pa.port = sa->sin_port;
-  } else {
-    const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)ss;
-    memcpy(pa.addr, &sa6->sin6_addr, 16);
-    pa.port = sa6->sin6_port;
-  }
-  return pa;
-}
-
-static int _is_ipv4_mapped(const YAWT_Q_PeerAddr_t *pa) {
-  for (int i = 0; i < 10; i++) {
-    if (pa->addr[i] != 0) return 0;
-  }
-  return pa->addr[10] == 0xff && pa->addr[11] == 0xff;
-}
-
-
-static socklen_t _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa,
-                                    struct sockaddr_storage *ss) {
-  memset(ss, 0, sizeof(*ss));
-  if (_is_ipv4_mapped(pa)) {
-    struct sockaddr_in *sa = (struct sockaddr_in *)ss;
-    sa->sin_family = AF_INET;
-    sa->sin_port = pa->port;
-    memcpy(&sa->sin_addr.s_addr, &pa->addr[12], 4);
-    return sizeof(*sa);
-  } else {
-    struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)ss;
-    sa6->sin6_family = AF_INET6;
-    sa6->sin6_port = pa->port;
-    memcpy(&sa6->sin6_addr, pa->addr, 16);
-    return sizeof(*sa6);
-  }
-}
 static void udp_send(const uint8_t *buf, size_t len,
                        const YAWT_Q_PeerAddr_t *peer_addr) {
-  struct sockaddr_storage ss;
-  socklen_t ss_len = _peer_to_sockaddr(peer_addr, &ss);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
-                         (struct sockaddr *)&ss, ss_len);
+                         (const struct sockaddr *)peer_addr->addr, peer_addr->len);
   if (nsent < 0) {
     perror("sendto");
     return;
   }
+  const struct sockaddr *sa = (const struct sockaddr *)peer_addr->addr;
   char addr_str[INET6_ADDRSTRLEN];
   uint16_t port;
-  if (ss.ss_family == AF_INET) {
-    struct sockaddr_in *sa = (struct sockaddr_in *)&ss;
-    inet_ntop(AF_INET, &sa->sin_addr, addr_str, sizeof(addr_str));
-    port = ntohs(sa->sin_port);
+  if (sa->sa_family == AF_INET) {
+    const struct sockaddr_in *s4 = (const struct sockaddr_in *)sa;
+    inet_ntop(AF_INET, &s4->sin_addr, addr_str, sizeof(addr_str));
+    port = ntohs(s4->sin_port);
   } else {
-    struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)&ss;
-    inet_ntop(AF_INET6, &sa6->sin6_addr, addr_str, sizeof(addr_str));
-    port = ntohs(sa6->sin6_port);
+    const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *)sa;
+    inet_ntop(AF_INET6, &s6->sin6_addr, addr_str, sizeof(addr_str));
+    port = ntohs(s6->sin6_port);
   }
   YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes to %s:%d\n",
            nsent, addr_str, port);
@@ -187,7 +144,7 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
   }
   printf("recv %zd bytes from %s:%d\n", nread, addr_str, port);
 
-  YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
+  YAWT_Q_PeerAddr_t peer = { .addr = &from_addr, .len = from_len };
   double now = ev_now(loop);
   YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer, now);
 }

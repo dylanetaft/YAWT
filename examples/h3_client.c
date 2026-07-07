@@ -25,35 +25,14 @@ static char req_host[256];
 static char req_path[2048];
 static char req_port[16];
 
-static YAWT_Q_PeerAddr_t server_addr;
+static struct sockaddr_in server_addr;
 static ANB_Blob_t *recv_blob;
-
-static YAWT_Q_PeerAddr_t _sockaddr_to_peer(const struct sockaddr_in *sa) {
-  YAWT_Q_PeerAddr_t pa;
-  memset(&pa, 0, sizeof(pa));
-  pa.addr[10] = 0xff;
-  pa.addr[11] = 0xff;
-  memcpy(&pa.addr[12], &sa->sin_addr.s_addr, 4);
-  pa.port = sa->sin_port;
-  return pa;
-}
-
-static struct sockaddr_in _peer_to_sockaddr(const YAWT_Q_PeerAddr_t *pa) {
-  struct sockaddr_in sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sin_family = AF_INET;
-  sa.sin_port = pa->port;
-  memcpy(&sa.sin_addr.s_addr, &pa->addr[12], 4);
-  return sa;
-}
 
 static void udp_send(const uint8_t *buf, size_t len,
                       const YAWT_Q_PeerAddr_t *peer_addr) {
-  struct sockaddr_in sa = _peer_to_sockaddr(peer_addr);
   ssize_t nsent = sendto(sockfd, buf, len, 0,
-                         (struct sockaddr *)&sa, sizeof(sa));
-  YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes to %s:%d\n",
-           nsent, inet_ntoa(sa.sin_addr), ntohs(sa.sin_port));
+                         (const struct sockaddr *)peer_addr->addr, peer_addr->len);
+  YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes", nsent);
 }
 
 static void h3_app_handler(YAWT_H3_Context_t *h3con,
@@ -163,7 +142,7 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
     return;
   }
 
-  YAWT_Q_PeerAddr_t peer = _sockaddr_to_peer(&from_addr);
+  YAWT_Q_PeerAddr_t peer = { .addr = &from_addr, .len = from_len };
   double now = ev_now(loop);
   YAWT_q_con_rx(recv_buf, (size_t)nread, client_cred, &peer, now);
 }
@@ -246,7 +225,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  server_addr = _sockaddr_to_peer((struct sockaddr_in *)res->ai_addr);
+  memcpy(&server_addr, res->ai_addr, sizeof(server_addr));
 
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sockfd < 0) {
@@ -261,7 +240,7 @@ int main(int argc, char *argv[]) {
   memset(&info, 0, sizeof(info));
   info.is_server = 0;
   info.cred = client_cred;
-  info.peer_addr = server_addr;
+  info.peer_addr = (YAWT_Q_PeerAddr_t){ .addr = &server_addr, .len = sizeof(server_addr) };
   info.hostname = req_host;
 
   main_loop = ev_default_loop(0);
