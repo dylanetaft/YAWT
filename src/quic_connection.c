@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 #include <float.h>
 
-#define SUD_META(sud) ((YAWT_Q_StreamMeta_t *)((sud)->user_data[YAWT_UD_QUIC]))
+#define SUD_META(sud) ((YAWT_Q_Stream_t *)((sud)->user_data[YAWT_UD_QUIC]))
 
 // Process-wide event handler — installed via YAWT_q_con_set_event_handler.
 // Defaults to a no-op so dispatch sites never need to null-check.
@@ -124,7 +124,7 @@ static void _process_ack(YAWT_Q_Context_t *con, uint8_t level,
  * @note Returns true if TX is active (no FIN sent, no RESET sent, not stopped by peer).
  */
 
-static inline bool _stream_state_allows_tx(const YAWT_Q_StreamMeta_t *m) {
+static inline bool _stream_state_allows_tx(const YAWT_Q_Stream_t *m) {
   return !(m->state & (YAWT_Q_STREAM_FIN_SENT | YAWT_Q_STREAM_RESET_SENT | YAWT_Q_STREAM_STOPPED_RECEIVED));
 }
 
@@ -134,7 +134,7 @@ static inline bool _stream_state_allows_tx(const YAWT_Q_StreamMeta_t *m) {
  * @brief Check if stream should receive data.
  * @note Returns true if RX is active (no FIN received, no RESET received, not stopped by us).
  */
-static inline bool _stream_should_rx(const YAWT_Q_StreamMeta_t *m) {
+static inline bool _stream_should_rx(const YAWT_Q_Stream_t *m) {
   return !(m->state & (YAWT_Q_STREAM_FIN_RECEIVED | YAWT_Q_STREAM_RESET_RECEIVED | YAWT_Q_STREAM_STOPPED_SENT));
 }
 // RFC 9000 §4.1: Connection-level flow control threshold check.
@@ -484,7 +484,7 @@ static YAWT_Q_StreamUserData_t *_stream_meta_add(YAWT_Q_Context_t *con, uint64_t
   sud->stream_id = stream_id;
   
   // Malloc QUIC stream metadata
-  YAWT_Q_StreamMeta_t *meta = (YAWT_Q_StreamMeta_t *)malloc(sizeof(YAWT_Q_StreamMeta_t));
+  YAWT_Q_Stream_t *meta = (YAWT_Q_Stream_t *)malloc(sizeof(YAWT_Q_Stream_t));
   if (!meta) return NULL;
   memset(meta, 0, sizeof(*meta));
   meta->stream_id = stream_id;

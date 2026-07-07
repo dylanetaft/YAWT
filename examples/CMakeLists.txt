@@ -1,6 +1,6 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-foreach(target h3_server h3_client wt_server)
+foreach(target h3_server h3_client minimal_h3_client wt_server)
     add_executable(${target} ${target}.c)
 
     target_compile_definitions(${target} PRIVATE
