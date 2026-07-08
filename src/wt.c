@@ -535,6 +535,61 @@ YAWT_WT_Error_t YAWT_wt_send_datagram(YAWT_WT_Context_t *ctx,
   return YAWT_WT_OK;
 }
 
+YAWT_WT_Error_t YAWT_wt_open_stream(YAWT_WT_Context_t *ctx,
+                                      uint64_t session_id,
+                                      YAWT_WT_StreamDir_t dir,
+                                      uint64_t *out_stream_id) {
+  if (!ctx || !ctx->qcon || !out_stream_id) return YAWT_WT_ERR_INVALID_PARAM;
+
+  YAWT_WT_Session_t *session = _wt_session_find(ctx, session_id);
+  if (!session) return YAWT_WT_ERR_NO_SESSION;
+
+  // Pick the local stream ID for this direction; the allocator derives the role
+  // half of the stream type from con->role (RFC 9000 §2.1).
+  YAWT_WT_WireStreamType_t wire = (dir == YAWT_WT_DIR_BIDI)
+      ? YAWT_WT_STREAM_WIRE_WT_BIDI : YAWT_WT_STREAM_WIRE_WT_UNI;
+  uint64_t stream_id = YAWT_q_con_next_stream_id(ctx->qcon, dir == YAWT_WT_DIR_BIDI);
+
+  // Build the WT stream header: [type/signal varint][Session ID varint] (draft-15 §4.2/§4.3).
+  uint64_t sid = session->connect_stream_id;
+  size_t wire_sz = YAWT_q_varint_size(wire);
+  size_t sid_sz = YAWT_q_varint_size(sid);
+  if (wire_sz == 0 || sid_sz == 0) return YAWT_WT_ERR_INVALID_PARAM;
+  uint8_t hdr[16];
+  uint64_t written = 0;
+  if (YAWT_q_varint_encode(wire, hdr, wire_sz, &written) != YAWT_Q_OK) return YAWT_WT_ERR_SHORT_BUFFER;
+  if (YAWT_q_varint_encode(sid, hdr + wire_sz, sid_sz, &written) != YAWT_Q_OK) return YAWT_WT_ERR_SHORT_BUFFER;
+
+  // send_stream runs the QUIC MAX_STREAMS check before creating the stream, so a
+  // limit failure leaves no partial state. (WT-level WT_MAX_STREAMS is not enforced.)
+  YAWT_Q_IoVec_t iov = { .buf = hdr, .len = wire_sz + sid_sz };
+  if (YAWT_q_con_send_stream(ctx->qcon, stream_id, &iov, 1, 0) != YAWT_Q_OK) {
+    YAWT_LOG(YAWT_LOG_WARN, "wt: open_stream: send_stream failed for stream %lu (max_streams?)", stream_id);
+    return YAWT_WT_ERR_INVALID_PARAM;
+  }
+
+  // Record the WT stream so send_data() carries raw payload (header already sent).
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(ctx->qcon, stream_id);
+  if (!sud) return YAWT_WT_ERR_INVALID_PARAM;
+  YAWT_WT_Stream_t *wt_stream = calloc(1, sizeof(*wt_stream));
+  if (!wt_stream) return YAWT_WT_ERR_SHORT_BUFFER;
+  wt_stream->type = wire;
+  wt_stream->session_id = session_id;
+  wt_stream->session = session;
+  wt_stream->hdr_complete = true;
+  sud->user_data[YAWT_UD_WT] = wt_stream;
+
+  if (dir == YAWT_WT_DIR_BIDI) session->open_streams_bidi++;
+  else session->open_streams_uni++;
+  // TODO: enforce the WT session-level WT_MAX_STREAMS limit (draft-15 §5.3) once
+  // flow-control negotiation lands; only QUIC's MAX_STREAMS is checked today.
+
+  *out_stream_id = stream_id;
+  YAWT_LOG(YAWT_LOG_INFO, "wt: opened %s stream %lu for session %lu",
+           dir == YAWT_WT_DIR_BIDI ? "bidi" : "uni", stream_id, session_id);
+  return YAWT_WT_OK;
+}
+
 YAWT_WT_Error_t YAWT_wt_send_data(YAWT_WT_Context_t *ctx,
                                     uint64_t session_id,
                                     uint64_t stream_id,
@@ -545,26 +600,35 @@ YAWT_WT_Error_t YAWT_wt_send_data(YAWT_WT_Context_t *ctx,
   YAWT_WT_Session_t *session = _wt_session_find(ctx, session_id);
   if (!session) return YAWT_WT_ERR_NO_SESSION;
 
-  // Look up H3 stream to determine type
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(ctx->qcon, stream_id);
+  if (!sud) return YAWT_WT_ERR_INVALID_PARAM;
+
+  // WT data stream (uni/bidi): send raw payload. The WT header was written once —
+  // by YAWT_wt_open_stream() on the initiator, or by the receive path for a
+  // peer-initiated stream (both mark hdr_complete). No H3 metadata is involved.
+  if (_wt_stream_defined(sud)) {
+    YAWT_WT_Stream_t *wt_stream = sud->user_data[YAWT_UD_WT];
+    if (wt_stream->type == YAWT_WT_STREAM_WIRE_WT_UNI ||
+        wt_stream->type == YAWT_WT_STREAM_WIRE_WT_BIDI) {
+      YAWT_Q_IoVec_t iov = { .buf = data, .len = len };
+      if (YAWT_q_con_send_stream(ctx->qcon, stream_id, &iov, 1, fin) != YAWT_Q_OK)
+        return YAWT_WT_ERR_SHORT_BUFFER;
+      session->sent_data += len;
+      return YAWT_WT_OK;
+    }
+  }
+
+  // Otherwise this is the CONNECT stream — send as DATA frames via H3.
   YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(ctx->qcon, YAWT_UD_H3);
   if (!h3) return YAWT_WT_ERR_INVALID_PARAM;
-
-  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(ctx->qcon, stream_id);
-  YAWT_H3_Stream_t *h3_stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
+  YAWT_H3_Stream_t *h3_stream = sud->user_data[YAWT_UD_H3];
   if (!h3_stream) return YAWT_WT_ERR_INVALID_PARAM;
-
-  // Send data based on stream type
   if (h3_stream->type == YAWT_H3_STREAM_WT_CONNECT) {
-    // Upgraded CONNECT — send as capsules in DATA frames
-    // For now, just send raw data as DATA frames
     // TODO: proper capsule encoding
     return YAWT_h3_send_data(h3, stream_id, data, len, fin) == YAWT_H3_OK ?
            YAWT_WT_OK : YAWT_WT_ERR_SHORT_BUFFER;
-  } else {
-    // WT_UNI or WT_BIDI — send raw data
-    // TODO: implement raw stream sending
-    return YAWT_WT_ERR_INVALID_PARAM;
   }
+  return YAWT_WT_ERR_INVALID_PARAM;
 }
 
 YAWT_WT_Error_t YAWT_wt_send_capsule(YAWT_WT_Context_t *ctx,

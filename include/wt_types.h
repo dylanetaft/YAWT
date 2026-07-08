@@ -35,6 +35,15 @@ typedef enum {
 
 /**
  * @ingroup WebTransport
+ * @brief Direction of a WebTransport stream to open (draft-15 §4.2/§4.3).
+ */
+typedef enum {
+  YAWT_WT_DIR_UNI,   /**< Unidirectional (wire type 0x54) */
+  YAWT_WT_DIR_BIDI,  /**< Bidirectional (wire signal 0x41) */
+} YAWT_WT_StreamDir_t;
+
+/**
+ * @ingroup WebTransport
  * @brief WebTransport wire error codes (draft-15 §9.5).
  * @note These are sent in RESET_STREAM / CONNECTION_CLOSE when a WT-level
  *       protocol violation occurs.

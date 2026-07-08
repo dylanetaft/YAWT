@@ -548,6 +548,30 @@ static uint64_t _stream_count_by_type(ANB_Slab_t *userdata_slab, uint8_t stream_
   return count;
 }
 
+uint64_t YAWT_q_con_next_stream_id(YAWT_Q_Context_t *con, bool is_bidi) {
+  if (!con) return 0;
+  uint8_t stype = (con->role == YAWT_Q_ROLE_SERVER)
+                    ? (is_bidi ? YAWT_Q_S_BIDI : YAWT_Q_S_UNI)
+                    : (is_bidi ? YAWT_Q_C_BIDI : YAWT_Q_C_UNI);
+  ANB_SlabIter_t iter = {0};
+  size_t item_size;
+  uint8_t *item;
+  bool found = false;
+  uint64_t max_id = 0;
+  while ((item = ANB_slab_peek_item_iter(con->stream_userdata, &iter, &item_size)) != NULL) {
+    YAWT_Q_StreamUserData_t *sud = (YAWT_Q_StreamUserData_t *)item;
+    if ((sud->stream_id & 0x03) == stype && (!found || sud->stream_id > max_id)) {
+      max_id = sud->stream_id;
+      found = true;
+    }
+  }
+  // RFC 9000 §2.1: stream IDs of a given type step by 4; the base ID equals the
+  // type's low-2-bit value (C_BIDI=0, S_BIDI=1, C_UNI=2, S_UNI=3). Scanning the
+  // live slab is self-avoiding: it steps past H3's already-registered control/QPACK
+  // and CONNECT streams without hardcoding their IDs.
+  return found ? max_id + 4 : stype;
+}
+
 // RFC 9000 §4.5: Validate stream data against known final size.
 // Returns YAWT_Q_OK if data is within bounds, YAWT_Q_ERR_FINAL_SIZE_ERROR if violation.
 // Updates rx_final_size if FIN is set and final size not yet known.

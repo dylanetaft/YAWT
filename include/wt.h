@@ -88,6 +88,31 @@ void YAWT_wt_set_event_handler(YAWT_WT_Context_t *ctx, YAWT_WT_EventHandler_t ha
 
 /**
  * @ingroup WebTransport
+ * @brief Open a new locally-initiated WebTransport data stream.
+ *
+ * Allocates the next local stream ID of the requested direction, writes the WT
+ * stream header (draft-15 §4.2/§4.3: stream-type/signal varint + Session ID
+ * varint) as the first bytes, and registers the stream so subsequent
+ * YAWT_wt_send_data() calls carry raw payload only.
+ *
+ * @param ctx           The WT context.
+ * @param session_id    The WT session ID (must be an established session).
+ * @param dir           YAWT_WT_DIR_UNI or YAWT_WT_DIR_BIDI.
+ * @param out_stream_id Output: the allocated QUIC stream ID.
+ * @return YAWT_WT_OK on success; YAWT_WT_ERR_NO_SESSION if the session is
+ *         unknown; an error if the QUIC MAX_STREAMS limit is reached or on
+ *         allocation failure.
+ * @note Enforces only the QUIC connection-level MAX_STREAMS limit (checked by
+ *       YAWT_q_con_send_stream). The WT session-level WT_MAX_STREAMS limit
+ *       (draft-15 §5.3) is not yet enforced.
+ */
+YAWT_WT_Error_t YAWT_wt_open_stream(YAWT_WT_Context_t *ctx,
+                                      uint64_t session_id,
+                                      YAWT_WT_StreamDir_t dir,
+                                      uint64_t *out_stream_id);
+
+/**
+ * @ingroup WebTransport
  * @brief Send data on a WT stream.
  * @param ctx The WT context.
  * @param session_id The WT session ID.

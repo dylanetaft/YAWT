@@ -52,8 +52,14 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
                param.P_EVT_SESSION_ESTABLISHED.session_id);
       break;
     case YAWT_WT_EVT_STREAM_DATA:
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, %.*s",
-                (int)param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.data);
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu stream=%lu (%zu bytes), echoing",
+                param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
+                param.P_EVT_STREAM_DATA.len);
+      /* Echo the bytes back on the same (client-initiated bidi) stream. */
+      YAWT_wt_send_data(ctx, param.P_EVT_STREAM_DATA.session_id,
+                        param.P_EVT_STREAM_DATA.stream_id,
+                        param.P_EVT_STREAM_DATA.data,
+                        param.P_EVT_STREAM_DATA.len, 0);
       break;
     case YAWT_WT_EVT_DATAGRAM:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: DATAGRAM, session=%lu (%zu bytes), echoing",
