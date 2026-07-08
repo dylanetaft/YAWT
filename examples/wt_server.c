@@ -15,6 +15,13 @@
 #include <wt_types.h>
 #include <security.h>
 
+// Minimal WebTransport echo server: accept a WT session, echo back any
+// stream data and datagrams the client sends.
+// The point of this example is the layering — QUIC events pump down into H3,
+// H3 events pump down into WT. You forward each event to the layer below
+// before doing any work of your own, then hang your app logic off the
+// highest layer (WT here) via its event handler.
+
 #define DEFAULT_PORT 4433
 #define BUF_SIZE 65535
 
@@ -22,6 +29,10 @@ static int sockfd;
 static YAWT_Q_Crypto_Cred_t *server_cred;
 static uint8_t recv_buf[BUF_SIZE];
 
+// UDP send callback for QUIC.
+// You can implement this with whichever socket library you want -
+// this uses standard BSD sockets. https://beej.us/guide/bgnet/
+// The address logging below is purely cosmetic.
 static void udp_send(const uint8_t *buf, size_t len,
                        const YAWT_Q_PeerAddr_t *peer_addr) {
   ssize_t nsent = sendto(sockfd, buf, len, 0,
@@ -42,6 +53,9 @@ static void udp_send(const uint8_t *buf, size_t len,
            nsent, addr_str, port);
 }
 
+// App-level WebTransport events. This is where your application lives:
+// a session came up, bytes arrived on a stream, or a datagram arrived.
+// This handler just echoes everything back to the client.
 static void wt_app_handler(YAWT_WT_Context_t *ctx,
                               YAWT_WT_Session_t *session,
                               YAWT_WT_EventType_t event,
@@ -55,7 +69,8 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
       YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, session=%lu stream=%lu (%zu bytes), echoing",
                 param.P_EVT_STREAM_DATA.session_id, param.P_EVT_STREAM_DATA.stream_id,
                 param.P_EVT_STREAM_DATA.len);
-      /* Echo the bytes back on the same (client-initiated bidi) stream. */
+      /* Echo the bytes back on the same (client-initiated bidi) stream.
+       * WT owns the stream lifecycle; you just hand it session+stream ids. */
       YAWT_wt_send_data(ctx, param.P_EVT_STREAM_DATA.session_id,
                         param.P_EVT_STREAM_DATA.stream_id,
                         param.P_EVT_STREAM_DATA.data,
@@ -77,6 +92,9 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
   }
 }
 
+// App-level H3 events. WebTransport rides on top of H3, so this handler is
+// mostly plumbing: forward every H3 event down into WT, then handle the few
+// things the app cares about (the CONNECT upgrade, and plain HTTP requests).
 static void h3_app_handler(YAWT_H3_Context_t *h3con,
                               YAWT_H3_EventType_t event,
                               YAWT_H3_EventParam_t param) {
@@ -97,8 +115,12 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
       YAWT_H3_Header_Field_t method = YAWT_h3_header_find_str(headers, ":method");
 
       if (method.name && strncmp(method.value, "CONNECT", method.value_len) == 0) {
+        /* A CONNECT is the WebTransport handshake; the actual accept/reject
+         * decision happens in WT_UPGRADE_REQUEST below, so nothing to do here. */
         YAWT_LOG(YAWT_LOG_INFO, "wt app: CONNECT request on stream %lu (handled by WT_UPGRADE event)", sid);
       } else {
+        /* Any ordinary GET/POST — reply with a canned HTTP/3 response so the
+         * same server answers a browser as well as a WebTransport client. */
         YAWT_LOG(YAWT_LOG_INFO, "wt app: non-CONNECT request on stream %lu", sid);
         const char *body = "Hello, HTTP/3!";
         size_t body_len = strlen(body);
@@ -130,7 +152,9 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
       break;
     case YAWT_H3_EVT_DATA: {
       uint64_t sid = param.P_EVT_DATA.stream_id;
-      /* If the stream is a WT_CONNECT, feed DATA bytes to the per-session
+      /* WT stream/datagram payloads surface as WT events (handled in
+       * wt_app_handler); the only H3 DATA we care about here is capsules.
+       * If the stream is a WT_CONNECT, feed DATA bytes to the per-session
        * capsule parser. Capsule types (CLOSE_SESSION, DRAIN_SESSION, etc.)
        * flow on the CONNECT stream per draft-15 §6. */
       uint64_t stype = YAWT_h3_stream_get_type(h3con, sid);
@@ -159,13 +183,19 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
   }
 }
 
+// QUIC-level events. This is the top of the pump: forward each event to the
+// H3 and WT layers, then wire up our app handlers once the connection is up.
 static void on_event(YAWT_Q_Context_t *con,
                        YAWT_Q_EventType_t event,
                        YAWT_Q_EventParam_t param) {
+  // Pass every QUIC event to the downstream protocols first. H3 bootstraps its
+  // context on CONNECTED; WT bootstraps off H3, so order matters here.
   YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
   YAWT_wt_on_event(con, event, param);
 
   if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
+    // The layers created their contexts while handling CONNECTED above, so we
+    // can now fetch them and attach our own handlers to receive app events.
     YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
     YAWT_WT_Context_t *wt = YAWT_q_con_get_user_data(con, YAWT_UD_WT);
     if (h3) {
@@ -181,6 +211,7 @@ static void on_event(YAWT_Q_Context_t *con,
     YAWT_LOG(YAWT_LOG_DEBUG, "h3: event %d ignored", event);
   }
 
+  // The library hands us fully-formed QUIC packets to put on the wire.
   switch (event) {
     case YAWT_Q_EVT_TX:
       udp_send(param.P_EVT_TX.buf, param.P_EVT_TX.len, param.P_EVT_TX.peer);
@@ -221,6 +252,9 @@ static void udp_read_cb(EV_P_ ev_io *w, int revents) {
   YAWT_q_con_rx(recv_buf, (size_t)nread, server_cred, &peer, now);
 }
 
+// QUIC connections need periodic maintenance for retransmissions, timeouts,
+// and other protocol-level bookkeeping. Call YAWT_q_con_maintain() on a timer;
+// the library tells us how soon it needs to run again via the maint config.
 static void maintain_cb(EV_P_ ev_timer *w, int revents) {
   (void)w;
   (void)revents;
@@ -247,6 +281,8 @@ int main(int argc, char *argv[]) {
 
   gnutls_global_init();
 
+  // WebTransport resource limits advertised to clients. These bound how many
+  // sessions/streams a peer may open and how much data it may send.
   YAWT_WT_SecurityPolicy_t wt_policy = {
     .max_sessions = 8,
     .initial_max_streams_uni = 100,
@@ -255,6 +291,8 @@ int main(int argc, char *argv[]) {
   };
   YAWT_wt_security_set(&wt_policy);
 
+  // Load the server cert + key. A server needs both; there's no system trust
+  // store fallback like the client has.
   server_cred = YAWT_q_crypto_cred_new(cert_file, key_file, NULL);
   if (!server_cred) {
     YAWT_LOG(YAWT_LOG_ERROR, "failed to load cert %s / key %s", cert_file, key_file);
@@ -265,9 +303,14 @@ int main(int argc, char *argv[]) {
     YAWT_LOG(YAWT_LOG_WARN, "certificate validation failed");
   }
 
+  // Register the QUIC event handler. On the server side there's no connect
+  // call — the library spins up a connection context when the first packet of
+  // a new connection arrives via YAWT_q_con_rx().
   YAWT_q_con_set_event_handler(on_event);
 
   YAWT_LOG(YAWT_LOG_INFO, "Starting WebTransport server...");
+  // Standard BSD sockets again - a dual-stack IPv6 socket (v6only off below)
+  // so it accepts both IPv4 and IPv6 clients. https://beej.us/guide/bgnet/
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
     perror("socket");
@@ -294,6 +337,9 @@ int main(int argc, char *argv[]) {
 
   printf("WebTransport server listening on udp [::]:%d\n", port);
 
+  // We use libev for this example, but any async I/O library works: the
+  // library is driven purely by feeding it received bytes (YAWT_q_con_rx)
+  // and ticking maintenance (YAWT_q_con_maintain). https://github.com/enki/libev
   struct ev_loop *loop = ev_default_loop(0);
   ev_io udp_watcher;
   ev_io_init(&udp_watcher, udp_read_cb, sockfd, EV_READ);
