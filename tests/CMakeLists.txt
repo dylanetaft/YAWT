@@ -42,4 +42,7 @@ if(BUILD_EXAMPLES)
   add_test(NAME h3_client_integration
     COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/integration/test_h3_client.py
   )
+  add_test(NAME wt_integration
+    COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/integration/test_wt.py
+  )
 endif()

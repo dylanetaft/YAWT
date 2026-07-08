@@ -137,18 +137,6 @@ static YAWT_WT_Session_t *_wt_session_find_or_create(YAWT_WT_Context_t *ctx, uin
   return NULL;
 }
 
-YAWT_WT_Error_t YAWT_wt_session_accept(YAWT_WT_Context_t *ctx, uint64_t session_id) {
-  if (!ctx) return YAWT_WT_ERR_INVALID_PARAM;
-  YAWT_WT_Session_t *session = _wt_session_find_or_create(ctx, session_id);
-  if (!session) {
-    YAWT_LOG(YAWT_LOG_ERROR, "wt: session_accept: no free slot for session %lu", session_id);
-    return YAWT_WT_ERR_NO_SESSION;
-  }
-  YAWT_LOG(YAWT_LOG_INFO, "wt: session %lu accepted (connect_stream=%lu)",
-           session_id, session_id);
-  return YAWT_WT_OK;
-}
-
 static void _wt_emit_event(YAWT_WT_Context_t *ctx, YAWT_WT_Session_t *session,
                             YAWT_WT_EventType_t event, YAWT_WT_EventParam_t param) {
   if (ctx && ctx->app_handler) {
@@ -202,7 +190,10 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
   // so we can deliver to the app offset
   if (h3_stream) { //fast h3 check
     YAWT_H3_StreamType_t h3_type = h3_stream->type;
-    // If the stream is not a WT stream, we can ignore it
+    // If the stream is not a WT data stream, WT ignores it. The CONNECT stream
+    // (WT_CONNECT) lands here too: H3 owns its HEADERS/DATA, and its capsules and
+    // session lifecycle are driven from the H3-event pump (YAWT_wt_on_h3_event),
+    // not this QUIC stream path.
     if (h3_type != YAWT_H3_STREAM_UNASSIGNED && h3_type != YAWT_H3_STREAM_WT) {
       YAWT_LOG(YAWT_LOG_DEBUG, "wt: stream %lu owned by h3, ignore", chunk->stream_id);
       sud->user_data[YAWT_UD_WT] = (void *)&_wt_sentinal_stream_unused; //mark as unused
@@ -282,6 +273,46 @@ static YAWT_WT_Error_t _wt_gated_stream_create(YAWT_Q_Context_t *ctx, YAWT_Q_Str
   }
   wt_stream->session = wt_session; //draft-15 §2.2: session_id == CONNECT stream ID
 
+  return YAWT_WT_OK;
+}
+
+YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
+                                    YAWT_H3_EventType_t event,
+                                    YAWT_H3_EventParam_t param) {
+  if (!h3con) return YAWT_WT_ERR_INVALID_PARAM;
+  YAWT_Q_Context_t *qcon = YAWT_h3_get_qcon(h3con);
+  if (!qcon) return YAWT_WT_ERR_INVALID_PARAM;
+  YAWT_WT_Context_t *ctx = YAWT_q_con_get_user_data(qcon, YAWT_UD_WT);
+  if (!ctx) return YAWT_WT_OK;
+
+  switch (event) {
+    case YAWT_H3_EVT_WT_UPGRADE: {
+      // A WT session is born when the CONNECT stream reaches WT_CONNECT. H3
+      // fires WT_UPGRADE only post-upgrade, when the stream type is already
+      // final, on both roles — client when the 2xx is processed, server from
+      // YAWT_h3_webtrans_accept(). So this event can be pumped at the top of the
+      // app's H3 handler regardless of role. On a client rejection the stream is
+      // FRAME, so the type check below naturally skips it.
+      // session_id == CONNECT stream ID (draft-15 §2.2).
+      uint64_t sid = param.P_EVT_WT_UPGRADE.stream_id;
+      if (YAWT_h3_stream_get_type(h3con, sid) == YAWT_H3_STREAM_WT_CONNECT &&
+          _wt_session_find(ctx, sid) == NULL) {
+        YAWT_WT_Session_t *session = _wt_session_find_or_create(ctx, sid);
+        if (session) {
+          _wt_emit_event(ctx, session, YAWT_WT_EVT_SESSION_ESTABLISHED,
+              (YAWT_WT_EventParam_t){
+                .P_EVT_SESSION_ESTABLISHED = { .session_id = sid }
+              });
+        }
+      }
+      break;
+    }
+    default:
+      // Capsules (EVT_DATA on a WT_CONNECT stream) and HTTP datagrams
+      // (EVT_DATAGRAM) are candidates to move here later; for now they are
+      // handled by the app calling YAWT_wt_receive_capsule / the QUIC path.
+      break;
+  }
   return YAWT_WT_OK;
 }
 

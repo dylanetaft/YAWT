@@ -258,6 +258,10 @@ static inline const char *YAWT_wt_err_str(YAWT_WT_Error_t err) {
  *          you need to retain.
  */
 typedef union YAWT_WT_EventParam {
+  /** @brief Parameters for YAWT_WT_EVT_SESSION_ESTABLISHED. */
+  struct {
+    uint64_t session_id;      /**< WT session ID (= CONNECT stream ID) */
+  } P_EVT_SESSION_ESTABLISHED;
   /** @brief Parameters for YAWT_WT_EVT_STREAM_DATA. */
   struct {
     uint64_t session_id;      /**< WT session ID */
@@ -288,6 +292,7 @@ typedef union YAWT_WT_EventParam {
  * @note Fired by the WT layer toward the app via YAWT_WT_EventHandler_t.
  */
 typedef enum {
+  YAWT_WT_EVT_SESSION_ESTABLISHED, /**< WT session established (CONNECT accepted); param has session_id */
   YAWT_WT_EVT_STREAM_DATA,         /**< Data on a WT uni stream; param has session_id + stream_id + data */
   YAWT_WT_EVT_DATAGRAM,            /**< Datagram received; param has session_id + data */
   YAWT_WT_EVT_CAPSULE_RECEIVED,        /**< Capsule received on a CONNECT stream; param has session_id + capsule_type + data */

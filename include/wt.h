@@ -39,6 +39,26 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
 
 /**
  * @ingroup WebTransport
+ * @brief Process an H3 event in the WT layer.
+ * @param h3con The H3 connection.
+ * @param event The H3 event type.
+ * @param param The event parameters.
+ * @return YAWT_WT_OK on success, or an error code.
+ * @note Call this from the app's H3 event callback. It may be pumped at the top
+ *       of the handler, before the app's own switch: WT keys session creation
+ *       off YAWT_H3_EVT_WT_UPGRADE, which H3 fires only once the stream has
+ *       reached its final type (WT_CONNECT), on both roles — so no ordering
+ *       relative to YAWT_h3_webtrans_accept()/_deny() is required. On WT_UPGRADE
+ *       it creates the session and emits YAWT_WT_EVT_SESSION_ESTABLISHED. This
+ *       is the H3-side counterpart to YAWT_wt_on_event() and the intended home
+ *       for capsule/datagram routing off H3 events.
+ */
+YAWT_WT_Error_t YAWT_wt_on_h3_event(YAWT_H3_Context_t *h3con,
+                                    YAWT_H3_EventType_t event,
+                                    YAWT_H3_EventParam_t param);
+
+/**
+ * @ingroup WebTransport
  * @brief Feed DATA payload from a WT_CONNECT stream to the capsule parser.
  *
  * Call this from the H3 application handler when DATA arrives on a
@@ -55,20 +75,6 @@ YAWT_WT_Error_t YAWT_wt_on_event(YAWT_Q_Context_t *con,
 YAWT_WT_Error_t YAWT_wt_receive_capsule(YAWT_WT_Context_t *ctx,
                                          uint64_t session_id,
                                          const uint8_t *data, size_t len);
-
-/**
- * @ingroup WebTransport
- * @brief Claim a WT session slot for the given session ID.
- *
- * The session_id is equal to the CONNECT stream ID (draft-15 §2.2).  Call
- * this when the server sends a 2xx ACCEPT on a WT CONNECT stream so that
- * subsequent WT stream data can be correctly routed to the session.
- *
- * @param ctx        The WT context.
- * @param session_id The session ID (= CONNECT stream ID).
- * @return YAWT_WT_OK on success, or an error code.
- */
-YAWT_WT_Error_t YAWT_wt_session_accept(YAWT_WT_Context_t *ctx, uint64_t session_id);
 
 /**
  * @ingroup WebTransport

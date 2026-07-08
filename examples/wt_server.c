@@ -47,6 +47,10 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
                               YAWT_WT_EventType_t event,
                               YAWT_WT_EventParam_t param) {
   switch (event) {
+    case YAWT_WT_EVT_SESSION_ESTABLISHED:
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: SESSION_ESTABLISHED, session=%lu",
+               param.P_EVT_SESSION_ESTABLISHED.session_id);
+      break;
     case YAWT_WT_EVT_STREAM_DATA:
       YAWT_LOG(YAWT_LOG_INFO, "wt app: STREAM_DATA, %.*s",
                 (int)param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.data);
@@ -70,6 +74,10 @@ static void wt_app_handler(YAWT_WT_Context_t *ctx,
 static void h3_app_handler(YAWT_H3_Context_t *h3con,
                               YAWT_H3_EventType_t event,
                               YAWT_H3_EventParam_t param) {
+
+  /* Pump every H3 event into the WT layer first; WT keys off WT_UPGRADE (which
+   * H3 fires post-accept) to create the session and emit SESSION_ESTABLISHED. */
+  YAWT_wt_on_h3_event(h3con, event, param);
 
   switch (event) {
     case YAWT_H3_EVT_SETTINGS:
@@ -102,20 +110,18 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
       }
       break;
     }
-    case YAWT_H3_EVT_WT_UPGRADE: {
-      uint64_t sid = param.P_EVT_WT_UPGRADE.stream_id;
-      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UPGRADE on stream %lu, accepting", sid);
+    case YAWT_H3_EVT_WT_UPGRADE_REQUEST: {
+      uint64_t sid = param.P_EVT_WT_UPGRADE_REQUEST.stream_id;
+      YAWT_LOG(YAWT_LOG_INFO, "wt app: WT_UPGRADE_REQUEST on stream %lu, accepting", sid);
+      /* Accept the CONNECT (send 2xx). This fires YAWT_H3_EVT_WT_UPGRADE, which
+       * the pump at the top of this handler turns into a WT session and a
+       * YAWT_WT_EVT_SESSION_ESTABLISHED event. */
       YAWT_h3_webtrans_accept(h3con, sid);
-      /* Register a WT session slot so incoming stream data routes correctly */
-      YAWT_WT_Context_t *wt_ctx = YAWT_q_con_get_user_data(
-          YAWT_h3_get_qcon(h3con), YAWT_UD_WT);
-      if (wt_ctx) {
-        YAWT_wt_session_accept(wt_ctx, sid);
-      } else {
-        YAWT_LOG(YAWT_LOG_ERROR, "wt app: no WT context found for session accept");
-      }
       break;
     }
+    case YAWT_H3_EVT_WT_UPGRADE:
+      /* Session established (post-accept) — already handled by the pump above. */
+      break;
     case YAWT_H3_EVT_DATA: {
       uint64_t sid = param.P_EVT_DATA.stream_id;
       /* If the stream is a WT_CONNECT, feed DATA bytes to the per-session

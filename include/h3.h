@@ -262,7 +262,7 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3, uint64_t stream_
  * @return YAWT_H3_OK on success, or an error code.
  * @note Server-side only: sends a non-2xx response to reject the CONNECT request.
  *       HEADERS/DATA frames will continue to be interpreted as HTTP/3.
- *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ *       This would normally be called in the H3 callback for the upgrade request (YAWT_H3_EVT_WT_UPGRADE_REQUEST).
  */
 YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Context_t *h3, uint64_t stream_id, uint16_t status_code);
 
@@ -275,6 +275,6 @@ YAWT_H3_Error_t YAWT_h3_webtrans_deny(YAWT_H3_Context_t *h3, uint64_t stream_id,
  * @note Server-side only: sends a 200 response to accept the CONNECT request.
  *       Stream must be in WT_CONNECT_PENDING state (set by H3 layer on receiving CONNECT).
  *       After calling this, stream transitions to WT_CONNECT and capsules can be exchanged.
- *       This would normally be called in the H3 callback for upgrade req (YAWT_H3_EVT_WT_UPGRADE).
+ *       This would normally be called in the H3 callback for the upgrade request (YAWT_H3_EVT_WT_UPGRADE_REQUEST).
  */
 YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_id);

@@ -281,8 +281,9 @@ typedef enum {
   YAWT_H3_EVT_DATA,           /**< DATA frame payload chunk; stream_id + data/len + fin */
   YAWT_H3_EVT_SETTINGS,       /**< SETTINGS frame decoded; param has stream_id + settings ptr */
   YAWT_H3_EVT_CLOSE,          /**< H3-level error/close; param has error_code + reason */
-  YAWT_H3_EVT_DATAGRAM,       /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
-  YAWT_H3_EVT_WT_UPGRADE      /**< WebTransport upgrade request or response */
+  YAWT_H3_EVT_DATAGRAM,          /**< QUIC datagram received; param has data/len (RFC 9297 §2.1) */
+  YAWT_H3_EVT_WT_UPGRADE_REQUEST,/**< Server received a WT CONNECT; app must accept/deny (server only) */
+  YAWT_H3_EVT_WT_UPGRADE         /**< WT session established post-upgrade; stream is now WT_CONNECT (both roles) */
 } YAWT_H3_EventType_t;
 
 /**
@@ -317,9 +318,13 @@ typedef union YAWT_H3_EventParam {
     const uint8_t *data;      /**< Borrowed pointer — valid only during callback */
     size_t len;               /**< Length of datagram payload */
   } P_EVT_DATAGRAM;
+  /** @brief Parameters for YAWT_H3_EVT_WT_UPGRADE_REQUEST. */
+  struct {
+    uint64_t stream_id;       /**< The CONNECT stream awaiting accept/deny */
+  } P_EVT_WT_UPGRADE_REQUEST;
   /** @brief Parameters for YAWT_H3_EVT_WT_UPGRADE. */
   struct {
-    uint64_t stream_id;       /**< The stream ID of the upgrade request/response */
+    uint64_t stream_id;       /**< The upgraded WT_CONNECT stream (== session ID) */
   } P_EVT_WT_UPGRADE;
 } YAWT_H3_EventParam_t;
 

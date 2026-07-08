@@ -562,10 +562,20 @@ static void _process_wt_connect_upgrade(YAWT_H3_Context_t *con,
   }
 
   if (is_upgrade_related) {
-    // App can observe the stream type to determine if CONNECT was accepted or rejected
     YAWT_H3_EventParam_t param;
-    param.P_EVT_WT_UPGRADE.stream_id = stream->id;
-    con->app_handler(con, YAWT_H3_EVT_WT_UPGRADE, param);
+    if (is_server) {
+      // Server: CONNECT request arrived, stream is WT_CONNECT_PENDING. The app
+      // must accept/deny; WT_UPGRADE (session established) fires later, from
+      // YAWT_h3_webtrans_accept().
+      param.P_EVT_WT_UPGRADE_REQUEST.stream_id = stream->id;
+      con->app_handler(con, YAWT_H3_EVT_WT_UPGRADE_REQUEST, param);
+    } else {
+      // Client: the server's response is processed and the stream type is now
+      // final (WT_CONNECT on 2xx, FRAME on rejection). Fire the post-upgrade
+      // event on both outcomes; the app reads the type to tell them apart.
+      param.P_EVT_WT_UPGRADE.stream_id = stream->id;
+      con->app_handler(con, YAWT_H3_EVT_WT_UPGRADE, param);
+    }
   }
 }
 
@@ -620,6 +630,7 @@ static bool _dispatch_buffered_frame(YAWT_H3_Context_t *con,
       }
 
     case YAWT_H3_STREAM_FRAME:
+    case YAWT_H3_STREAM_WT_CONNECT_PENDING:
       switch (f->type) {
         case YAWT_H3_FRAME_HEADERS: {
           if (!stream->request_headers) {
@@ -724,6 +735,7 @@ YAWT_H3_Error_t YAWT_h3_parse_frame(const YAWT_Q_Frame_Stream_t *chunk,
   switch (stream->type) {
     case YAWT_H3_STREAM_FRAME:
     case YAWT_H3_STREAM_CONTROL:
+    case YAWT_H3_STREAM_WT_CONNECT_PENDING:
     case YAWT_H3_STREAM_WT_CONNECT: {
       // Parse frame header (Type + Length varints) via _gate_h3_frame_head,
       // which uses lazy blob-backed accumulation.
@@ -1254,14 +1266,22 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3,
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
-  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
-  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
-  if (!stream) {
-    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: no stream metadata for stream %lu", stream_id);
+  // The CONNECT must ride a client-initiated bidi stream (draft-15 §3.2);
+  // otherwise the response could never be promoted (_process_wt_connect_upgrade
+  // gates on the same check), so reject up front rather than hang.
+  if ((stream_id & 0x03) != YAWT_Q_C_BIDI) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: stream %lu is not client-initiated bidi", stream_id);
     return YAWT_H3_ERR_INVALID_PARAM;
   }
 
-  if (stream->type != YAWT_H3_STREAM_FRAME && stream->type != YAWT_H3_STREAM_UNASSIGNED) {
+  // A fresh client-initiated request stream has no H3 metadata yet (it is
+  // created lazily on the RX path in _h3_stream_get_or_create). 
+  // If metadata already exists, it must be a
+  // plain request stream — reject anything already assigned another role.
+  YAWT_Q_StreamUserData_t *sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  YAWT_H3_Stream_t *stream = sud ? sud->user_data[YAWT_UD_H3] : NULL;
+  if (stream && stream->type != YAWT_H3_STREAM_FRAME &&
+      stream->type != YAWT_H3_STREAM_UNASSIGNED) {
     YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: stream %lu in invalid state %d", stream_id, stream->type);
     return YAWT_H3_ERR_INVALID_STATE;
   }
@@ -1291,6 +1311,14 @@ YAWT_H3_Error_t YAWT_h3_webtrans_upgrade(YAWT_H3_Context_t *h3,
     return err;
   }
 
+  // send_headers opened the QUIC stream; ensure H3 metadata now exists so the
+  // pending upgrade is tracked and the server's 2xx response is matched to it.
+  sud = YAWT_q_con_get_stream_userdata(h3->qcon, stream_id);
+  stream = sud ? _h3_stream_get_or_create(sud) : NULL;
+  if (!stream) {
+    YAWT_LOG(YAWT_LOG_ERROR, "h3: webtrans_upgrade: no stream metadata after send on stream %lu", stream_id);
+    return YAWT_H3_ERR_INVALID_STATE;
+  }
   stream->type = YAWT_H3_STREAM_WT_CONNECT_PENDING;
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_upgrade: sent CONNECT request on stream %lu", stream_id);
   return YAWT_H3_OK;
@@ -1382,5 +1410,11 @@ YAWT_H3_Error_t YAWT_h3_webtrans_accept(YAWT_H3_Context_t *h3, uint64_t stream_i
 
   stream->type = YAWT_H3_STREAM_WT_CONNECT;
   YAWT_LOG(YAWT_LOG_INFO, "h3: webtrans_accept: accepted WT CONNECT on stream %lu", stream_id);
+
+  // Session is now established (server side). Signal the post-upgrade event, the
+  // symmetric counterpart to the client's WT_UPGRADE in _process_wt_connect_upgrade.
+  YAWT_H3_EventParam_t param;
+  param.P_EVT_WT_UPGRADE.stream_id = stream_id;
+  h3->app_handler(h3, YAWT_H3_EVT_WT_UPGRADE, param);
   return YAWT_H3_OK;
 }
