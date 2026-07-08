@@ -51,6 +51,11 @@ struct YAWT_Q_Context_t {
   char close_reason[256];           // bounded, null-terminated; "" if none
   YAWT_Q_ConnState_t state;         // RFC 9000 §10.2: OPEN, SELF_CLOSE_CLOSING, or PEER_CLOSE_DRAINING
   uint32_t closing_rx_count;        // RFC 9000 §10.2.1: packet counter for closing-state rate limiting
+  /* RFC 9000 §2.1: next locally-initiated stream ID per direction (steps by 4).
+   * Seeded in con_create from role; advanced by next_stream_id and by local
+   * _stream_meta_add (covers H3 hardcoded control/QPACK IDs). */
+  uint64_t next_local_stream_id_bidi;
+  uint64_t next_local_stream_id_uni;
 };
 
 /**

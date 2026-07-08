@@ -1114,7 +1114,8 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Context_t *h3) {
   size_t frame_hdr_len = YAWT_h3_encode_frame_header(YAWT_H3_FRAME_SETTINGS, payload_len, frame_hdr);
   if (frame_hdr_len == 0) return YAWT_H3_ERR_SHORT_BUFFER;
 
-  uint64_t stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 2 : 3;
+  /* First local uni stream (RFC 9000 §2.1); allocator tracks control/QPACK/WT. */
+  uint64_t stream_id = YAWT_q_con_next_stream_id(h3->qcon, false);
   YAWT_Q_IoVec_t payload_iov[2] = {
     { frame_hdr, frame_hdr_len },
     { settings_payload, payload_len }
@@ -1133,13 +1134,11 @@ YAWT_H3_Error_t YAWT_h3_send_settings(YAWT_H3_Context_t *h3) {
 YAWT_H3_Error_t YAWT_h3_open_qpack_streams(YAWT_H3_Context_t *h3) {
   if (!h3 || !h3->qcon) return YAWT_H3_ERR_INVALID_PARAM;
 
-  // QPACK streams are unidirectional. Per RFC 9000 §2.1, unidirectional stream
-  // IDs step by 4 within their own space: client-uni = 2, 6, 10, ...;
-  // server-uni = 3, 7, 11, ... (low 2 bits: 0x2 = client-uni, 0x3 = server-uni).
-  // Control stream is first (2 or 3), so QPACK encoder is the next uni ID
-  // (6 or 7), and the decoder is the one after (10 or 11).
-  uint64_t encoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 6 : 7;
-  uint64_t decoder_stream_id = (h3->qcon->role == YAWT_Q_ROLE_CLIENT) ? 10 : 11;
+  // QPACK streams are unidirectional (RFC 9000 §2.1). Control stream already
+  // consumed the first local uni ID via next_stream_id; encoder then decoder
+  // take the next two (typically client 6/10, server 7/11).
+  uint64_t encoder_stream_id = YAWT_q_con_next_stream_id(h3->qcon, false);
+  uint64_t decoder_stream_id = YAWT_q_con_next_stream_id(h3->qcon, false);
 
   // RFC 9204 §4.2: QPACK encoder stream type is 0x02
   YAWT_H3_Error_t err = _h3_open_uni_stream(h3, YAWT_H3_STREAM_WIRE_QPACK_ENCODER, encoder_stream_id, NULL, 0, 0);

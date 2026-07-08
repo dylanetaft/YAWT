@@ -681,12 +681,15 @@ int YAWT_wt_parse_capsule(YAWT_Capsule_Parser_t *parser,
 
   switch (*type_out) {
     case YAWT_WT_CAPSULE_CLOSE_SESSION: {
-      uint64_t error_code;
-      YAWT_q_varint_decode(&cursor, &error_code);
-      if (cursor.err != YAWT_Q_OK) return YAWT_CAPSULE_ERROR;
-      capsule_out->close_session.app_error_code = (uint32_t)error_code;
-      capsule_out->close_session.app_error_message = payload + cursor.cursor;
-      capsule_out->close_session.message_len = payload_len - cursor.cursor;
+      /* draft-ietf-webtrans-http3-15 §6: Application Error Code is fixed 32-bit BE, not a varint */
+      if (payload_len < 4) return YAWT_CAPSULE_ERROR;
+      capsule_out->close_session.app_error_code =
+          ((uint32_t)payload[0] << 24) |
+          ((uint32_t)payload[1] << 16) |
+          ((uint32_t)payload[2] << 8)  |
+          ((uint32_t)payload[3]);
+      capsule_out->close_session.app_error_message = payload + 4;
+      capsule_out->close_session.message_len = payload_len - 4;
       break;
     }
 

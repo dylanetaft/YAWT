@@ -150,15 +150,16 @@ YAWT_Err_t YAWT_q_con_send_stream(YAWT_Q_Context_t *con, uint64_t stream_id,
 
 /**
  * @ingroup QUIC_Connection
- * @brief Return the next unused locally-initiated stream ID of a given direction.
+ * @brief Allocate the next unused locally-initiated stream ID of a given direction.
  * @param con The QUIC connection.
  * @param is_bidi True for a bidirectional stream, false for unidirectional.
- * @return The next stream ID for this connection's role + direction (highest
- *         existing + 4, or the base ID if none exist yet). Returns 0 if @p con
- *         is NULL.
+ * @return The next stream ID for this connection's role + direction. Returns 0
+ *         if @p con is NULL.
  * @note The role half of the stream type (RFC 9000 §2.1) is taken from
- *       con->role, so the caller only picks the direction. The returned ID
- *       becomes live once sent on via YAWT_q_con_send_stream().
+ *       con->role, so the caller only picks the direction. Advances an internal
+ *       monotonic counter; the ID becomes live once sent on via
+ *       YAWT_q_con_send_stream(). Hardcoded local opens (e.g. H3 control/QPACK)
+ *       also advance the counter via stream metadata creation.
  */
 uint64_t YAWT_q_con_next_stream_id(YAWT_Q_Context_t *con, bool is_bidi);
 

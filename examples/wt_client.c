@@ -12,9 +12,18 @@
 #include <h3.h>
 #include <h3_types.h>
 #include <h3_header.h>
+#include <wt.h>
+#include <wt_types.h>
+#include <security.h>
 
-#define DEFAULT_PORT "443"
+// Minimal WebTransport client: open a session, send one datagram, print the
+// server's echo, exit. Mirrors minimal_h3_client.c's bring-up but drives the
+// WT layer in parallel with H3, like wt_server.c does.
+
+#define DEFAULT_PORT "4433"
 #define BUF_SIZE 65535
+#define WT_PAYLOAD "Hello from wt_client!"
+#define WT_STREAM_PAYLOAD "Stream hello from wt_client!"
 
 static int sockfd;
 static YAWT_Q_Crypto_Cred_t *client_cred;
@@ -26,7 +35,8 @@ static char req_path[2048];
 static char req_port[16];
 
 static struct sockaddr_in server_addr;
-static ANB_Blob_t *recv_blob;
+static int echo_received = 0;
+static int stream_echo_received = 0;
 
 static void udp_send(const uint8_t *buf, size_t len,
                       const YAWT_Q_PeerAddr_t *peer_addr) {
@@ -35,49 +45,80 @@ static void udp_send(const uint8_t *buf, size_t len,
   YAWT_LOG(YAWT_LOG_DEBUG, "sent %zd bytes", nsent);
 }
 
-static void h3_app_handler(YAWT_H3_Context_t *h3con,
-                            YAWT_H3_EventType_t event,
-                            YAWT_H3_EventParam_t param) {
+// App-level WT events: the server echoes our datagram back to us.
+static void wt_app_handler(YAWT_WT_Context_t *ctx,
+                            YAWT_WT_Session_t *session,
+                            YAWT_WT_EventType_t event,
+                            YAWT_WT_EventParam_t param) {
+  (void)ctx;
+  (void)session;
   switch (event) {
-    case YAWT_H3_EVT_SETTINGS:
-      YAWT_LOG(YAWT_LOG_INFO, "received SETTINGS");
-      break;
-    case YAWT_H3_EVT_HEADERS: {
-      YAWT_H3_HeaderFields_t *hdrs = param.P_EVT_HEADERS.headers;
-      YAWT_H3_Header_Field_t status = YAWT_h3_header_find_str(hdrs, ":status");
-      if (status.name) {
-        printf("HTTP/3 %.*s\n", (int)status.value_len, status.value);
+    case YAWT_WT_EVT_SESSION_ESTABLISHED: {
+      // The WT layer signals the session is ready; now we can send. (The H3
+      // WT_UPGRADE event only tells us whether the CONNECT was accepted.)
+      uint64_t sid = param.P_EVT_SESSION_ESTABLISHED.session_id;
+      YAWT_wt_send_datagram(ctx, sid, (const uint8_t *)WT_PAYLOAD, strlen(WT_PAYLOAD));
+      printf("wt: session %lu established, sent datagram\n", sid);
+      /* Also open a bidirectional WT stream and send on it; the server echoes it
+       * back on the same stream (draft-15 §4.3). */
+      uint64_t stream_id;
+      if (YAWT_wt_open_stream(ctx, sid, YAWT_WT_DIR_BIDI, &stream_id) == YAWT_WT_OK) {
+        YAWT_wt_send_data(ctx, sid, stream_id,
+                          (const uint8_t *)WT_STREAM_PAYLOAD, strlen(WT_STREAM_PAYLOAD), 1);
+        printf("wt: opened bidi stream %lu, sent data\n", stream_id);
+      } else {
+        fprintf(stderr, "wt: failed to open bidi stream\n");
       }
-      ANB_SlabIter_t iter = {0};
-      YAWT_H3_Header_Field_t f;
-      while ((f = YAWT_h3_header_iter(hdrs, &iter)).name != NULL) {
-        if (f.name[0] == ':') continue;
-        printf("%.*s: %.*s\n",
-               (int)f.name_len, f.name,
-               (int)f.value_len, f.value);
-      }
-      printf("\n");
       fflush(stdout);
       break;
     }
-    case YAWT_H3_EVT_DATA:
-      ANB_blob_push(recv_blob, param.P_EVT_DATA.data, param.P_EVT_DATA.len);
-      YAWT_LOG(YAWT_LOG_INFO, "received DATA len %lu, fin=%d",
-               param.P_EVT_DATA.len, param.P_EVT_DATA.fin);  
-      if (param.P_EVT_DATA.fin) 
-      {
-        YAWT_LOG(YAWT_LOG_INFO, "%.*s", (int)ANB_blob_data_len(recv_blob), ANB_blob_data(recv_blob));
+    case YAWT_WT_EVT_DATAGRAM:
+      printf("wt: echo %.*s\n",
+             (int)param.P_EVT_DATAGRAM.len, param.P_EVT_DATAGRAM.data);
+      fflush(stdout);
+      echo_received = 1;
+      if (echo_received && stream_echo_received) ev_break(main_loop, EVBREAK_ALL);
+      break;
+    case YAWT_WT_EVT_STREAM_DATA:
+      printf("wt: stream echo %.*s\n",
+             (int)param.P_EVT_STREAM_DATA.len, param.P_EVT_STREAM_DATA.data);
+      fflush(stdout);
+      stream_echo_received = 1;
+      if (echo_received && stream_echo_received) ev_break(main_loop, EVBREAK_ALL);
+      break;
+    case YAWT_WT_EVT_CAPSULE_RECEIVED:
+      break;
+  }
+}
+
+// App-level H3 events. On the client, WT_UPGRADE fires when the server's
+// response to our CONNECT arrives (src/h3.c). The stream type tells us whether
+// the session was accepted (2xx -> WT_CONNECT) or rejected.
+static void h3_app_handler(YAWT_H3_Context_t *h3con,
+                            YAWT_H3_EventType_t event,
+                            YAWT_H3_EventParam_t param) {
+  /* Pump every H3 event into the WT layer first; on WT_UPGRADE (2xx accepted)
+   * WT creates the session and emits YAWT_WT_EVT_SESSION_ESTABLISHED. */
+  YAWT_wt_on_h3_event(h3con, event, param);
+
+  switch (event) {
+    case YAWT_H3_EVT_WT_UPGRADE: {
+      // Client-side WT_UPGRADE fires when the server's CONNECT response arrives.
+      // We only detect rejection here — on acceptance the WT layer (pumped
+      // above) creates the session and fires YAWT_WT_EVT_SESSION_ESTABLISHED,
+      // where we do the actual sending.
+      uint64_t sid = param.P_EVT_WT_UPGRADE.stream_id;
+      uint64_t stype = YAWT_h3_stream_get_type(h3con, sid);
+      if (stype != YAWT_H3_STREAM_WT_CONNECT) {
+        fprintf(stderr, "wt: CONNECT rejected on stream %lu (type=%lu)\n", sid, stype);
         ev_break(main_loop, EVBREAK_ALL);
-        //theres no way to close e3 or quic c here TODO
       }
       break;
+    }
     case YAWT_H3_EVT_CLOSE:
-      YAWT_LOG(YAWT_LOG_INFO, "h3 close: code=%lu, reason=%s",
-               param.P_EVT_CLOSE.error_code, param.P_EVT_CLOSE.reason);
       ev_break(main_loop, EVBREAK_ALL);
       break;
-    // case YAWT_H3_EVT_WT_UNI_STREAM:
-    case YAWT_H3_EVT_DATAGRAM:
+    default:
       break;
   }
 }
@@ -85,47 +126,34 @@ static void h3_app_handler(YAWT_H3_Context_t *h3con,
 static void on_event(YAWT_Q_Context_t *con,
                       YAWT_Q_EventType_t event,
                       YAWT_Q_EventParam_t param) {
+  YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
+  YAWT_wt_on_event(con, event, param);
+
+  if (event == YAWT_Q_EVT_CONNECTED && rc == YAWT_H3_OK) {
+    YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
+    YAWT_WT_Context_t *wt = YAWT_q_con_get_user_data(con, YAWT_UD_WT);
+    if (wt) {
+      YAWT_wt_set_event_handler(wt, wt_app_handler);
+    }
+    if (h3) {
+      YAWT_h3_set_event_handler(h3, h3_app_handler);
+      char authority[280];
+      snprintf(authority, sizeof(authority), "%s:%s", req_host, req_port);
+      uint64_t stream_id = YAWT_q_con_next_stream_id(con, true);
+      YAWT_h3_webtrans_upgrade(h3, stream_id, "https", authority, req_path);
+      YAWT_LOG(YAWT_LOG_INFO, "sent WT CONNECT to %s%s", authority, req_path);
+    }
+  }
+
   switch (event) {
     case YAWT_Q_EVT_TX:
       udp_send(param.P_EVT_TX.buf, param.P_EVT_TX.len, param.P_EVT_TX.peer);
       break;
-
-    case YAWT_Q_EVT_CONNECTED: {
-      YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
-      if (rc != YAWT_H3_OK) break;
-      YAWT_H3_Context_t *h3 = YAWT_q_con_get_user_data(con, YAWT_UD_H3);
-      if (!h3) break;
-      YAWT_h3_set_event_handler(h3, h3_app_handler);
-
-      YAWT_H3_HeaderFields_t *req = YAWT_h3_header_fields_create();
-      YAWT_h3_header_add_str(req, ":method", "GET");
-      YAWT_h3_header_add_str(req, ":scheme", "https");
-      YAWT_h3_header_add_str(req, ":authority", req_host);
-      YAWT_h3_header_add_str(req, ":path", req_path);
-      YAWT_h3_header_add_str(req, "user-agent", "yawt-h3-client/0.1");
-      YAWT_h3_header_add_str(req, "accept", "*/*");
-
-      uint64_t stream_id = YAWT_q_con_next_stream_id(con, true);
-      YAWT_h3_send_headers(h3, stream_id, req, 1);
-      YAWT_h3_header_fields_destroy(req);
-
-      YAWT_LOG(YAWT_LOG_INFO, "sent GET %s to %s", req_path, req_host);
-      break;
-    }
-
-    case YAWT_Q_EVT_CLOSE: {
-      YAWT_h3_on_event(con, event, param);
+    case YAWT_Q_EVT_CLOSE:
       ev_break(main_loop, EVBREAK_ALL);
       break;
-    }
-
-    default: {
-      YAWT_H3_Error_t rc = YAWT_h3_on_event(con, event, param);
-      if (rc == YAWT_H3_ERR_NO_APP_HANDLER) {
-        YAWT_LOG(YAWT_LOG_DEBUG, "h3: no app handler yet for event %d", event);
-      }
+    default:
       break;
-    }
   }
 }
 
@@ -156,6 +184,15 @@ static void maintain_cb(EV_P_ ev_timer *w, int revents) {
   const YAWT_Q_MaintenanceConfig_t *mcfg = YAWT_q_con_get_maint_config();
   w->repeat = mcfg->min_maint_interval;
   ev_timer_again(loop, w);
+}
+
+// Hard timeout guard so the process can never hang if the handshake or the
+// echo never completes.
+static void timeout_cb(EV_P_ ev_timer *w, int revents) {
+  (void)w;
+  (void)revents;
+  fprintf(stderr, "wt: timeout waiting for echo\n");
+  ev_break(loop, EVBREAK_ALL);
 }
 
 static int parse_url(const char *url) {
@@ -195,7 +232,7 @@ static int parse_url(const char *url) {
 }
 
 int main(int argc, char *argv[]) {
-  const char *url = "https://www.rfc-editor.org/rfc/rfc9114.txt";
+  const char *url = "https://localhost:4433/";
   const char *ca_file = NULL;
 
   if (argc >= 2) url = argv[1];
@@ -205,10 +242,17 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "failed to parse URL: %s\n", url);
     return 1;
   }
-  recv_blob = ANB_blob_create(4096);
   printf("connecting to %s:%s%s\n", req_host, req_port, req_path);
 
   gnutls_global_init();
+
+  YAWT_WT_SecurityPolicy_t wt_policy = {
+    .max_sessions = 8,
+    .initial_max_streams_uni = 100,
+    .initial_max_streams_bidi = 100,
+    .initial_max_data = 0x100000,
+  };
+  YAWT_wt_security_set(&wt_policy);
 
   client_cred = YAWT_q_crypto_cred_new(NULL, NULL, ca_file);
   if (!client_cred) {
@@ -264,10 +308,14 @@ int main(int argc, char *argv[]) {
   ev_timer_init(&maintain_watcher, maintain_cb, 0.1, 0);
   ev_timer_start(main_loop, &maintain_watcher);
 
+  ev_timer timeout_watcher;
+  ev_timer_init(&timeout_watcher, timeout_cb, 5.0, 0.0);
+  ev_timer_start(main_loop, &timeout_watcher);
+
   ev_run(main_loop, 0);
 
   YAWT_q_crypto_cred_free(&client_cred);
   gnutls_global_deinit();
   close(sockfd);
-  return 0;
+  return (echo_received && stream_echo_received) ? 0 : 1;
 }
