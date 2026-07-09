@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
-project(yawt)
+project(yawt VERSION 0.1.0 LANGUAGES C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
 include(FetchContent)
+include(CMakePackageConfigHelpers)
 
 file(GLOB_RECURSE YAWT_SOURCES ${PROJECT_SOURCE_DIR}/*.c)
 
@@ -68,6 +69,35 @@ install(TARGETS yawt
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/../include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/yawt
     FILES_MATCHING PATTERN "*.h"
+)
+
+# --- CMake package config so downstreams can `find_package(yawt)` ---
+# yawt links its dependencies PUBLIC (ev::ev, uthash::uthash,
+# allocnbuffer::static, PkgConfig::GNUTLS), so the exported target's link line
+# names those targets. The generated yawtConfig.cmake re-creates / re-finds them
+# in the consumer before pulling in yawtTargets.cmake.
+install(EXPORT yawtTargets
+    FILE yawtTargets.cmake
+    NAMESPACE yawt::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/yawt
+)
+
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/yawtConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/yawtConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/yawt
+)
+
+write_basic_package_version_file(
+    ${PROJECT_BINARY_DIR}/yawtConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${PROJECT_BINARY_DIR}/yawtConfig.cmake
+    ${PROJECT_BINARY_DIR}/yawtConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/yawt
 )
 
 if(BUILD_EXAMPLES)
