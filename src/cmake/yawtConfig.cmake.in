@@ -1,0 +1,42 @@
+@PACKAGE_INIT@
+
+# yawt exposes these dependencies through its PUBLIC link interface, so a
+# consumer of yawt::yawt needs the same imported targets to exist. Recreate /
+# re-find them here before including the exported targets file.
+
+include(CMakeFindDependencyMacro)
+
+# AllocNBuffer ships its own package config.
+find_dependency(allocnbuffer)
+
+# GnuTLS comes from the system via pkg-config (creates PkgConfig::GNUTLS).
+find_dependency(PkgConfig)
+if(NOT TARGET PkgConfig::GNUTLS)
+    pkg_check_modules(GNUTLS REQUIRED IMPORTED_TARGET gnutls)
+endif()
+
+# libev is built alongside yawt and installed into the same prefix; it has no
+# CMake config of its own, so reconstruct the imported target by hand.
+if(NOT TARGET ev::ev)
+    find_library(YAWT_LIBEV ev REQUIRED
+        PATHS "${PACKAGE_PREFIX_DIR}/lib" "${PACKAGE_PREFIX_DIR}/lib64")
+    find_path(YAWT_LIBEV_INCLUDE_DIR ev.h REQUIRED
+        PATHS "${PACKAGE_PREFIX_DIR}/include")
+    add_library(ev::ev STATIC IMPORTED)
+    set_target_properties(ev::ev PROPERTIES
+        IMPORTED_LOCATION             "${YAWT_LIBEV}"
+        INTERFACE_INCLUDE_DIRECTORIES "${YAWT_LIBEV_INCLUDE_DIR}")
+endif()
+
+# uthash is header-only, installed alongside yawt under include/uthash.
+if(NOT TARGET uthash::uthash)
+    find_path(YAWT_UTHASH_INCLUDE_DIR uthash.h REQUIRED
+        PATHS "${PACKAGE_PREFIX_DIR}/include/uthash")
+    add_library(uthash::uthash INTERFACE IMPORTED)
+    set_target_properties(uthash::uthash PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${YAWT_UTHASH_INCLUDE_DIR}")
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/yawtTargets.cmake")
+
+check_required_components(yawt)
