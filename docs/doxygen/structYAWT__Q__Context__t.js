@@ -1,0 +1,27 @@
+var structYAWT__Q__Context__t =
+[
+    [ "cid", "structYAWT__Q__Context__t.html#a64a3d5319c42c8880d4249af4e9a6ece", null ],
+    [ "close_code", "structYAWT__Q__Context__t.html#a62276006f30ef9cb99c1e3c81e664d3a", null ],
+    [ "close_reason", "structYAWT__Q__Context__t.html#ab3693a7e15dab33d483b6765095b8079", null ],
+    [ "closing_rx_count", "structYAWT__Q__Context__t.html#a0aec43b16681fff62ddbed0bf4476286", null ],
+    [ "crypto", "structYAWT__Q__Context__t.html#aa09bda6929d25d958bb1e0cda3035792", null ],
+    [ "data_blocked", "structYAWT__Q__Context__t.html#a7c296175949354f5033c0fa29f48fa8f", null ],
+    [ "hh_cid", "structYAWT__Q__Context__t.html#a4437600a74454c324a0424975b6cbb28", null ],
+    [ "hh_odcid", "structYAWT__Q__Context__t.html#a884076795a77fc5b67a09845dbb6167e", null ],
+    [ "local_fc", "structYAWT__Q__Context__t.html#a2fe2bfc3edfbaebaba68471f17de9d2d", null ],
+    [ "next_local_stream_id_bidi", "structYAWT__Q__Context__t.html#a5eaee6c2d3f84fbf5893986ece27f2fe", null ],
+    [ "next_local_stream_id_uni", "structYAWT__Q__Context__t.html#a150b425792403ff8061b7a6c9cd3f8bf", null ],
+    [ "original_dcid", "structYAWT__Q__Context__t.html#afd56547fce3da6268297108ab77d7514", null ],
+    [ "peer_addr", "structYAWT__Q__Context__t.html#acf02d5cd10a5fcb2a65425d965ffb817", null ],
+    [ "peer_cid", "structYAWT__Q__Context__t.html#a5a8d8fe6da32ef697a096599e5bca639", null ],
+    [ "peer_fc", "structYAWT__Q__Context__t.html#a4223868809e59fc0371b6aecf1de6b3f", null ],
+    [ "recv_buffer", "structYAWT__Q__Context__t.html#ad8a23a508630dd11091ccdcfd50e8651", null ],
+    [ "role", "structYAWT__Q__Context__t.html#aba4efbfe69622694f8f4241c1f9f6eea", null ],
+    [ "state", "structYAWT__Q__Context__t.html#aec3fc7dfe3975522cefc493a0731bdec", null ],
+    [ "stats", "structYAWT__Q__Context__t.html#a005a2da2f52a57567f6051d1b75431c6", null ],
+    [ "stream_rx", "structYAWT__Q__Context__t.html#a51deb182f1a4c4bfec150a8eabd6ec7e", null ],
+    [ "stream_userdata", "structYAWT__Q__Context__t.html#a1aadb4441e7359b37876698abe4fb8f6", null ],
+    [ "tx_buffer", "structYAWT__Q__Context__t.html#a8301d05651c30b1f607800befdbbb98b", null ],
+    [ "user_data", "structYAWT__Q__Context__t.html#a975eabb4d45f7726249ad58c0c8e16bd", null ],
+    [ "version", "structYAWT__Q__Context__t.html#a8fdc30c5c42f2c8fb1f43a971055e282", null ]
+];

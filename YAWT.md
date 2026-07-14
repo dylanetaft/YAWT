@@ -169,4 +169,5 @@ Visually this looks like
 ### Quick start
 
 ```c
+See examples dir for now
 ```

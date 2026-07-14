@@ -1,0 +1,27 @@
+var quic__connection_8h =
+[
+    [ "YAWT_Q_Con_Create_Info_t", "group__QUIC__Connection.html#gae27eae31541dec839545d38bdd26c1ce", null ],
+    [ "YAWT_Q_PeerAddr_t", "group__QUIC__Connection.html#ga58fdec3d1767741a94273368a49370d7", null ],
+    [ "YAWT_q_con_clear_odcid", "group__QUIC__Internal.html#gacf5e08221468fac4529c17d71bb00f87", null ],
+    [ "YAWT_q_con_close", "group__QUIC__Connection.html#gaeb85a2fc1b2d7030f072abb38ed7fd1a", null ],
+    [ "YAWT_q_con_connect", "group__QUIC__Connection.html#ga275d745a5072c6ecebdb1e30d1bc105c", null ],
+    [ "YAWT_q_con_create", "group__QUIC__Internal.html#gab3ea0c1691f6d1a3fcbea2a666faf863", null ],
+    [ "YAWT_q_con_find_by_cid", "group__QUIC__Connection.html#ga5b3391ddeb6ded271b0bb6f4c817fb61", null ],
+    [ "YAWT_q_con_free", "group__QUIC__Internal.html#gaaedf84ba4547a863caae17c98f828d07", null ],
+    [ "YAWT_q_con_get_cid", "group__QUIC__Connection.html#ga403b932d48dee74693752a1a253b6cff", null ],
+    [ "YAWT_q_con_get_maint_config", "group__QUIC__Connection.html#gaf0b00a4fc6e08633ffc58dbdca249120", null ],
+    [ "YAWT_q_con_get_stream_userdata", "group__QUIC__Connection.html#gae1315a74e430da6b25054bbb62330309", null ],
+    [ "YAWT_q_con_get_stream_userdata_slab", "group__QUIC__Connection.html#gaf156f2734337a6bc78d495fbcdfd44c2", null ],
+    [ "YAWT_q_con_get_user_data", "group__QUIC__Connection.html#gacdd7a23356ee0631d8393d6793b28e89", null ],
+    [ "YAWT_q_con_maintain", "group__QUIC__Drive.html#gafca5419f25d1e344cf6e35558a0530fc", null ],
+    [ "YAWT_q_con_next_stream_id", "group__QUIC__Connection.html#ga7a468784ea9d914a0af05ed1595d1669", null ],
+    [ "YAWT_q_con_reset_stream", "group__QUIC__Connection.html#gafbb0c39572e17294a47a3bc8185e7ec9", null ],
+    [ "YAWT_q_con_rx", "group__QUIC__Drive.html#gad371a09d91fb6b2510594eb82c9ae392", null ],
+    [ "YAWT_q_con_send_stream", "group__QUIC__Connection.html#ga38e18c1dbec486e92bbc09d8d03229a4", null ],
+    [ "YAWT_q_con_set_conn_rx_limit", "group__QUIC__Connection.html#ga8793ed24761a62c98665359fa63f0556", null ],
+    [ "YAWT_q_con_set_event_handler", "group__QUIC__Connection.html#ga1b6fbf09c5d78347b023750c3875d6c0", null ],
+    [ "YAWT_q_con_set_stream_rx_limit", "group__QUIC__Connection.html#ga8e4a82eee777ab8601e429fae3518611", null ],
+    [ "YAWT_q_con_set_user_data", "group__QUIC__Connection.html#ga1b59de7bdbe1392cc9728d8c8588305f", null ],
+    [ "YAWT_q_con_stop_sending", "group__QUIC__Connection.html#gaff8ea932a649d476151c7dd1066fb507", null ],
+    [ "YAWT_q_con_update_peer_cid", "group__QUIC__Internal.html#gaebb2725764208780b3a14d6bfe27127a", null ]
+];

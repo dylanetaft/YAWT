@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['capsule_0',['capsule',['../unionYAWT__WT__EventParam.html#a035fa69dd5014f5ff74eaa55adddd351',1,'YAWT_WT_EventParam']]],
+  ['capsule_5fcomplete_1',['capsule_complete',['../structYAWT__Capsule__Parser__t.html#a24443fe3ea13d2ed3110f48cdcde20d6',1,'YAWT_Capsule_Parser_t']]],
+  ['capsule_5fparser_2',['capsule_parser',['../structYAWT__WT__Session__t.html#a9e1429e33bc728d9a569c2aefb404e92',1,'YAWT_WT_Session_t']]],
+  ['cid_3',['cid',['../structYAWT__Q__Context__t.html#a64a3d5319c42c8880d4249af4e9a6ece',1,'YAWT_Q_Context_t::cid'],['../structYAWT__Q__Frame__New__Connection__ID__t.html#a1a8821facd41a40f79d144533d80a992',1,'YAWT_Q_Frame_New_Connection_ID_t::cid']]],
+  ['cid_5fseq_5fnum_4',['cid_seq_num',['../structYAWT__Q__ConnectionStats__t.html#aee9a93f4ebd93aba85da9bc02e7c13b6',1,'YAWT_Q_ConnectionStats_t']]],
+  ['close_5fcode_5',['close_code',['../structYAWT__Q__Context__t.html#a62276006f30ef9cb99c1e3c81e664d3a',1,'YAWT_Q_Context_t']]],
+  ['close_5freason_6',['close_reason',['../structYAWT__Q__Context__t.html#ab3693a7e15dab33d483b6765095b8079',1,'YAWT_Q_Context_t']]],
+  ['close_5fsession_7',['close_session',['../unionYAWT__WT__Capsule__t.html#a881cb8dd8fa16f2cb0fc0b7c4ed6ed34',1,'YAWT_WT_Capsule_t']]],
+  ['closed_8',['closed',['../structYAWT__WT__Session__t.html#ab0dfa87ee7065278c9214ce53cfd6f86',1,'YAWT_WT_Session_t']]],
+  ['closing_5fat_9',['closing_at',['../structYAWT__Q__ConnectionStats__t.html#abd341520abe3d451142a6aac085c75a3',1,'YAWT_Q_ConnectionStats_t']]],
+  ['closing_5frx_5fcount_10',['closing_rx_count',['../structYAWT__Q__Context__t.html#a0aec43b16681fff62ddbed0bf4476286',1,'YAWT_Q_Context_t']]],
+  ['connect_5fstream_5fid_11',['connect_stream_id',['../structYAWT__WT__Session__t.html#ab0bd0df8dee73959fae7f3da6fc6d055',1,'YAWT_WT_Session_t']]],
+  ['connection_5fclose_12',['connection_close',['../structYAWT__Q__Frame__t.html#a632c302ab1ad9c227e1da32350b173c6',1,'YAWT_Q_Frame_t']]],
+  ['connection_5fclose_5fapp_13',['connection_close_app',['../structYAWT__Q__Frame__t.html#ad3fc1c0d73745314fb1836d0ce9cd71b',1,'YAWT_Q_Frame_t']]],
+  ['consumed_14',['consumed',['../structYAWT__Q__FlowControlInfo__t.html#a1c751e717e47fddd57ca500b680d03c8',1,'YAWT_Q_FlowControlInfo_t']]],
+  ['core_5fstream_5fstatus_15',['core_stream_status',['../structYAWT__H3__Context__t.html#ac35d33a980565787a142f27183c77b00',1,'YAWT_H3_Context_t']]],
+  ['count_16',['count',['../structYAWT__QPACK__HuffDecoder__t.html#a81ab50283b85c4d00d10ce0c52d4e636',1,'YAWT_QPACK_HuffDecoder_t']]],
+  ['cred_17',['cred',['../structYAWT__Q__Con__Create__Info__t.html#a7e33ac7cd5dcce89c9f4fdc10aaa6057',1,'YAWT_Q_Con_Create_Info_t']]],
+  ['crypto_18',['crypto',['../structYAWT__Q__Context__t.html#aa09bda6929d25d958bb1e0cda3035792',1,'YAWT_Q_Context_t::crypto'],['../structYAWT__Q__Frame__t.html#abf9dd84593b731bfce65bd0abf8de93d',1,'YAWT_Q_Frame_t::crypto']]],
+  ['current_5flen_19',['current_len',['../structYAWT__Capsule__Parser__t.html#a59b85a65dc27a2e99346fd3b913c32ac',1,'YAWT_Capsule_Parser_t']]],
+  ['current_5flimit_20',['current_limit',['../structYAWT__Q__FlowControlInfo__t.html#a7027009196acedea1e904e367cd352f7',1,'YAWT_Q_FlowControlInfo_t']]],
+  ['cursor_21',['cursor',['../structYAWT__Q__ReadCursor__t.html#a5ac8d41a76c3a2b75118ffcb91e5effe',1,'YAWT_Q_ReadCursor_t']]]
+];
