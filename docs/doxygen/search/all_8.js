@@ -1,15 +1,19 @@
 var searchData=
 [
-  ['id_0',['id',['../structYAWT__H3__Stream__t.html#a6093ffcb5b57862049d0091041bfda27',1,'YAWT_H3_Stream_t::id'],['../structYAWT__Q__Cid__t.html#a09b2635c5b466acf01a2320b3a50c2f4',1,'YAWT_Q_Cid_t::id']]],
-  ['in_5fuse_1',['in_use',['../structYAWT__H3__Stream__t.html#aa9d822505d50c6fb3c99d6aae6d61a84',1,'YAWT_H3_Stream_t::in_use'],['../structYAWT__WT__Session__t.html#a910240753b273fc7ca5e3dab2b4bb474',1,'YAWT_WT_Session_t::in_use']]],
-  ['info_2',['info',['../unionYAWT__Q__EventParam__t.html#a88ef750abc34857caf413c15890f23e6',1,'YAWT_Q_EventParam_t']]],
-  ['initial_3',['initial',['../structYAWT__Q__Packet__t.html#ac4b36ce0af6813e4a418c69d19b607dc',1,'YAWT_Q_Packet_t']]],
-  ['initial_5fmax_5fdata_4',['initial_max_data',['../structYAWT__WT__SecurityPolicy__t.html#aa4eb53691f4b2d9e4153cb6f3df1bbb9',1,'YAWT_WT_SecurityPolicy_t']]],
-  ['initial_5fmax_5fstreams_5fbidi_5',['initial_max_streams_bidi',['../structYAWT__WT__SecurityPolicy__t.html#a1e3a723312daee8d8cf53821f9ee16fe',1,'YAWT_WT_SecurityPolicy_t']]],
-  ['initial_5fmax_5fstreams_5funi_6',['initial_max_streams_uni',['../structYAWT__WT__SecurityPolicy__t.html#a968c7ce5585e9ff517d65725f9a79a07',1,'YAWT_WT_SecurityPolicy_t']]],
-  ['insert_5fwith_5fliteral_5fname_7',['INSERT_WITH_LITERAL_NAME',['../group__H3__Internal.html#ggab4fc52971ca76db3180d7f826b019bc1a3bb818d912141d9564aeb0550d7b10ab',1,'h3_types.h']]],
-  ['insert_5fwith_5fname_5fref_8',['INSERT_WITH_NAME_REF',['../group__H3__Internal.html#ggab4fc52971ca76db3180d7f826b019bc1ae60c74ed50afdbf442d2d42d5c7a137c',1,'h3_types.h']]],
-  ['internal_9',['Internal',['../group__H3__Internal.html',1,'Internal'],['../group__QUIC__Internal.html',1,'Internal']]],
-  ['is_5fbidi_10',['is_bidi',['../structYAWT__WT__CapsuleMaxStreams__t.html#a6e483774026c4b2a545f073d5a913b25',1,'YAWT_WT_CapsuleMaxStreams_t::is_bidi'],['../structYAWT__WT__CapsuleStreamsBlocked__t.html#a73011fb415a69f3f03012bc0339efa79',1,'YAWT_WT_CapsuleStreamsBlocked_t::is_bidi']]],
-  ['is_5fserver_11',['is_server',['../structYAWT__Q__Con__Create__Info__t.html#ab18548c14e191884ad9d84b4b2e70504',1,'YAWT_Q_Con_Create_Info_t']]]
+  ['h3_2eh_0',['h3.h',['../h3_8h.html',1,'']]],
+  ['h3_5fframe_5fmax_5fheader_5fbytes_1',['H3_FRAME_MAX_HEADER_BYTES',['../h3__types_8h.html#aa1c74dcfce021ef9dc7e936bd7c2e56d',1,'h3_types.h']]],
+  ['h3_5fheader_2eh_2',['h3_header.h',['../h3__header_8h.html',1,'']]],
+  ['h3_5fstream_5ftype_5fmax_5fbytes_3',['H3_STREAM_TYPE_MAX_BYTES',['../h3__types_8h.html#a051c31e35ec6425ff9b056561feb558b',1,'h3_types.h']]],
+  ['h3_5ftypes_2eh_4',['h3_types.h',['../h3__types_8h.html',1,'(Global Namespace)'],['../impl_2h3__types_8h.html',1,'(Global Namespace)']]],
+  ['hdr_5',['hdr',['../structYAWT__Capsule__Parser__t.html#a1b91b3b58f0c031a5cf01ccce5c806cf',1,'YAWT_Capsule_Parser_t']]],
+  ['hdr_5fbuffer_6',['hdr_buffer',['../structYAWT__H3__Frame__t.html#a97a8fe3dd31661c68bda1859c4b255aa',1,'YAWT_H3_Frame_t::hdr_buffer'],['../structYAWT__H3__Stream__t.html#a7359f8315c86580c73dd1e5da8fdda80',1,'YAWT_H3_Stream_t::hdr_buffer'],['../structYAWT__WT__Stream__t.html#a3ebf7cff20fd8f8410cfe7c8e3168759',1,'YAWT_WT_Stream_t::hdr_buffer']]],
+  ['hdr_5fcomplete_7',['hdr_complete',['../structYAWT__WT__Stream__t.html#ad5c3d15e1a8724538563f56a5e936583',1,'YAWT_WT_Stream_t']]],
+  ['hdr_5fsize_8',['hdr_size',['../structYAWT__Capsule__Parser__t.html#a44aafb8485706ff0fe2aa9d72c2aadad',1,'YAWT_Capsule_Parser_t::hdr_size'],['../structYAWT__H3__Frame__t.html#ac8391c9481b009acd8bed163df690843',1,'YAWT_H3_Frame_t::hdr_size']]],
+  ['headers_9',['Headers',['../group__H3__Headers.html',1,'']]],
+  ['headers_10',['headers',['../unionYAWT__H3__EventParam.html#a1589dcecc1fff6f79ad0e73c71c0c884',1,'YAWT_H3_EventParam']]],
+  ['hh_5fcid_11',['hh_cid',['../structYAWT__Q__Context__t.html#a4437600a74454c324a0424975b6cbb28',1,'YAWT_Q_Context_t']]],
+  ['hh_5fodcid_12',['hh_odcid',['../structYAWT__Q__Context__t.html#a884076795a77fc5b67a09845dbb6167e',1,'YAWT_Q_Context_t']]],
+  ['hostname_13',['hostname',['../structYAWT__Q__Con__Create__Info__t.html#a021db375945dbd0ef40abe0e2d3be528',1,'YAWT_Q_Con_Create_Info_t']]],
+  ['http_203_14',['HTTP 3',['../index.html#autotoc_md8',1,'HTTP/3'],['../index.html#autotoc_md11',1,'HTTP/3'],['../index.html#autotoc_md14',1,'HTTP/3']]],
+  ['http3_15',['HTTP3',['../group__HTTP3.html',1,'']]]
 ];

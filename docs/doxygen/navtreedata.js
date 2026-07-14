@@ -25,6 +25,7 @@
 var NAVTREE =
 [
   [ "YAWT", "index.html", [
+    [ "YAWT — Yet Another WebTransport Library", "index.html", "index" ],
     [ "Topics", "topics.html", "topics" ],
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
@@ -53,7 +54,7 @@ var NAVTREEINDEX =
 "annotated.html",
 "group__H3__Types.html#gga0d22c4ffefed785b8cb603df7c4dd8e8aae525ced56ebcfb6c5dd8842589c1169",
 "group__WebTransport.html#gga6c845ee614d05a1e7cf70eb2d1a78901ac4f917105651284246444478c5885a86",
-"structYAWT__Q__Frame__Reset__Stream__t.html#afc20fd2473ff683bff56a0e422b4e468"
+"structYAWT__Q__Frame__Max__Stream__Data__t.html#a3ac8e592db62b6870e7f8a4585c97a26"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

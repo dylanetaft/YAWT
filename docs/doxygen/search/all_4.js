@@ -1,11 +1,17 @@
 var searchData=
 [
-  ['ecn_5fce_5fcount_0',['ecn_ce_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#ab0c24c2fc92415586b3d03e942d286db',1,'YAWT_Q_Frame_ACK_ECN_t']]],
-  ['ect0_5fcount_1',['ect0_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#a9be514e59ac7d062905c37a9696252d5',1,'YAWT_Q_Frame_ACK_ECN_t']]],
-  ['ect1_5fcount_2',['ect1_count',['../structYAWT__Q__Frame__ACK__ECN__t.html#a9f49deb21c4cc3af11b3b98500f395c2',1,'YAWT_Q_Frame_ACK_ECN_t']]],
-  ['err_3',['err',['../structYAWT__Q__ReadCursor__t.html#a9f25752021964b6e50a3c21c598202e7',1,'YAWT_Q_ReadCursor_t::err'],['../structYAWT__Q__FrameHandler__Res__t.html#a818ae7badd53b9c49aba1a0d6ccee173',1,'YAWT_Q_FrameHandler_Res_t::err']]],
-  ['err_2eh_4',['err.h',['../err_8h.html',1,'']]],
-  ['error_5fcode_5',['error_code',['../unionYAWT__H3__EventParam.html#a6a92eef6a5bbaf387c2b9394e4595803',1,'YAWT_H3_EventParam::error_code'],['../structYAWT__Q__Frame__Connection__Close__t.html#a388b0e5aa62a3a4055a7079488ceb6ef',1,'YAWT_Q_Frame_Connection_Close_t::error_code'],['../structYAWT__Q__Frame__Connection__Close__App__t.html#ae1a208ff5c90da87b6cac5ba82c82a60',1,'YAWT_Q_Frame_Connection_Close_App_t::error_code'],['../unionYAWT__Q__EventParam__t.html#a315c99c5a6c2a82a9489276766005145',1,'YAWT_Q_EventParam_t::error_code']]],
-  ['errors_6',['Errors',['../group__Errors.html',1,'']]],
-  ['extra_7',['extra',['../structYAWT__Q__Packet__t.html#a9709c44da1c1dc7a55afd90eb73640f9',1,'YAWT_Q_Packet_t']]]
+  ['data_0',['data',['../unionYAWT__H3__EventParam.html#a63737e8e7a72b02e0e9cb20ca946b87d',1,'YAWT_H3_EventParam::data'],['../structYAWT__Q__ReadCursor__t.html#abd72a62e61c2555ec8e56ebcb28cea5f',1,'YAWT_Q_ReadCursor_t::data'],['../structYAWT__Q__Frame__Crypto__t.html#a582cc0861b6e86dee9cbb73bac8571f6',1,'YAWT_Q_Frame_Crypto_t::data'],['../structYAWT__Q__Frame__Stream__t.html#aecc035d05eca07b7b2d397b9c8c8222f',1,'YAWT_Q_Frame_Stream_t::data'],['../structYAWT__Q__Frame__BufferedStream__t.html#aecb0c926397160e109042254393e462c',1,'YAWT_Q_Frame_BufferedStream_t::data'],['../structYAWT__Q__Frame__Path__Challenge__t.html#a104b0b7934fe3c666537e804f65abaeb',1,'YAWT_Q_Frame_Path_Challenge_t::data'],['../structYAWT__Q__Frame__Path__Response__t.html#a97526b373c96176bc9475a014414f0a9',1,'YAWT_Q_Frame_Path_Response_t::data'],['../structYAWT__Q__Frame__BufferedCrypto__t.html#a1cae427547733dce06ca0e6b20c90a9d',1,'YAWT_Q_Frame_BufferedCrypto_t::data'],['../unionYAWT__Q__EventParam__t.html#afb5c1cc135e6144b8b367ae580449b86',1,'YAWT_Q_EventParam_t::data'],['../unionYAWT__WT__EventParam.html#a1195dccbcc521824f40640339248ceff',1,'YAWT_WT_EventParam::data']]],
+  ['data_20structures_20core_20design_1',['Internal Data Structures - Core Design',['../index.html#autotoc_md17',1,'']]],
+  ['data_5fblocked_2',['data_blocked',['../structYAWT__Q__Context__t.html#a7c296175949354f5033c0fa29f48fa8f',1,'YAWT_Q_Context_t::data_blocked'],['../structYAWT__Q__Frame__t.html#af38a7f901ca675599bb43df199baaf3e',1,'YAWT_Q_Frame_t::data_blocked'],['../unionYAWT__WT__Capsule__t.html#ace9994790d84074be0f5c45824352614',1,'YAWT_WT_Capsule_t::data_blocked']]],
+  ['data_5flen_3',['data_len',['../structYAWT__Q__Frame__Stream__t.html#ace4801a87be0b18ef79ba140f0715c10',1,'YAWT_Q_Frame_Stream_t']]],
+  ['datagram_4',['datagram',['../structYAWT__Q__Frame__t.html#aaf8c4bb5514a4fe3c81cb1244940888a',1,'YAWT_Q_Frame_t::datagram'],['../unionYAWT__WT__Capsule__t.html#a12638f4534fd02ee53b047665877a21c',1,'YAWT_WT_Capsule_t::datagram']]],
+  ['dataptr_5',['dataptr',['../structYAWT__Q__Frame__Datagram__t.html#aeb27c8dc23f07614c6e3a242fd623d29',1,'YAWT_Q_Frame_Datagram_t']]],
+  ['design_6',['Internal Data Structures - Core Design',['../index.html#autotoc_md17',1,'']]],
+  ['dest_5fcid_7',['dest_cid',['../structYAWT__Q__Packet__t.html#a30f6688499bdbe7ecda652de4de762b4',1,'YAWT_Q_Packet_t']]],
+  ['disable_5factive_5fmigration_8',['disable_active_migration',['../structYAWT__Q__FlowControl__t.html#add90bb42c3e612bb8552a486b3f1db61',1,'YAWT_Q_FlowControl_t']]],
+  ['does_9',['What it does',['../index.html#autotoc_md1',1,'']]],
+  ['drain_5fsession_10',['drain_session',['../unionYAWT__WT__Capsule__t.html#a811cb2cecbe03bc61d1a9d6f7751e416',1,'YAWT_WT_Capsule_t']]],
+  ['draining_11',['draining',['../structYAWT__WT__Session__t.html#ac0901c65922974edc4e85efdfa7b1a98',1,'YAWT_WT_Session_t']]],
+  ['drive_20functions_12',['Drive Functions',['../group__QUIC__Drive.html',1,'']]],
+  ['duplicate_13',['DUPLICATE',['../group__H3__Internal.html#ggab4fc52971ca76db3180d7f826b019bc1a6d0b42a4ceb4a0594120df04371fad5f',1,'h3_types.h']]]
 ];

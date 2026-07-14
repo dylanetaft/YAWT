@@ -1,6 +1,6 @@
 PROJECT_NAME           = "YAWT"
 PROJECT_BRIEF          = "QUIC and HTTP/3 library for WebTransport (Public API)"
-INPUT                  = include
+INPUT                  = YAWT.md include
 RECURSIVE              = YES
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
@@ -14,5 +14,5 @@ WARN_IF_DOC_ERROR      = YES
 SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
 INTERNAL_DOCS          = YES
-USE_MDFILE_AS_MAIN_PAGE = YAWT.md
+USE_MDFILE_AS_MAINPAGE = YAWT.md
 

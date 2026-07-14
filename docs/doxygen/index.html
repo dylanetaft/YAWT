@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.16.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>YAWT: Main Page</title>
+<title>YAWT: YAWT — Yet Another WebTransport Library</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -88,10 +88,175 @@ $(function(){initNavTree('index.html','',''); });
 </div>
 </div>
 
-<div class="header">
-  <div class="headertitle"><div class="title">YAWT Documentation</div></div>
+<div><div class="header">
+  <div class="headertitle"><div class="title">YAWT — Yet Another WebTransport Library </div></div>
 </div><!--header-->
 <div class="contents">
+<div class="textblock"><p><a class="anchor" id="md_YAWT"></a></p>
+<p>A C library providing a protocol stack:</p><ul>
+<li>QUIC</li>
+<li>HTTP/3</li>
+<li>WebTransport</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md1"></a>
+What it does</h1>
+<p>YAWT provides a simple C API for creating services on top of QUIC, H3, or WebTransport. The library provides callback hooks for protocol events, and does not take over your event loop nor does it handle connectivity directly. The API allows you to pump raw UDP packets into the library, they will be parsed and callbacks will be invoked for events such as new connections, streams, datagrams, etc. Functions are provided to send stream data or datagrams, the library will buffer what is needed, ie for streams, stream frames are held until ACK is received. The library also calls a user defined TX function with the raw UDP data to send.</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md2"></a>
+What is the goal</h1>
+<p>The goal of YAWT is to provide flexible low and high level APIs for building QUIC/H3/WebTransport services. It is not a full-featured framework, but rather a library that can be used to build your own service on top of the protocols. WebTransport is still in DRAFT with the IETF, thus I wanted the flexibility of owning my own stack to implement new features as they are supported.</p>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md3"></a>
+Features</h1>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
+Performance</h2>
+<ul>
+<li>Zero-copy "fast path" stream and datagram APIs - when possible and easy to offer without tradeoff</li>
+<li>QUIC RX Streams: the QUIC layer has a small bitfield for PN tracking, allowing for out of order packet RX and delivery without needing to retransmit</li>
+<li>QUIC connection CIDs tracked in a hash table for fast lookup - UTHASH</li>
+</ul>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
+Ease of Use</h2>
+<ul>
+<li>All stream TX is buffered and sent in order, with automatic retransmission of lost frames based on ACK - application does not need to handle this</li>
+<li>Every protocol has ONE event callback, with a union of event types and parameters, with consistent naming and semantics across protocols</li>
+<li>QUIC: Stream and Connection level "slots" for you to implement your own protocols if desired</li>
+<li>Internal maintenance of connection state, including timers, retransmission, and flow control</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
+Implemented Protocol Features</h1>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
+QUIC</h2>
+<ul>
+<li>QUIC 1.0 (RFC 9000) - Server and Client</li>
+<li>Flow Control - Stream and Connection level (RFC 9000 §4)</li>
+<li>RX Packet coalescing</li>
+<li>Mandatory features allowing interoperability with other QUIC implementations</li>
+<li>RFC 9221 - Datagrams</li>
+<li>Most of the mandatory checks requiring connection termination</li>
+</ul>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
+HTTP/3</h2>
+<ul>
+<li>HTTP/3 (RFC 9114) - Server and Client</li>
+<li>RFC 9204 - QPACK (Header Frame Decoder and Encoder Only, no dynamic table support, only open streams, no push)</li>
+<li>Enough features to interoperate with browsers and other HTTP/3 implementations<ul>
+<li>Send\receive headers and data frames</li>
+<li>Download files via GET</li>
+<li>Upload files via POST</li>
+<li>Host a web server for static files</li>
+</ul>
+</li>
+<li>Extended CONNECT (RFC 9220) - the HTTP/3 substrate WebTransport rides on (see WebTransport)</li>
+<li>Most of the mandatory checks requiring connection termination</li>
+<li>Unknown frames (GREASE) - anti-ossification measures for compatibility with other HTTP/3 implementations</li>
+</ul>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
+WebTransport</h2>
+<ul>
+<li>WebTransport (draft 2 + draft 15) - Server and Client<ul>
+<li>Create\accept WebTransport sessions</li>
+<li>Send\receive datagrams</li>
+<li>Send\receive streams</li>
+</ul>
+</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
+Partially Implemented Protocol Features</h1>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md11"></a>
+HTTP/3</h2>
+<ul>
+<li>RFC 9297 - Datagrams in capsules (untested)</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md12"></a>
+Unimplemented Protocol Features</h1>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md13"></a>
+QUIC</h2>
+<ul>
+<li>Congestion control (currently sends without a congestion window)</li>
+<li>TX Packet coalescing</li>
+<li>ACKs currently sent per PN, no ranges</li>
+<li>ECN</li>
+<li>Connection migration</li>
+<li>0-RTT</li>
+</ul>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md14"></a>
+HTTP/3</h2>
+<ul>
+<li>Push streams</li>
+<li>RFC 9204 - QPACK dynamic table support, Encoder\Decoder Streams</li>
+</ul>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md15"></a>
+WebTransport</h2>
+<ul>
+<li>End to end draft 15 support (draft 2 is tested and working)</li>
+<li>Capsule framing is present but untested (browsers mostly support draft 2; IETF is on draft 15)</li>
+<li>Fewer sanity checks around protocol violations than QUIC or HTTP/3</li>
+</ul>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md16"></a>
+Building</h1>
+<div class="fragment"><div class="line">cmake -B build</div>
+<div class="line">cmake --build build</div>
+</div><!-- fragment --><p>With tests: </p><div class="fragment"><div class="line">cmake -B build -DBUILD_TESTS=ON</div>
+<div class="line">cmake --build build</div>
+<div class="line">ctest --test-dir build --output-on-failure</div>
+</div><!-- fragment --><p>With fuzzing (requires clang): </p><div class="fragment"><div class="line">cmake -B build -DBUILD_FUZZ=ON</div>
+<div class="line">cmake --build build --target fuzz_slab</div>
+<div class="line">./build/fuzz_slab -max_total_time=60</div>
+</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md17"></a>
+Internal Data Structures - Core Design</h1>
+<div class="fragment"><div class="line"><span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__Q__Context__t.html">YAWT_Q_Context_t</a> { <span class="comment">// QUIC context, contains all state for a single QUIC connection</span></div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">    <span class="keywordtype">void</span> *<a class="code hl_variable" href="structYAWT__Q__Context__t.html#a975eabb4d45f7726249ad58c0c8e16bd">user_data</a>[<a class="code hl_enumvalue" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7acf50986e8d0e2511f7ae68c34f81879a">YAWT_UD_COUNT</a>]; <span class="comment">// Each implemented protocol stores an opaque pointer here for its own context</span></div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">    ANB_Slab_t *<a class="code hl_variable" href="structYAWT__Q__Context__t.html#a1aadb4441e7359b37876698abe4fb8f6">stream_userdata</a>;      <span class="comment">// YAWT_Q_StreamUserData_t per open stream</span></div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">};</div>
+<div class="ttc" id="agroup__QUIC_html_gga5aa8acc1e2c46e1e354ce48bb38771e7acf50986e8d0e2511f7ae68c34f81879a"><div class="ttname"><a href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7acf50986e8d0e2511f7ae68c34f81879a">YAWT_UD_COUNT</a></div><div class="ttdeci">@ YAWT_UD_COUNT</div><div class="ttdef"><b>Definition</b> quic_types.h:569</div></div>
+<div class="ttc" id="astructYAWT__Q__Context__t_html"><div class="ttname"><a href="structYAWT__Q__Context__t.html">YAWT_Q_Context_t</a></div><div class="ttdoc">A QUIC connection.</div><div class="ttdef"><b>Definition</b> quic_types.h:31</div></div>
+<div class="ttc" id="astructYAWT__Q__Context__t_html_a1aadb4441e7359b37876698abe4fb8f6"><div class="ttname"><a href="structYAWT__Q__Context__t.html#a1aadb4441e7359b37876698abe4fb8f6">YAWT_Q_Context_t::stream_userdata</a></div><div class="ttdeci">ANB_Slab_t * stream_userdata</div><div class="ttdef"><b>Definition</b> quic_types.h:43</div></div>
+<div class="ttc" id="astructYAWT__Q__Context__t_html_a975eabb4d45f7726249ad58c0c8e16bd"><div class="ttname"><a href="structYAWT__Q__Context__t.html#a975eabb4d45f7726249ad58c0c8e16bd">YAWT_Q_Context_t::user_data</a></div><div class="ttdeci">void * user_data[YAWT_UD_COUNT]</div><div class="ttdef"><b>Definition</b> quic_types.h:49</div></div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__Q__StreamUserData__t.html">YAWT_Q_StreamUserData_t</a> {</div>
+<div class="line">  uint64_t <a class="code hl_variable" href="structYAWT__Q__StreamUserData__t.html#a05ce582408ddafe0a3a2c8caee1b1754">stream_id</a>;</div>
+<div class="line">  <span class="keywordtype">void</span> *<a class="code hl_variable" href="structYAWT__Q__StreamUserData__t.html#a2fabf17527ce4e66c3af4cc09c23ebcb">user_data</a>[<a class="code hl_enumvalue" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7acf50986e8d0e2511f7ae68c34f81879a">YAWT_UD_COUNT</a>];</div>
+<div class="line">};</div>
+<div class="ttc" id="astructYAWT__Q__StreamUserData__t_html"><div class="ttname"><a href="structYAWT__Q__StreamUserData__t.html">YAWT_Q_StreamUserData_t</a></div><div class="ttdoc">Per-stream user data container — one per open stream, stored in the con-&gt;stream_userdata slab.</div><div class="ttdef"><b>Definition</b> quic_types.h:88</div></div>
+<div class="ttc" id="astructYAWT__Q__StreamUserData__t_html_a05ce582408ddafe0a3a2c8caee1b1754"><div class="ttname"><a href="structYAWT__Q__StreamUserData__t.html#a05ce582408ddafe0a3a2c8caee1b1754">YAWT_Q_StreamUserData_t::stream_id</a></div><div class="ttdeci">uint64_t stream_id</div><div class="ttdef"><b>Definition</b> quic_types.h:89</div></div>
+<div class="ttc" id="astructYAWT__Q__StreamUserData__t_html_a2fabf17527ce4e66c3af4cc09c23ebcb"><div class="ttname"><a href="structYAWT__Q__StreamUserData__t.html#a2fabf17527ce4e66c3af4cc09c23ebcb">YAWT_Q_StreamUserData_t::user_data</a></div><div class="ttdeci">void * user_data[YAWT_UD_COUNT]</div><div class="ttdef"><b>Definition</b> quic_types.h:90</div></div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">struct </span><a class="code hl_struct" href="structYAWT__H3__Context__t.html">YAWT_H3_Context_t</a> {</div>
+<div class="line">    <a class="code hl_struct" href="structYAWT__Q__Context__t.html">YAWT_Q_Context_t</a> *quic_ctx;</div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">}</div>
+<div class="ttc" id="astructYAWT__H3__Context__t_html"><div class="ttname"><a href="structYAWT__H3__Context__t.html">YAWT_H3_Context_t</a></div><div class="ttdoc">H3 connection object.</div><div class="ttdef"><b>Definition</b> h3_types.h:47</div></div>
+</div><!-- fragment --><p>Protocol contexts "hang off" the QUIC Ctx via the connection's <span class="tt">user_data[]</span> array, and each open stream carries a parallel <span class="tt">user_data[]</span> array so every protocol can store its own per-stream state. Both arrays are indexed by the same <span class="tt">YAWT_UD_*</span> slot enum (<span class="tt"><a class="el" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7a0b01eb6d9d844619bcf227e1eac0609d">YAWT_UD_APP</a></span>, <span class="tt"><a class="el" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7a3669e542329deeb7675c1b0c63f26c93">YAWT_UD_QUIC</a></span>, <span class="tt"><a class="el" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7a163be659f2dea667a427b342139f9203">YAWT_UD_H3</a></span>, <span class="tt"><a class="el" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7a8d61189fb1c0b4a3280899f7e54a15f8">YAWT_UD_WT</a></span>). Each protocol context keeps a back pointer to the QUIC Ctx; QUIC functions are used across the board for all protocols. Each protocol is responsible for creating and destroying its own context and stream user data, driven by the QUIC connection and close events.</p>
+<p>There is one deliberate asymmetry between the two arrays: the <span class="tt"><a class="el" href="group__QUIC.html#gga5aa8acc1e2c46e1e354ce48bb38771e7a3669e542329deeb7675c1b0c63f26c93">YAWT_UD_QUIC</a></span> slot holds a <span class="tt"><a class="el" href="structYAWT__Q__Stream__t.html" title="Stream metadata — one per open stream, stored in the con-&gt;stream_userdata slab.">YAWT_Q_Stream_t</a></span> per stream, but is unused at the connection level — the <span class="tt"><a class="el" href="structYAWT__Q__Context__t.html" title="A QUIC connection.">YAWT_Q_Context_t</a></span> object <em>is</em> the QUIC connection state, so it has no reason to point back at itself.</p>
+<p>Visually this looks like</p>
+<div class="fragment"><div class="line"> --------------</div>
+<div class="line">|   QUIC Ctx   |</div>
+<div class="line">|==============|</div>
+<div class="line">| user_data[0] | -&gt; APP / your custom protocol context</div>
+<div class="line">| user_data[1] | -&gt; (unused - the connection object IS the QUIC state)</div>
+<div class="line">| user_data[2] | -&gt; YAWT_H3_Context_t</div>
+<div class="line">| user_data[3] | -&gt; YAWT_WT_Context_t</div>
+<div class="line">|  ..........  |</div>
+<div class="line">|  ..........  |     ------------------</div>
+<div class="line">|  Stream[0]   | -&gt; | Stream User Data |</div>
+<div class="line">|  ..........  |    |==================|</div>
+<div class="line">|  ..........  |    |  user_data[0]    | -&gt; APP / your custom protocol stream</div>
+<div class="line">|  ..........  |    |  user_data[1]    | -&gt; YAWT_Q_Stream_t</div>
+<div class="line">|  ..........  |    |  user_data[2]    | -&gt; YAWT_H3_Stream_t</div>
+<div class="line">|  ..........  |    |  user_data[3]    | -&gt; YAWT_WT_Stream_t</div>
+<div class="line">|  ..........  |     ------------------</div>
+<div class="line">|  Stream[1]   | -&gt; | Stream User Data |</div>
+<div class="line">|  ..........  |    |==================|</div>
+<div class="line">|  ..........  |    |  user_data[0]    | -&gt; APP / your custom protocol stream</div>
+<div class="line">|  ..........  |    |  user_data[1]    | -&gt; YAWT_Q_Stream_t</div>
+<div class="line">|  ..........  |    |  user_data[2]    | -&gt; YAWT_H3_Stream_t</div>
+<div class="line">|  ..........  |    |  user_data[3]    | -&gt; YAWT_WT_Stream_t</div>
+<div class="line">|______________|     ------------------</div>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md18"></a>
+Quick start</h2>
+<div class="fragment"><div class="line">See examples dir <span class="keywordflow">for</span> now</div>
+</div><!-- fragment --> </div></div><!-- PageDoc -->
 <a href="doxygen_crawl.html"></a>
 </div><!-- contents -->
 </div><!-- doc-content -->
